@@ -32,6 +32,9 @@ release/
 release_public/
 *.dmg
 
+# promo video workspace
+_promo_render/
+
 # supabase cli
 supabase/.temp/
 
