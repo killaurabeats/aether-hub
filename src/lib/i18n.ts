@@ -90,6 +90,17 @@ const en: Record<string, string> = {
   "Ключ подписывает именно этот Machine ID. Пока админ не одобрит заявку, ключ появится в профиле со статусом «ожидает».":
     "The key signs this exact Machine ID. Until an admin approves the request, it will appear in your profile as pending.",
   "Установлено на этом Mac": "Installed on this Mac",
+  "Установлено на этом ПК": "Installed on this PC",
+  "Приложение полностью работает, но рейтинги, комментарии и заявки сохраняются только на этом ПК.":
+    "The app is fully functional, but ratings, comments and requests are stored only on this PC.",
+  "Локальный демо-режим · обращения сохраняются на этом устройстве":
+    "Local demo · tickets are stored on this device",
+  "Приватный ключ никогда не покидает это устройство и не попадает в сборку. Публичная часть зашита в плагин.":
+    "The private key never leaves this device and never enters the build. The public half is embedded in the plugin.",
+  "задеплойте Edge Function и пересоберите приложение. Сейчас изменения сохраняются в локальный каталог этого устройства.":
+    "deploy the Edge Function and rebuild the app. For now changes are saved to this device's local catalog.",
+  "Установка идёт в системные папки плагинов. Может потребоваться подтверждение прав.":
+    "Installs into the system plugin folders. You may need to confirm permissions.",
   "{count} из {total} релизов": "{count} of {total} releases",
   "Пути": "Paths",
   "Пока ничего не установлено. Откройте любой релиз и нажмите «Установить» — файлы встанут в системные папки автоматически.":
@@ -541,7 +552,7 @@ const en: Record<string, string> = {
 
   // -------------------------------------------------------------------- misc
   "Aether Plugins · by. @killaurabeats": "Aether Plugins · by. @killaurabeats",
-  "AETHER HUB · 1.2 · CINEMATIC INTRO": "AETHER HUB · 1.2 · CINEMATIC INTRO",
+  "AETHER HUB · 1.2.1 · CINEMATIC INTRO": "AETHER HUB · 1.2.1 · CINEMATIC INTRO",
   "Эффекты стекла": "Glass effects",
   "Размытие": "Blur",
   "Включено": "On",
@@ -569,7 +580,7 @@ const en: Record<string, string> = {
   "Включить звук заставки": "Enable the startup sound",
   "Русский": "Russian",
   "не задан": "not set",
-  "Aether Hub · 1.2 · CINEMATIC INTRO": "AETHER HUB · 1.2 · CINEMATIC INTRO",
+  "Aether Hub · 1.2.1 · CINEMATIC INTRO": "AETHER HUB · 1.2.1 · CINEMATIC INTRO",
   "Чат с создателем": "Creator chat",
   "Скоро здесь появится встроенная поддержка.":
     "Built-in support is coming soon.",

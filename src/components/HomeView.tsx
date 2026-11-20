@@ -73,7 +73,9 @@ export function HomeView({
           <div style={{ flex: 1 }}>
             <b>{t("Локальный каталог.")}</b>{" "}
             {t(
-              "Приложение полностью работает, но рейтинги, комментарии и заявки сохраняются только на этом Mac.",
+              machine.os === "macos"
+                ? "Приложение полностью работает, но рейтинги, комментарии и заявки сохраняются только на этом Mac."
+                : "Приложение полностью работает, но рейтинги, комментарии и заявки сохраняются только на этом ПК.",
             )}{" "}
             <button className="ghost-link" onClick={onOpenSettings} style={{ fontSize: 11.5 }}>
               {t("Подключить Supabase")} <ArrowRight size={11} />
@@ -309,7 +311,9 @@ export function HomeView({
               <HardDriveDownload size={15} />
             </span>
             <div>
-              <div style={{ fontSize: 13, fontWeight: 600 }}>{t("Установлено на этом Mac")}</div>
+              <div style={{ fontSize: 13, fontWeight: 600 }}>
+                {t(machine.os === "macos" ? "Установлено на этом Mac" : "Установлено на этом ПК")}
+              </div>
               <div style={{ fontSize: 10.5, color: "var(--dim)" }}>
                 {t("{count} из {total} релизов", {
                   count: Object.keys(installs).length,

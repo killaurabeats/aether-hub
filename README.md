@@ -1,4 +1,4 @@
-# Aether Hub v1.2
+# Aether Hub v1.2.1
 
 Премиальный десктопный лаунчер для плагинов, драм-китов и пресетов Aether.
 Tauri 2 (Rust) + React 18 + TypeScript + Framer Motion, с полностью рабочим

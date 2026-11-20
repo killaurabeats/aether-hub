@@ -138,7 +138,7 @@ export function SupportTickets() {
           <p>
             {adminTokenReady
               ? t("Обновление каждые 8 секунд · таблица support_tickets")
-              : t("Локальный демо-режим · обращения сохраняются на этом Mac")}
+              : t("Локальный демо-режим · обращения сохраняются на этом устройстве")}
           </p>
         </div>
         <span className={`chip ${adminTokenReady ? "green" : "gold"}`}>

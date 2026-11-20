@@ -74,7 +74,7 @@ export function SettingsModal({
 
   const [section, setSection] = useState<SettingsSection>(initialSection);
   const [confirmReset, setConfirmReset] = useState(false);
-  const [version, setVersion] = useState("1.2.0");
+  const [version, setVersion] = useState("1.2.1");
   const [health, setHealth] = useState<CloudHealth | null>(null);
   const [checkingCloud, setCheckingCloud] = useState(false);
   const [secretOpen, setSecretOpen] = useState(false);
@@ -436,7 +436,7 @@ export function SettingsModal({
                     <b>{t("Плагины VST3 / AU")}</b>
                     <span>
                       {t(
-                        "Установка идёт в системные папки плагинов. На macOS это требует прав пользователя, но не администратора.",
+                        "Установка идёт в системные папки плагинов. Может потребоваться подтверждение прав.",
                       )}
                     </span>
                     <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 8 }}>
@@ -675,7 +675,7 @@ export function SettingsModal({
                   >
                     {`VITE_SUPABASE_URL=https://xxxx.supabase.co
 VITE_SUPABASE_ANON_KEY=eyJhbGciOi...
-VITE_AETHER_ADMIN_TOKEN=...   # only on your Mac`}
+VITE_AETHER_ADMIN_TOKEN=...   # only on your device`}
                   </div>
                   <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
                     <button

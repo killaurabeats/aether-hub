@@ -402,7 +402,7 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
                 <span className="chip">
                   <Stars value={5} size={9} /> AETHER
                 </span>
-                <span className="chip violet">v1.2</span>
+                <span className="chip violet">v1.2.1</span>
                 <span className="chip green">HWID ver.</span>
               </div>
             </div>
