@@ -221,6 +221,17 @@ const readAutoApprove = async (supabase: any): Promise<boolean> => {
   return Boolean(data?.auto_approve_licenses);
 };
 
+const readAutoApproveSlugs = async (supabase: any): Promise<string[]> => {
+  const { data, error } = await supabase
+    .from("app_config")
+    .select("auto_approve_slugs")
+    .eq("id", true)
+    .maybeSingle();
+  if (error) throw error;
+  const value = data?.auto_approve_slugs;
+  return Array.isArray(value) ? value.map(String) : [];
+};
+
 const pendingCount = async (supabase: any): Promise<number> => {
   const { count, error } = await supabase
     .from("license_requests")
@@ -315,6 +326,7 @@ Deno.serve(async (request) => {
           .maybeSingle();
         return json({
           autoApproveLicenses: await readAutoApprove(supabase),
+          autoApproveSlugs: await readAutoApproveSlugs(supabase),
           pending: await pendingCount(supabase),
           latestVersion: cfg?.latest_launcher_version ?? null,
           updateNotice: cfg?.update_notice ?? null,
@@ -339,12 +351,38 @@ Deno.serve(async (request) => {
         if (error) return json({ error: error.message }, 400);
         return json({
           autoApproveLicenses: Boolean(data?.auto_approve_licenses),
+          autoApproveSlugs: await readAutoApproveSlugs(supabase),
+          pending: await pendingCount(supabase),
+        });
+      }
+
+      case "set_auto_approve_slugs": {
+        const slugs = Array.isArray(payload.slugs)
+          ? [...new Set(payload.slugs.map((slug: unknown) => String(slug).trim()).filter(Boolean))].slice(0, 200)
+          : [];
+        const { data, error } = await supabase
+          .from("app_config")
+          .upsert(
+            {
+              id: true,
+              auto_approve_slugs: slugs,
+              updated_at: new Date().toISOString(),
+            },
+            { onConflict: "id" },
+          )
+          .select("auto_approve_slugs")
+          .single();
+        if (error) return json({ error: error.message }, 400);
+        return json({
+          autoApproveLicenses: await readAutoApprove(supabase),
+          autoApproveSlugs: Array.isArray(data?.auto_approve_slugs)
+            ? data.auto_approve_slugs.map(String)
+            : slugs,
           pending: await pendingCount(supabase),
         });
       }
 
       case "auto_approve_request": {
-        if (!(await readAutoApprove(supabase))) return json({ skipped: true });
         const id = String(payload.id ?? "");
         if (!id) return json({ error: "id required" }, 400);
 
@@ -355,6 +393,12 @@ Deno.serve(async (request) => {
           .maybeSingle();
         if (reqError) return json({ error: reqError.message }, 400);
         if (!requestRow) return json({ skipped: true });
+
+        const enabled = await readAutoApprove(supabase);
+        const autoSlugs = await readAutoApproveSlugs(supabase);
+        if (!enabled && !autoSlugs.includes(String(requestRow.plugin_slug ?? ""))) {
+          return json({ skipped: true });
+        }
 
         const result = await issuePendingRequest(supabase, requestRow);
         return json({ ok: true, ...result });
@@ -409,7 +453,7 @@ Deno.serve(async (request) => {
 
       case "beta_create": {
         const note = String(payload.note ?? "").trim().slice(0, 160) || null;
-        const count = Math.max(1, Math.min(25, Number(payload.count ?? 1) || 1));
+        const count = Math.max(1, Math.min(100, Number(payload.count ?? 1) || 1));
         const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
         const created: string[] = [];
 
@@ -430,6 +474,30 @@ Deno.serve(async (request) => {
         }
 
         return json({ created });
+      }
+
+      case "beta_delete": {
+        const code = String(payload.code ?? "").trim();
+        if (!code) return json({ error: "code required" }, 400);
+        const { data, error } = await supabase
+          .from("beta_invites")
+          .delete()
+          .eq("code", code)
+          .is("used_by_hwid", null)
+          .select("code")
+          .maybeSingle();
+        if (error) return json({ error: error.message }, 400);
+        return json({ deleted: Boolean(data), code });
+      }
+
+      case "beta_clear_unused": {
+        const { data, error } = await supabase
+          .from("beta_invites")
+          .delete()
+          .is("used_by_hwid", null)
+          .select("code");
+        if (error) return json({ error: error.message }, 400);
+        return json({ deleted: (data ?? []).length });
       }
 
       // ---------------------------------------------------------- uploads ----

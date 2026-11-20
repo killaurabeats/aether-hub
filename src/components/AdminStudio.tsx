@@ -27,13 +27,16 @@ import { CATEGORY_META } from "../types";
 import { useStore } from "../lib/store";
 import {
   approveAllPending,
+  clearUnusedBetaInvites,
   cloudEnabled,
   createBetaInvites,
+  deleteBetaInvite,
   deleteRelease,
   fetchAppConfig,
   listBetaInvites,
   saveRelease,
   setAutoApproveLicenses,
+  setAutoApproveSlugs,
   type BetaInvite,
 } from "../lib/cloud";
 import { fileStat, readImageDataUrl } from "../lib/desktop";
@@ -105,6 +108,7 @@ export function AdminStudio() {
   >(null);
   const slugTouched = useRef(false);
   const [autoApprove, setAutoApprove] = useState<boolean | null>(null);
+  const [autoSlugs, setAutoSlugs] = useState<string[]>([]);
   const [autoPending, setAutoPending] = useState(0);
   const [autoBusy, setAutoBusy] = useState(false);
   const [approveAllBusy, setApproveAllBusy] = useState(false);
@@ -114,6 +118,8 @@ export function AdminStudio() {
   const [betaCount, setBetaCount] = useState(5);
   const [betaBusy, setBetaBusy] = useState(false);
   const [betaLoading, setBetaLoading] = useState(false);
+  const [confirmClearBeta, setConfirmClearBeta] = useState(false);
+  const [slugBusy, setSlugBusy] = useState<string | null>(null);
 
   const loadBeta = useCallback(async () => {
     if (!cloudEnabled || !adminTokenReady) return;
@@ -157,6 +163,27 @@ export function AdminStudio() {
     });
   };
 
+  const removeBeta = async (code: string) => {
+    try {
+      await deleteBetaInvite(code);
+      await loadBeta();
+      toast({ kind: "success", title: t("Инвайт удалён") });
+    } catch (error) {
+      toast({ kind: "error", title: t("Не удалось удалить инвайт"), message: String(error) });
+    }
+  };
+
+  const clearBeta = async () => {
+    try {
+      const deleted = await clearUnusedBetaInvites();
+      await loadBeta();
+      setConfirmClearBeta(false);
+      toast({ kind: "success", title: t("Удалено свободных инвайтов: {count}", { count: deleted }) });
+    } catch (error) {
+      toast({ kind: "error", title: t("Не удалось очистить инвайты"), message: String(error) });
+    }
+  };
+
   const loadAutomation = useCallback(async () => {
     if (!cloudEnabled || !adminTokenReady) {
       setAutoApprove(false);
@@ -166,6 +193,7 @@ export function AdminStudio() {
     try {
       const config = await fetchAppConfig();
       setAutoApprove(config.autoApproveLicenses);
+      setAutoSlugs(config.autoApproveSlugs ?? []);
       setAutoPending(config.pending);
       setAutoError(null);
     } catch (error) {
@@ -185,6 +213,7 @@ export function AdminStudio() {
     try {
       const config = await setAutoApproveLicenses(!autoApprove);
       setAutoApprove(config.autoApproveLicenses);
+      setAutoSlugs(config.autoApproveSlugs ?? []);
       setAutoPending(config.pending);
       toast({
         kind: "success",
@@ -197,6 +226,32 @@ export function AdminStudio() {
       toast({ kind: "error", title: t("Не удалось изменить автовыдачу"), message: String(error) });
     } finally {
       setAutoBusy(false);
+    }
+  };
+
+  const toggleSlug = async (slug: string) => {
+    if (!adminTokenReady || slugBusy) return;
+    setSlugBusy(slug);
+    setAutoError(null);
+    try {
+      const next = autoSlugs.includes(slug)
+        ? autoSlugs.filter((value) => value !== slug)
+        : [...autoSlugs, slug];
+      const config = await setAutoApproveSlugs(next);
+      setAutoSlugs(config.autoApproveSlugs ?? next);
+      setAutoApprove(config.autoApproveLicenses);
+      setAutoPending(config.pending);
+      toast({
+        kind: "success",
+        title: next.includes(slug)
+          ? t("Автовыдача включена для {name}", { name: slug })
+          : t("Автовыдача выключена для {name}", { name: slug }),
+      });
+    } catch (error) {
+      setAutoError(String(error));
+      toast({ kind: "error", title: t("Не удалось изменить плагин"), message: String(error) });
+    } finally {
+      setSlugBusy(null);
     }
   };
 
@@ -518,6 +573,10 @@ export function AdminStudio() {
 
   const pendingRequests = (overview?.requests ?? []).filter((r) => r.status === "pending").length;
   const pendingTotal = Math.max(autoPending, pendingRequests);
+  const proPlugins = releases.filter(
+    (release) => release.category === "plugins" && (release.tier ?? "free") === "pro",
+  );
+  const freeBetaCount = betaInvites.filter((invite) => !invite.usedByHwid).length;
 
   return (
     <div className="page">
@@ -565,66 +624,152 @@ export function AdminStudio() {
 
       <div
         className="admin-card glass"
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 16,
-          marginBottom: 16,
-          padding: "18px 20px",
-        }}
+        style={{ marginBottom: 16, padding: "18px 20px" }}
       >
-        <div className="seal" style={{ width: 44, height: 44, borderRadius: 14 }}>
-          <Zap size={18} />
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            <h3 style={{ margin: 0 }}>{t("Автовыдача лицензий (Auto-Approve)")}</h3>
-            <span className={`chip ${autoApprove ? "green" : ""}`}>
-              {autoApprove === null ? "…" : autoApprove ? "ON" : "OFF"}
-            </span>
-            {pendingTotal > 0 ? (
-              <span className="chip gold">
-                {t("{count} ждут", { count: pendingTotal })}
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <div className="seal" style={{ width: 44, height: 44, borderRadius: 14, flex: "0 0 auto" }}>
+            <Zap size={18} />
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <h3 style={{ margin: 0 }}>{t("Автовыдача лицензий (Auto-Approve)")}</h3>
+              <span className={`chip ${autoApprove ? "green" : ""}`}>
+                {autoApprove === null ? "…" : autoApprove ? "ALL ON" : "OFF"}
               </span>
+              {pendingTotal > 0 ? (
+                <span className="chip gold">
+                  {t("{count} ждут", { count: pendingTotal })}
+                </span>
+              ) : null}
+            </div>
+            <p className="sub" style={{ margin: "5px 0 0" }}>
+              {t(
+                "Общий режим одобряет все заявки. Ниже можно включить автовыдачу только для выбранных PRO-плагинов.",
+              )}
+            </p>
+            {!cloudEnabled || !adminTokenReady ? (
+              <p style={{ margin: "5px 0 0", fontSize: 10, color: "var(--gold)" }}>
+                {t("Для автовыдачи нужен Cloud admin token.")}
+              </p>
+            ) : null}
+            {autoError ? (
+              <p style={{ margin: "5px 0 0", fontSize: 10, color: "var(--red)", wordBreak: "break-word" }}>
+                {autoError}
+              </p>
             ) : null}
           </div>
-          <p className="sub" style={{ margin: "5px 0 0" }}>
-            {t(
-              "Новые заявки подписываются на сервере автоматически и сразу попадают в профиль пользователя.",
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+            <span style={{ fontSize: 8, letterSpacing: "0.18em", color: "var(--dim)" }}>
+              {t("ВСЕ")}
+            </span>
+            <button
+              className={`toggle ${autoApprove ? "on" : ""}`}
+              onClick={() => void toggleAutoApprove()}
+              disabled={!cloudEnabled || !adminTokenReady || autoBusy || autoApprove === null}
+              aria-pressed={Boolean(autoApprove)}
+              aria-label={t("Автовыдача всех лицензий")}
+              title={t("Автовыдача всех лицензий")}
+            />
+          </div>
+          <button
+            className="btn btn-soft btn-sm"
+            onClick={() => void approveAll()}
+            disabled={!cloudEnabled || !adminTokenReady || approveAllBusy || pendingTotal === 0}
+          >
+            {approveAllBusy ? (
+              <Loader2 size={12} className="spin" />
+            ) : (
+              <ListChecks size={12} />
             )}
-          </p>
-          {!cloudEnabled || !adminTokenReady ? (
-            <p style={{ margin: "5px 0 0", fontSize: 10, color: "var(--gold)" }}>
-              {t("Для автовыдачи нужен Cloud admin token.")}
-            </p>
-          ) : null}
-          {autoError ? (
-            <p style={{ margin: "5px 0 0", fontSize: 10, color: "var(--red)", wordBreak: "break-word" }}>
-              {autoError}
-            </p>
-          ) : null}
+            {t("Одобрить все ожидающие")}
+            {pendingTotal > 0 ? ` · ${pendingTotal}` : ""}
+          </button>
         </div>
-        <button
-          className={`toggle ${autoApprove ? "on" : ""}`}
-          onClick={() => void toggleAutoApprove()}
-          disabled={!cloudEnabled || !adminTokenReady || autoBusy || autoApprove === null}
-          aria-pressed={Boolean(autoApprove)}
-          aria-label={t("Автовыдача лицензий (Auto-Approve)")}
-          title={t("Автовыдача лицензий (Auto-Approve)")}
-        />
-        <button
-          className="btn btn-soft btn-sm"
-          onClick={() => void approveAll()}
-          disabled={!cloudEnabled || !adminTokenReady || approveAllBusy || pendingTotal === 0}
+
+        <div
+          style={{
+            marginTop: 16,
+            paddingTop: 14,
+            borderTop: "1px solid var(--line)",
+          }}
         >
-          {approveAllBusy ? (
-            <Loader2 size={12} className="spin" />
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 10,
+              marginBottom: 8,
+            }}
+          >
+            <div>
+              <b style={{ fontSize: 11 }}>{t("Автовыдача по PRO-плагинам")}</b>
+              <p className="sub" style={{ margin: "3px 0 0" }}>
+                {t("Переключатель действует на новые заявки выбранного плагина.")}
+              </p>
+            </div>
+            <span className={`chip ${proPlugins.length ? "gold" : ""}`}>
+              {proPlugins.length} PRO
+            </span>
+          </div>
+
+          {proPlugins.length ? (
+            <div className="release-list">
+              {proPlugins.map((plugin) => {
+                const slug = plugin.slug;
+                const on = autoSlugs.includes(slug);
+                return (
+                  <div className="release-row" key={plugin.id} style={{ padding: "10px 12px" }}>
+                    <div
+                      style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: 11,
+                        display: "grid",
+                        placeItems: "center",
+                        background: on ? "rgba(94,234,212,.08)" : "rgba(255,210,122,.06)",
+                        border: `1px solid ${on ? "rgba(94,234,212,.24)" : "rgba(255,210,122,.18)"}`,
+                        color: on ? "var(--green)" : "var(--gold)",
+                        flex: "0 0 auto",
+                      }}
+                    >
+                      <Zap size={15} />
+                    </div>
+                    <div className="info" style={{ flex: 1, minWidth: 0 }}>
+                      <b>{plugin.title}</b>
+                      <span>
+                        {slug} · v{plugin.version}
+                      </span>
+                    </div>
+                    <span className={`chip ${on ? "green" : "gold"}`}>
+                      {on ? t("АВТО") : "PRO"}
+                    </span>
+                    <button
+                      className={`toggle ${on ? "on" : ""}`}
+                      onClick={() => void toggleSlug(slug)}
+                      disabled={!cloudEnabled || !adminTokenReady || slugBusy === slug}
+                      aria-pressed={on}
+                      aria-label={t("Автовыдача для {name}", { name: plugin.title })}
+                      title={t("Автовыдача для {name}", { name: plugin.title })}
+                    />
+                  </div>
+                );
+              })}
+            </div>
           ) : (
-            <ListChecks size={12} />
+            <div
+              className="notice"
+              style={{ marginBottom: 0, borderColor: "rgba(196,181,253,.16)" }}
+            >
+              <Zap size={14} />
+              <div>
+                {t(
+                  "Нет PRO-плагинов — переключатели появятся здесь автоматически при публикации PRO-версий.",
+                )}
+              </div>
+            </div>
           )}
-          {t("Одобрить все ожидающие")}
-          {pendingTotal > 0 ? ` · ${pendingTotal}` : ""}
-        </button>
+        </div>
       </div>
 
       <div className="segmented">
@@ -1102,9 +1247,35 @@ export function AdminStudio() {
                 )}
               </p>
             </div>
-            <button className="btn btn-ghost btn-sm" onClick={() => void loadBeta()} disabled={betaLoading}>
-              <RefreshCw size={12} className={betaLoading ? "spin" : ""} /> {t("Обновить")}
-            </button>
+            <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}>
+              {confirmClearBeta ? (
+                <>
+                  <button
+                    className="btn btn-danger btn-sm"
+                    onClick={() => void clearBeta()}
+                  >
+                    {t("Удалить свободные")}
+                  </button>
+                  <button
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => setConfirmClearBeta(false)}
+                  >
+                    {t("Отмена")}
+                  </button>
+                </>
+              ) : (
+                <button
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => setConfirmClearBeta(true)}
+                  disabled={betaLoading || freeBetaCount === 0}
+                >
+                  <Trash2 size={12} /> {t("Очистить свободные")}
+                </button>
+              )}
+              <button className="btn btn-ghost btn-sm" onClick={() => void loadBeta()} disabled={betaLoading}>
+                <RefreshCw size={12} className={betaLoading ? "spin" : ""} /> {t("Обновить")}
+              </button>
+            </div>
           </div>
 
           <div
@@ -1127,16 +1298,16 @@ export function AdminStudio() {
             </div>
             <div className="field" style={{ width: 110 }}>
               <label>{t("Сколько")}</label>
-              <select
+              <input
+                type="number"
+                min={1}
+                max={100}
                 value={betaCount}
-                onChange={(event) => setBetaCount(Number(event.target.value))}
-              >
-                {[1, 5, 10, 25].map((value) => (
-                  <option key={value} value={value}>
-                    {value}
-                  </option>
-                ))}
-              </select>
+                onChange={(event) => {
+                  const next = Math.floor(Number(event.target.value));
+                  setBetaCount(Math.max(1, Math.min(100, Number.isFinite(next) ? next : 1)));
+                }}
+              />
             </div>
             <button
               className="btn btn-primary"
@@ -1186,6 +1357,15 @@ export function AdminStudio() {
                   >
                     <Copy size={13} />
                   </button>
+                  {!invite.usedByHwid ? (
+                    <button
+                      className="row-icon danger"
+                      onClick={() => void removeBeta(invite.code)}
+                      title={t("Удалить свободный инвайт")}
+                    >
+                      <X size={13} />
+                    </button>
+                  ) : null}
                 </div>
               ))}
             </div>

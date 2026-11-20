@@ -928,6 +928,7 @@ export interface AdminOverview {
 
 export interface AppConfig {
   autoApproveLicenses: boolean;
+  autoApproveSlugs: string[];
   pending: number;
 }
 
@@ -955,13 +956,18 @@ export async function fetchLauncherNotice(): Promise<LauncherNotice | null> {
 }
 
 export async function fetchAppConfig(): Promise<AppConfig> {
-  if (!cloudEnabled) return { autoApproveLicenses: false, pending: 0 };
+  if (!cloudEnabled) return { autoApproveLicenses: false, autoApproveSlugs: [], pending: 0 };
   return adminApi<AppConfig>("config");
 }
 
 export async function setAutoApproveLicenses(enabled: boolean): Promise<AppConfig> {
   if (!cloudEnabled) throw new Error("Cloud is not configured.");
   return adminApi<AppConfig>("set_auto_approve", { enabled });
+}
+
+export async function setAutoApproveSlugs(slugs: string[]): Promise<AppConfig> {
+  if (!cloudEnabled) throw new Error("Cloud is not configured.");
+  return adminApi<AppConfig>("set_auto_approve_slugs", { slugs });
 }
 
 export async function approveAllPending(): Promise<ApproveAllResult> {
@@ -987,6 +993,18 @@ export async function createBetaInvites(note: string, count = 1): Promise<string
   if (!cloudEnabled) throw new Error("Cloud is not configured.");
   const data = await adminApi<{ created: string[] }>("beta_create", { note, count });
   return data.created ?? [];
+}
+
+export async function deleteBetaInvite(code: string): Promise<boolean> {
+  if (!cloudEnabled) throw new Error("Cloud is not configured.");
+  const data = await adminApi<{ deleted: boolean }>("beta_delete", { code });
+  return Boolean(data.deleted);
+}
+
+export async function clearUnusedBetaInvites(): Promise<number> {
+  if (!cloudEnabled) throw new Error("Cloud is not configured.");
+  const data = await adminApi<{ deleted: number }>("beta_clear_unused");
+  return Number(data.deleted ?? 0);
 }
 
 export async function fetchBetaStatus(machineId: string): Promise<boolean> {

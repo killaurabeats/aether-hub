@@ -128,12 +128,17 @@ create index if not exists beta_invites_used_idx on public.beta_invites (used_by
 create table if not exists public.app_config (
   id                    boolean primary key default true check (id),
   auto_approve_licenses boolean not null default false,
+  auto_approve_slugs    jsonb not null default '[]'::jsonb,
   latest_launcher_version text,
   update_notice         text,
   update_url            text,
   updated_at            timestamptz not null default now()
 );
 
+alter table public.app_config add column if not exists auto_approve_slugs jsonb not null default '[]'::jsonb;
+alter table public.app_config drop constraint if exists app_config_auto_slugs_array;
+alter table public.app_config add constraint app_config_auto_slugs_array
+  check (jsonb_typeof(auto_approve_slugs) = 'array');
 alter table public.app_config add column if not exists latest_launcher_version text;
 alter table public.app_config add column if not exists update_notice text;
 alter table public.app_config add column if not exists update_url text;
@@ -453,6 +458,7 @@ set search_path = public, net, vault
 as $$
 declare
   enabled boolean;
+  auto_slugs jsonb;
   admin_token text;
   functions_url text;
 begin
@@ -460,11 +466,15 @@ begin
     return new;
   end if;
 
-  select auto_approve_licenses into enabled
+  select auto_approve_licenses, auto_approve_slugs
+    into enabled, auto_slugs
     from public.app_config
    where id = true;
 
-  if not coalesce(enabled, false) then
+  -- The global switch approves every request; otherwise only slugs listed in
+  -- auto_approve_slugs are signed automatically.
+  if not coalesce(enabled, false)
+     and not coalesce(auto_slugs ? new.plugin_slug, false) then
     return new;
   end if;
 

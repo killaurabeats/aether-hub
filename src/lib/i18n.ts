@@ -324,6 +324,25 @@ const en: Record<string, string> = {
   "задеплойте Edge Function и пересоберите приложение. Сейчас изменения сохраняются в локальный каталог этого Mac.":
     "deploy the Edge Function and rebuild the app. For now changes are saved to this Mac's local catalog.",
   "Автовыдача лицензий (Auto-Approve)": "Auto-approve licenses",
+  "Автовыдача всех лицензий": "Auto-approve all licences",
+  "Автовыдача по PRO-плагинам": "Auto-approve by PRO plugin",
+  "Переключатель действует на новые заявки выбранного плагина.":
+    "The switch applies to new requests for the selected plugin.",
+  "Нет PRO-плагинов — переключатели появятся здесь автоматически при публикации PRO-версий.":
+    "No PRO plugins yet — switches will appear here automatically when PRO versions are published.",
+  "Автовыдача для {name}": "Auto-approve for {name}",
+  "Автовыдача включена для {name}": "Auto-approve enabled for {name}",
+  "Автовыдача выключена для {name}": "Auto-approve disabled for {name}",
+  "Не удалось изменить плагин": "Could not change the plugin",
+  "ВСЕ": "ALL",
+  "АВТО": "AUTO",
+  "Очистить свободные": "Clear unused",
+  "Удалить свободные": "Delete unused",
+  "Удалить свободный инвайт": "Delete unused invite",
+  "Инвайт удалён": "Invite deleted",
+  "Не удалось удалить инвайт": "Could not delete invite",
+  "Удалено свободных инвайтов: {count}": "Unused invites deleted: {count}",
+  "Не удалось очистить инвайты": "Could not clear invites",
   "Новые заявки подписываются на сервере автоматически и сразу попадают в профиль пользователя.":
     "New requests are signed on the server automatically and land in the user's profile immediately.",
   "Для автовыдачи нужен Cloud admin token.":
