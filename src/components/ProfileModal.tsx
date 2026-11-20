@@ -151,6 +151,23 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
             <div className="profile-top">
               <div className="avatar-edit" onClick={() => fileRef.current?.click()}>
                 <Avatar name={nickname || "aether"} src={avatar} size={96} />
+                {betaTester ? (
+                  <span
+                    className="chip violet"
+                    style={{
+                      position: "absolute",
+                      bottom: -11,
+                      left: "50%",
+                      transform: "translateX(-50%)",
+                      zIndex: 3,
+                      fontSize: 8,
+                      letterSpacing: "0.12em",
+                      background: "rgba(24,19,42,.92)",
+                    }}
+                  >
+                    BETA
+                  </span>
+                ) : null}
                 <div className="overlay">
                   <Camera size={20} />
                 </div>
