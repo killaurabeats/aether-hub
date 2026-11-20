@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Star } from "lucide-react";
+import { useStore } from "../lib/store";
 
 export function Stars({
   value,
@@ -12,6 +13,7 @@ export function Stars({
   size?: number;
   className?: string;
 }) {
+  const { t } = useStore();
   const [hover, setHover] = useState(0);
   const shown = hover || value;
 
@@ -20,7 +22,7 @@ export function Stars({
       className={`stars ${className}`}
       onMouseLeave={() => setHover(0)}
       role={onChange ? "radiogroup" : undefined}
-      aria-label={`Рейтинг ${value} из 5`}
+      aria-label={t("Рейтинг {value} из 5", { value })}
     >
       {[1, 2, 3, 4, 5].map((star) => {
         const on = shown >= star - 0.25;
@@ -34,7 +36,7 @@ export function Stars({
               event.stopPropagation();
               onChange(star);
             }}
-            aria-label={`${star} звёзд`}
+            aria-label={t("{star} звёзд", { star })}
             role="radio"
             aria-checked={value === star}
           >

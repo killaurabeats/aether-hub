@@ -9,11 +9,13 @@ import {
   FolderOpen,
   Info,
   KeyRound,
+  Languages,
   LayoutGrid,
   Loader2,
   Play,
   RefreshCw,
   RotateCcw,
+  Settings2,
   ShieldCheck,
   Volume2,
   X,
@@ -22,12 +24,12 @@ import { useStore } from "../lib/store";
 import { copyText, formatBytes } from "../lib/format";
 import { openExternal, openFolder } from "../lib/desktop";
 import { cloudConfig, cloudEnabled, cloudAdminReady } from "../lib/cloud";
-import { playIntro, setIntroVolume } from "../lib/sound";
+import { playIntro, setIntroVolume, stopIntro } from "../lib/sound";
 
-export type SettingsSection = "sound" | "appearance" | "install" | "cloud" | "about";
+export type SettingsSection = "general" | "appearance" | "install" | "cloud" | "about";
 
 const TABS: { id: SettingsSection; label: string; icon: typeof Volume2 }[] = [
-  { id: "sound", label: "Звук", icon: Volume2 },
+  { id: "general", label: "Общие", icon: Settings2 },
   { id: "appearance", label: "Вид", icon: LayoutGrid },
   { id: "install", label: "Установка", icon: Boxes },
   { id: "cloud", label: "Облако", icon: Cloud },
@@ -36,7 +38,7 @@ const TABS: { id: SettingsSection; label: string; icon: typeof Volume2 }[] = [
 
 export function SettingsModal({
   onClose,
-  initialSection = "sound",
+  initialSection = "general",
 }: {
   onClose: () => void;
   initialSection?: SettingsSection;
@@ -55,6 +57,7 @@ export function SettingsModal({
     pickFolder,
     toast,
     catalogSource,
+    t,
   } = useStore();
 
   const [section, setSection] = useState<SettingsSection>(initialSection);
@@ -68,20 +71,27 @@ export function SettingsModal({
       .catch(() => undefined);
   }, []);
 
-  const copy = async (value: string, title = "Скопировано") => {
+  const copy = async (value: string, title?: string) => {
     const ok = await copyText(value);
-    toast({ kind: ok ? "success" : "error", title: ok ? title : "Не удалось скопировать" });
+    toast({
+      kind: ok ? "success" : "error",
+      title: ok ? title ?? t("Скопировано") : t("Не удалось скопировать"),
+    });
   };
 
   const urlHost = (() => {
     try {
       return new URL(cloudConfig.url).host;
     } catch {
-      return "не задан";
+      return "—";
     }
   })();
 
   const installedCount = Object.keys(installs).length;
+  const totalInstalledSize = Object.values(installs).reduce(
+    (sum, item) => sum + item.sizeBytes,
+    0,
+  );
 
   return (
     <motion.div
@@ -102,10 +112,10 @@ export function SettingsModal({
       >
         <div className="modal-head">
           <div>
-            <h2>Настройки</h2>
-            <div className="sub">Звук, папки, облако и приватность</div>
+            <h2>{t("Настройки")}</h2>
+            <div className="sub">{t("Звук, папки, облако и приватность")}</div>
           </div>
-          <button className="modal-close" onClick={onClose} aria-label="Закрыть">
+          <button className="modal-close" onClick={onClose} aria-label={t("Закрыть")}>
             <X size={15} />
           </button>
         </div>
@@ -119,7 +129,7 @@ export function SettingsModal({
                 className={section === tab.id ? "active" : ""}
                 onClick={() => setSection(tab.id)}
               >
-                <Icon size={12} /> {tab.label}
+                <Icon size={12} /> {t(tab.label)}
               </button>
             );
           })}
@@ -127,27 +137,54 @@ export function SettingsModal({
 
         <div className="modal-scroll">
           <div className="settings-body">
-            {section === "sound" ? (
+            {section === "general" ? (
               <>
                 <div className="setting-row">
                   <div className="text">
-                    <b>Звук заставки</b>
+                    <b>
+                      <Languages size={13} style={{ verticalAlign: -2, marginRight: 6 }} />
+                      {t("Язык / Language")}
+                    </b>
+                    <span>{t("Мгновенно переключает весь интерфейс лаунчера.")}</span>
+                  </div>
+                  <div className="segmented" style={{ margin: 0 }}>
+                    {(["ru", "en"] as const).map((lang) => (
+                      <button
+                        key={lang}
+                        className={settings.language === lang ? "active" : ""}
+                        onClick={() => updateSettings({ language: lang })}
+                        aria-label={lang === "ru" ? t("Русский") : "English"}
+                      >
+                        {lang.toUpperCase()}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="setting-row">
+                  <div className="text">
+                    <b>{t("Звук заставки")}</b>
                     <span>
-                      Глубокий студийный саунд-дизайн при запуске: воздушный пэд, тёплый саб и
-                      хрустальный колокольчик.
+                      {t(
+                        "Глубокий студийный саунд-дизайн при запуске: мягкий аккорд Am9, тёплый саб и бархатный хвост. Громкость — ровно −15 dBFS.",
+                      )}
                     </span>
                   </div>
                   <button
                     className={`toggle ${settings.soundEnabled ? "on" : ""}`}
-                    onClick={() => updateSettings({ soundEnabled: !settings.soundEnabled })}
-                    aria-label="Звук заставки"
+                    onClick={() => {
+                      const next = !settings.soundEnabled;
+                      updateSettings({ soundEnabled: next });
+                      if (!next) stopIntro(false);
+                    }}
+                    aria-label={t("Звук заставки")}
                   />
                 </div>
 
                 <div className="setting-row">
                   <div className="text">
-                    <b>Громкость</b>
-                    <span>Применяется к заставке и превью драм-китов.</span>
+                    <b>{t("Громкость")}</b>
+                    <span>{t("Применяется к заставке и превью драм-китов.")}</span>
                   </div>
                   <input
                     className="slider"
@@ -165,35 +202,60 @@ export function SettingsModal({
                     className="btn btn-ghost btn-sm"
                     onClick={() => {
                       playIntro(settings.soundVolume || 0.6);
-                      toast({ kind: "info", title: "Проигрываем интро" });
+                      toast({ kind: "info", title: t("Проигрываем интро") });
                     }}
                   >
-                    <Play size={11} /> Тест
+                    <Play size={11} /> {t("Тест")}
                   </button>
                 </div>
 
                 <div className="setting-row">
                   <div className="text">
-                    <b>Плавность и эффекты</b>
+                    <b>{t("Эффекты стекла / Glass Blur")}</b>
                     <span>
-                      Отключает backdrop-blur и фоновые анимации. Полезно на слабых GPU — интерфейс
-                      остаётся полностью рабочим.
+                      {t(
+                        "Включает backdrop-blur на карточках и модалках. Выключите для максимального FPS на слабых GPU: размытие заменится на плотные тёмные градиенты.",
+                      )}
+                    </span>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <span className="chip">{settings.glassBlur ? t("Включено") : t("Выключено")}</span>
+                    <button
+                      className={`toggle ${settings.glassBlur ? "on" : ""}`}
+                      onClick={() => updateSettings({ glassBlur: !settings.glassBlur })}
+                      aria-label={t("Эффекты стекла / Glass Blur")}
+                    />
+                  </div>
+                </div>
+
+                <div className="setting-row">
+                  <div className="text">
+                    <b>{t("Анимации фона")}</b>
+                    <span>
+                      {t(
+                        "Медленный дрейф неоновых пятен и парящий логотип. Отключите для экономии батареи.",
+                      )}
                     </span>
                   </div>
                   <button
-                    className={`toggle ${settings.reduceEffects ? "on" : ""}`}
+                    className={`toggle ${!settings.reduceEffects ? "on" : ""}`}
                     onClick={() => updateSettings({ reduceEffects: !settings.reduceEffects })}
-                    aria-label="Уменьшить эффекты"
+                    aria-label={t("Анимации фона")}
                   />
                 </div>
 
                 <div className="notice violet" style={{ marginTop: 18, marginBottom: 0 }}>
                   <Info size={14} />
                   <div>
-                    Все анимации построены на <b>transform/opacity</b> и композитятся на GPU.
-                    Целевые 60–120 FPS достигаются без нагрузки на CPU.
+                    {t(
+                      "Все анимации построены на transform/opacity и композитятся на GPU. Целевые 60–120 FPS достигаются без нагрузки на CPU.",
+                    )}
                   </div>
                 </div>
+
+                <p style={{ margin: "14px 0 0", fontSize: 10, color: "var(--dim)" }}>
+                  {t("Параметры сохраняются автоматически в localStorage.")}
+                </p>
               </>
             ) : null}
 
@@ -201,28 +263,19 @@ export function SettingsModal({
               <>
                 <div className="setting-row">
                   <div className="text">
-                    <b>Фон и неон</b>
+                    <b>{t("Фон и неон")}</b>
                     <span>
-                      Глубокий фиолетовый градиент, стеклянные панели и мягкое свечение —
-                      фирменный стиль Aether.
+                      {t(
+                        "Глубокий фиолетовый градиент, стеклянные панели и мягкое свечение — фирменный стиль Aether.",
+                      )}
                     </span>
                   </div>
                   <span className="chip violet">#0A0812 · #8B5CF6</span>
                 </div>
                 <div className="setting-row">
                   <div className="text">
-                    <b>Режим экономии</b>
-                    <span>Убирает размытие стекла и анимации фона, сохраняя оформление.</span>
-                  </div>
-                  <button
-                    className={`toggle ${settings.reduceEffects ? "on" : ""}`}
-                    onClick={() => updateSettings({ reduceEffects: !settings.reduceEffects })}
-                  />
-                </div>
-                <div className="setting-row">
-                  <div className="text">
-                    <b>Плотность библиотеки</b>
-                    <span>Сетка карточек автоматически подстраивается под ширину окна.</span>
+                    <b>{t("Плотность библиотеки")}</b>
+                    <span>{t("Сетка карточек автоматически подстраивается под ширину окна.")}</span>
                   </div>
                   <span className="chip">adaptive</span>
                 </div>
@@ -255,6 +308,15 @@ export function SettingsModal({
                     </div>
                   ))}
                 </div>
+
+                <div className="notice violet" style={{ marginTop: 18, marginBottom: 0 }}>
+                  <Info size={14} />
+                  <div>
+                    {t(
+                      "Для максимального FPS отключите «Эффекты стекла» на вкладке «Общие» — интерфейс заменит blur на плотные тёмные градиенты.",
+                    )}
+                  </div>
+                </div>
               </>
             ) : null}
 
@@ -262,17 +324,18 @@ export function SettingsModal({
               <>
                 <div className="setting-row" style={{ alignItems: "flex-start" }}>
                   <div className="text">
-                    <b>Пресеты FL Studio</b>
+                    <b>{t("Пресеты FL Studio")}</b>
                     <span>
-                      Сюда распаковываются пресет-паки. По умолчанию —{" "}
-                      Documents/Image-Line/FL Studio/Presets/Aether Plugins.
+                      {t(
+                        "Сюда распаковываются пресет-паки. По умолчанию — Documents/Image-Line/FL Studio/Presets/Aether Plugins.",
+                      )}
                     </span>
                     <div className="path-box" style={{ marginTop: 8 }}>
                       <code>{settings.presetDir || paths.presetsDir}</code>
                       <button
                         className="row-icon"
                         onClick={() => void pickFolder("presetDir")}
-                        title="Выбрать папку"
+                        title={t("Выбрать папку")}
                       >
                         <FolderOpen size={13} />
                       </button>
@@ -282,23 +345,24 @@ export function SettingsModal({
                     className="btn btn-ghost btn-sm"
                     onClick={() => void openFolder(settings.presetDir || paths.presetsDir)}
                   >
-                    Открыть
+                    {t("Открыть")}
                   </button>
                 </div>
 
                 <div className="setting-row" style={{ alignItems: "flex-start" }}>
                   <div className="text">
-                    <b>Драм-киты</b>
+                    <b>{t("Драм-киты")}</b>
                     <span>
-                      Папка для сэмплов. Можно указать свою библиотеку — установщик создаст
-                      подпапку с названием кита.
+                      {t(
+                        "Папка для сэмплов. Можно указать свою библиотеку — установщик создаст подпапку с названием кита.",
+                      )}
                     </span>
                     <div className="path-box" style={{ marginTop: 8 }}>
                       <code>{settings.drumkitDir || paths.drumkitsDir}</code>
                       <button
                         className="row-icon"
                         onClick={() => void pickFolder("drumkitDir")}
-                        title="Выбрать папку"
+                        title={t("Выбрать папку")}
                       >
                         <FolderOpen size={13} />
                       </button>
@@ -308,16 +372,17 @@ export function SettingsModal({
                     className="btn btn-ghost btn-sm"
                     onClick={() => void openFolder(settings.drumkitDir || paths.drumkitsDir)}
                   >
-                    Открыть
+                    {t("Открыть")}
                   </button>
                 </div>
 
                 <div className="setting-row" style={{ alignItems: "flex-start" }}>
                   <div className="text">
-                    <b>Плагины VST3 / AU</b>
+                    <b>{t("Плагины VST3 / AU")}</b>
                     <span>
-                      Установка идёт в системные папки плагинов. На macOS это требует прав
-                      пользователя, но не администратора.
+                      {t(
+                        "Установка идёт в системные папки плагинов. На macOS это требует прав пользователя, но не администратора.",
+                      )}
                     </span>
                     <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 8 }}>
                       <code style={{ fontSize: 9.5, color: "var(--dim)" }}>{paths.vst3Dir}</code>
@@ -336,19 +401,19 @@ export function SettingsModal({
 
                 <div className="setting-row">
                   <div className="text">
-                    <b>Журнал установок</b>
+                    <b>{t("Журнал установок")}</b>
                     <span>
-                      {installedCount} релизов · {formatBytes(
-                        Object.values(installs).reduce((sum, item) => sum + item.sizeBytes, 0),
-                      )}{" "}
-                      на диске
+                      {t("{count} релизов · {size} на диске", {
+                        count: installedCount,
+                        size: formatBytes(totalInstalledSize),
+                      })}
                     </span>
                   </div>
                   <button
                     className="btn btn-ghost btn-sm"
                     onClick={() => void openFolder(paths.appDataDir)}
                   >
-                    <Database size={11} /> Данные
+                    <Database size={11} /> {t("Данные")}
                   </button>
                 </div>
 
@@ -362,15 +427,15 @@ export function SettingsModal({
                           setConfirmReset(false);
                         }}
                       >
-                        Да, сбросить демо
+                        {t("Да, сбросить демо")}
                       </button>
                       <button className="btn btn-ghost" onClick={() => setConfirmReset(false)}>
-                        Отмена
+                        {t("Отмена")}
                       </button>
                     </>
                   ) : (
                     <button className="btn btn-ghost" onClick={() => setConfirmReset(true)}>
-                      <RotateCcw size={13} /> Сбросить демо-каталог
+                      <RotateCcw size={13} /> {t("Сбросить демо-каталог")}
                     </button>
                   )}
                 </div>
@@ -381,11 +446,15 @@ export function SettingsModal({
               <>
                 <div className="setting-row">
                   <div className="text">
-                    <b>Состояние облака</b>
+                    <b>{t("Состояние облака")}</b>
                     <span>
                       {cloudEnabled
-                        ? `Подключено к ${urlHost}. Каталог, оценки, комментарии и заявки синхронизируются.`
-                        : "Supabase не настроен — используется локальный каталог и localStorage. Все функции интерфейса доступны."}
+                        ? t("Подключено к {host}. Каталог, оценки, комментарии и заявки синхронизируются.", {
+                            host: urlHost,
+                          })
+                        : t(
+                            "Supabase не настроен — используется локальный каталог и localStorage. Все функции интерфейса доступны.",
+                          )}
                     </span>
                   </div>
                   <span className={`chip ${cloudEnabled ? "green" : "gold"}`}>
@@ -401,11 +470,15 @@ export function SettingsModal({
 
                 <div className="setting-row">
                   <div className="text">
-                    <b>Admin API</b>
+                    <b>{t("Admin API")}</b>
                     <span>
                       {cloudAdminReady
-                        ? "Токен админа присутствует в этой сборке. Публикация и модерация включены."
-                        : "Токен админа отсутствует — эта сборка безопасна для публикации. Admin Studio работает локально и через приватный ключ."}
+                        ? t(
+                            "Токен админа присутствует в этой сборке. Публикация и модерация включены.",
+                          )
+                        : t(
+                            "Токен админа отсутствует — эта сборка безопасна для публикации. Admin Studio работает локально и через приватный ключ.",
+                          )}
                     </span>
                   </div>
                   <span className={`chip ${cloudAdminReady ? "violet" : ""}`}>
@@ -415,10 +488,16 @@ export function SettingsModal({
 
                 <div className="setting-row">
                   <div className="text">
-                    <b>Каталог</b>
+                    <b>{t("Каталог")}</b>
                     <span>
-                      Источник: {catalogSource === "cloud" ? "Supabase" : catalogSource === "cache" ? "локальный кэш" : "демо-каталог"} ·
-                      обновляется при запуске и по кнопке.
+                      {t("Источник: {source} · обновляется при запуске и по кнопке.", {
+                        source:
+                          catalogSource === "cloud"
+                            ? t("Supabase")
+                            : catalogSource === "cache"
+                              ? t("локальный кэш")
+                              : t("демо-каталог"),
+                      })}
                     </span>
                   </div>
                   <button
@@ -431,7 +510,7 @@ export function SettingsModal({
                     ) : (
                       <RefreshCw size={12} />
                     )}
-                    Обновить
+                    {t("Обновить")}
                   </button>
                 </div>
 
@@ -446,12 +525,13 @@ export function SettingsModal({
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 10 }}>
                     <KeyRound size={13} style={{ color: "var(--violet)" }} />
-                    <b style={{ fontSize: 11.5 }}>Подключение Supabase</b>
+                    <b style={{ fontSize: 11.5 }}>{t("Подключение Supabase")}</b>
                   </div>
                   <p style={{ margin: "0 0 10px", fontSize: 10.5, color: "var(--dim)", lineHeight: 1.6 }}>
-                    Создайте проект на supabase.com, выполните <code>supabase/schema.sql</code>,
-                    задеплойте функцию <code>aether-admin</code> и впишите ключи в{" "}
-                    <code>.env</code>. Затем пересоберите приложение. Подробная инструкция — в{" "}
+                    {t("Создайте проект на supabase.com, выполните")} <code>supabase/schema.sql</code>,{" "}
+                    {t("задеплойте функцию")} <code>aether-admin</code>{" "}
+                    {t("и впишите ключи в")} <code>.env</code>.{" "}
+                    {t("Затем пересоберите приложение. Подробная инструкция — в")}{" "}
                     <code>README.md</code>.
                   </p>
                   <div
@@ -480,17 +560,17 @@ VITE_AETHER_ADMIN_TOKEN=...   # only on your Mac`}
                           `VITE_SUPABASE_URL=${cloudConfig.url || "https://xxxx.supabase.co"}\nVITE_SUPABASE_ANON_KEY=${
                             cloudConfig.anonKey || "eyJhbGciOi..."
                           }`,
-                          "Конфиг скопирован",
+                          t("Конфиг скопирован"),
                         )
                       }
                     >
-                      <Copy size={11} /> Копировать конфиг
+                      <Copy size={11} /> {t("Копировать конфиг")}
                     </button>
                     <button
                       className="btn btn-ghost btn-sm"
                       onClick={() => void openExternal("https://supabase.com/dashboard")}
                     >
-                      Открыть Supabase
+                      {t("Открыть Supabase")}
                     </button>
                   </div>
                 </div>
@@ -518,7 +598,7 @@ VITE_AETHER_ADMIN_TOKEN=...   # only on your Mac`}
 
                 <div className="setting-row">
                   <div className="text">
-                    <b>Платформа</b>
+                    <b>{t("Платформа")}</b>
                     <span>
                       {machine.platformLabel} · {paths.arch} · HWID {machine.canonical.slice(0, 8)}…
                     </span>
@@ -528,17 +608,18 @@ VITE_AETHER_ADMIN_TOKEN=...   # only on your Mac`}
 
                 <div className="setting-row">
                   <div className="text">
-                    <b>Machine ID для лицензий</b>
+                    <b>{t("Machine ID для лицензий")}</b>
                     <span className="mono" style={{ fontSize: 10, color: "var(--muted)" }}>
                       {licensingMachineId}
                       {licensingMachineId !== machine.formatted
-                        ? ` · автоматический ${machine.formatted}`
+                        ? ` · ${t("автоматический HWID")} ${machine.formatted}`
                         : ""}
                     </span>
                   </div>
                   <button
                     className="row-icon"
-                    onClick={() => void copy(licensingMachineId, "Machine ID скопирован")}
+                    onClick={() => void copy(licensingMachineId, t("Machine ID скопирован"))}
+                    title={t("Скопировать Machine ID")}
                   >
                     <Copy size={13} />
                   </button>
@@ -546,11 +627,15 @@ VITE_AETHER_ADMIN_TOKEN=...   # only on your Mac`}
 
                 <div className="setting-row">
                   <div className="text">
-                    <b>Ключ создателя</b>
+                    <b>{t("Ключ создателя")}</b>
                     <span>
                       {admin.enabled
-                        ? "Приватный Ed25519 ключ найден. Панель создателя видна только на этом устройстве."
-                        : "Не найден — админ-панель скрыта. Обычный пользователь видит только библиотеку."}
+                        ? t(
+                            "Приватный Ed25519 ключ найден. Панель создателя видна только на этом устройстве.",
+                          )
+                        : t(
+                            "Не найден — админ-панель скрыта. Обычный пользователь видит только библиотеку.",
+                          )}
                     </span>
                     {admin.privateKeyPath ? (
                       <code
@@ -574,7 +659,7 @@ VITE_AETHER_ADMIN_TOKEN=...   # only on your Mac`}
 
                 <div className="setting-row">
                   <div className="text">
-                    <b>Хранилище приложения</b>
+                    <b>{t("Хранилище приложения")}</b>
                     <span className="mono" style={{ fontSize: 9.5, wordBreak: "break-all" }}>
                       {paths.appDataDir}
                     </span>
@@ -583,7 +668,7 @@ VITE_AETHER_ADMIN_TOKEN=...   # only on your Mac`}
                     className="btn btn-ghost btn-sm"
                     onClick={() => void openFolder(paths.appDataDir)}
                   >
-                    <FolderOpen size={11} /> Открыть
+                    <FolderOpen size={11} /> {t("Открыть")}
                   </button>
                 </div>
 
@@ -599,15 +684,15 @@ VITE_AETHER_ADMIN_TOKEN=...   # only on your Mac`}
                     onClick={() => void refreshCatalog()}
                     disabled={catalogLoading}
                   >
-                    <RefreshCw size={13} className={catalogLoading ? "spin" : ""} /> Проверить
-                    обновления
+                    <RefreshCw size={13} className={catalogLoading ? "spin" : ""} />{" "}
+                    {t("Проверить обновления")}
                   </button>
                 </div>
 
                 <p style={{ margin: "18px 0 0", fontSize: 9.5, color: "var(--dim)", lineHeight: 1.6 }}>
-                  Каталог и релизы обновляются из облака — переустановка лаунчера не требуется.
-                  Приложение не собирает телеметрию. Аватар хранится локально и в вашем профиле
-                  Supabase.
+                  {t(
+                    "Каталог и релизы обновляются из облака — переустановка лаунчера не требуется. Приложение не собирает телеметрию. Аватар хранится локально и в вашем профиле Supabase.",
+                  )}
                 </p>
               </>
             ) : null}

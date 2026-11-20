@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Synthesises the Aether Hub intro sound and demo pack audio.
+"""Synthesises the Aether Hub startup sting and demo pack audio.
 
 Everything here is generated from scratch (no samples, no external licences):
   * a 4.2 s cinematic logo sting: airy pad, warm sub, crystal bell, reverb
@@ -24,13 +24,20 @@ RELEASES = ROOT / "src-tauri" / "resources" / "releases"
 SR = 44100
 
 
-def write_wav(path: Path, data: np.ndarray, sr: int = SR, stereo: bool = True) -> None:
+def write_wav(
+    path: Path,
+    data: np.ndarray,
+    sr: int = SR,
+    stereo: bool = True,
+    normalize: bool = True,
+) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     if data.ndim == 1:
         data = np.stack([data, data], axis=1) if stereo else data[:, None]
 
-    peak = np.max(np.abs(data)) or 1.0
-    data = data / peak * 0.89
+    if normalize:
+        peak = np.max(np.abs(data)) or 1.0
+        data = data / peak * 0.89
     pcm = np.clip(data, -1, 1)
     pcm = (pcm * 32767.0).astype("<i2")
 
@@ -100,76 +107,74 @@ def convolve_stereo(x: np.ndarray, ir: np.ndarray) -> np.ndarray:
     return out
 
 
-def make_intro() -> None:
-    duration = 4.4
+def make_startup() -> None:
+    """Soft, velvet Am9 pad — pure sines, 2.2 kHz low-pass, -15 dBFS peak."""
+    duration = 4.6
     n = int(duration * SR)
     t = np.arange(n) / SR
 
+    # Am9 voicing: A2, E3, C4, G4, B4. Low, warm, no bright partials.
+    voices = [
+        (110.00, 0.20),
+        (164.81, 0.17),
+        (261.63, 0.14),
+        (392.00, 0.08),
+        (493.88, 0.05),
+    ]
+
     pad = np.zeros((n, 2))
-    chord = [110.0, 164.81, 261.63, 329.63, 493.88]
-    for freq in chord:
-        for detune, pan in [(-0.0014, 0.15), (0.0, -0.1), (0.0017, 0.4), (0.0007, -0.45)]:
-            lfo = 0.14 * np.sin(2 * math.pi * 0.11 * t + freq * 0.01)
-            phase = 2 * math.pi * freq * (1 + detune) * t + lfo
-            voice = np.sin(phase)
-            voice += 0.32 * np.sin(2 * phase + 0.3)
-            voice += 0.12 * np.sin(3 * phase + 1.1)
-            voice *= 0.055
-            pad[:, 0] += voice * (1 - max(0.0, pan))
-            pad[:, 1] += voice * (1 + min(0.0, pan))
+    for freq, amp in voices:
+        for detune, pan in [(-0.0007, -0.22), (0.0, 0.0), (0.0008, 0.24)]:
+            phase = 2 * math.pi * freq * (1.0 + detune) * t
+            # A single pure sine per voice — no harmonics, no FM.
+            voice = np.sin(phase) * amp
+            pad[:, 0] += voice * (1.0 - max(0.0, pan))
+            pad[:, 1] += voice * (1.0 + min(0.0, pan))
 
-    # Fade in slowly, hold, then dissolve.
-    attack = smoothstep(t / 1.55)
-    release = 1.0 - smoothstep((t - 2.8) / 1.5)
-    pad *= (attack * release)[:, None]
-    pad = np.stack([lowpass(pad[:, c], 2600) for c in range(2)], axis=1)
+    # Warm sub, barely audible, gives weight on laptop speakers.
+    sub = np.sin(2 * math.pi * 55.0 * t) * 0.10
 
-    # Warm sub, with a gentle pitch fall.
-    sub_freq = 56.0 - 1.2 * smoothstep(t / 1.1)
-    sub = np.sin(2 * math.pi * np.cumsum(sub_freq) / SR)
-    sub += 0.10 * np.sin(2 * math.pi * np.cumsum(sub_freq * 2) / SR)
-    sub_env = smoothstep(t / 0.28) * (0.55 + 0.45 * np.exp(-t / 1.7)) * (1 - smoothstep((t - 3.0) / 1.3))
-    sub = sub * sub_env * 0.22
+    # 180 ms smooth attack, long exponential tail.
+    attack = smoothstep(t / 0.18)
+    decay = np.exp(-np.maximum(0.0, t - 0.18) / 1.6)
+    # Keep a gentle body for the first moment, then dissolve.
+    envelope = attack * (0.35 + 0.65 * decay)
+    pad *= envelope[:, None]
+    sub *= envelope
 
-    # Crystal bell: FM with a fast-decaying index, panned slightly right.
-    bell = np.zeros_like(t)
-    for offset, freq, amp, pan in [(0.0, 1318.51, 1.0, 0.22), (0.09, 1975.53, 0.55, -0.28), (0.2, 2637.02, 0.28, 0.4)]:
-        local = np.maximum(0.0, t - offset)
-        active = (t >= offset).astype(float)
-        index = 2.0 * np.exp(-local / 0.28)
-        mod = np.sin(2 * math.pi * freq * 2.41 * local)
-        voice = np.sin(2 * math.pi * freq * local + index * mod)
-        env = np.exp(-local / 0.85) * active
-        bell += voice * env * amp
-    bell_l = np.zeros(n)
-    bell_r = np.zeros(n)
-    bell_l += bell * (1 - 0.32)
-    bell_r += bell * (1 + 0.32)
-    # A tiny sparkle layer.
-    sparkle = highpass(np.random.default_rng(4).normal(0, 1, n), 7200.0) * np.exp(-t / 0.5) * 0.019
-    bell_l += sparkle
-    bell_r += np.roll(sparkle, 280) * 0.9
+    pad = np.stack([lowpass(pad[:, c], 2200.0, SR, 2) for c in range(2)], axis=1)
+    sub = lowpass(sub, 2200.0, SR, 2)
 
     dry = pad.copy()
-    dry[:, 0] += sub + bell_l
-    dry[:, 1] += sub + bell_r
+    dry[:, 0] += sub
+    dry[:, 1] += sub
 
-    wet = convolve_stereo(dry, reverb_ir())[:n]
-    mix = dry * 0.72 + wet * 0.5
+    # Soft, dark hall; low wet level so it never feels washy.
+    wet = convolve_stereo(dry, reverb_ir(duration=2.2, seed=17))[:n]
+    mix = dry * 0.82 + wet * 0.26
 
-    # Soft bus compression + tape-ish saturation.
-    mix = np.tanh(mix * 1.25) * 0.82
+    # Gentle bus soften (no hard clipping / no distortion).
+    mix = np.tanh(mix * 1.05) * 0.9
 
-    # Short fade at both ends.
-    fade_in = smoothstep(t / 0.04)
-    fade_out = 1.0 - smoothstep((t - 3.95) / 0.45)
-    mix *= (fade_in * fade_out)[:, None]
+    # Smooth end fade so the tail never clicks.
+    fade_out = 1.0 - smoothstep((t - 3.9) / 0.7)
+    mix *= fade_out[:, None]
 
-    write_wav(SOUND / "intro.wav", mix)
-    (SOUND / "intro.wav").with_suffix(".txt").write_text(
-        "Aether Hub intro sting — generated by tools/make_audio.py (pad, sub, FM bell, convolution reverb).\n"
+    # Strict -15 dBFS peak normalization.
+    target = 10 ** (-15.0 / 20.0)
+    peak = float(np.max(np.abs(mix))) or 1.0
+    mix = mix / peak * target
+
+    write_wav(SOUND / "startup.wav", mix, normalize=False)
+
+    peak_int = int(round(target * 32767))
+    rms = float(np.sqrt(np.mean((mix * 32767) ** 2)))
+    (SOUND / "startup.txt").write_text(
+        "Aether Hub startup sting — generated by tools/make_audio.py.\n"
+        "Am9 pad, pure sines, 2.2 kHz low-pass, 180 ms attack, 1.6 s decay, dark convolution reverb.\n"
+        f"Peak: -15.0 dBFS ({peak_int} / 32767) · RMS: {rms:.0f}\n"
     )
-    print("intro", (SOUND / "intro.wav").stat().st_size)
+    print("startup", (SOUND / "startup.wav").stat().st_size, "peak", peak_int)
 
 
 def adsr(n: int, attack: float, decay: float, sr: int = SR) -> np.ndarray:
@@ -378,8 +383,16 @@ def make_demo_packs() -> None:
 
 
 def main() -> None:
+    import sys
+
     RELEASES.mkdir(parents=True, exist_ok=True)
-    make_intro()
+    SOUND.mkdir(parents=True, exist_ok=True)
+
+    if "--sound-only" in sys.argv:
+        make_startup()
+        return
+
+    make_startup()
     make_demo_packs()
 
 

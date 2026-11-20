@@ -3,7 +3,7 @@ let retryAttached = false;
 
 function ensureAudio(): HTMLAudioElement {
   if (!audio) {
-    audio = new Audio("/sound/intro.wav");
+    audio = new Audio("/sound/startup.wav");
     audio.preload = "auto";
   }
   return audio;

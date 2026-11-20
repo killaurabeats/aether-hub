@@ -516,7 +516,7 @@ mod tests {
     #[test]
     fn normalises_pasted_ids() {
         assert_eq!(
-            normalise_machine_id(" a466-5503 9168-be03 "),
+            normalise_machine_id(" 4f2a-91bc 77d0-3e15 "),
             "4F2A91BC77D03E15"
         );
     }

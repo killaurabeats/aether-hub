@@ -52,6 +52,7 @@ export function ReleaseModal({
     requestKey,
     uninstall,
     toast,
+    t,
   } = useStore();
 
   const [draft, setDraft] = useState("");
@@ -111,7 +112,7 @@ export function ReleaseModal({
     const ok = await copyText(value);
     toast({
       kind: ok ? "success" : "error",
-      title: ok ? title : "Не удалось скопировать",
+      title: ok ? title : t("Не удалось скопировать"),
     });
   };
 
@@ -143,7 +144,7 @@ export function ReleaseModal({
               <div style={{ height: "100%", background: "linear-gradient(140deg,#22163c,#0a0714)" }} />
             )}
 
-            <button className="modal-close" onClick={onClose} aria-label="Закрыть" style={{ position: "absolute", top: 14, right: 14, zIndex: 5, background: "rgba(10,7,18,.55)", backdropFilter: "blur(10px)" }}>
+            <button className="modal-close" onClick={onClose} aria-label={t("Закрыть")} style={{ position: "absolute", top: 14, right: 14, zIndex: 5, background: "rgba(10,7,18,.55)", backdropFilter: "blur(10px)" }}>
               <X size={15} />
             </button>
 
@@ -154,7 +155,7 @@ export function ReleaseModal({
                   {release.badge ? <span className="chip gold">{release.badge}</span> : null}
                   {record ? (
                     <span className="chip green">
-                      <Check size={9} /> установлено
+                      <Check size={9} /> {t("Установлено").toLowerCase()}
                     </span>
                   ) : null}
                 </div>
@@ -164,12 +165,12 @@ export function ReleaseModal({
                   <span className="dot" />
                   <span>
                     <Star size={11} style={{ color: "var(--gold)", fill: "var(--gold)" }} />
-                    {avgLabel} · {release.ratingCount} оценок
+                    {avgLabel} · {release.ratingCount} {t("оценок")}
                   </span>
                   <span className="dot" />
                   <span>{formatBytes(file?.sizeBytes)}</span>
                   <span className="dot" />
-                  <span>{file ? machine.platformLabel : "сборка для другой ОС"}</span>
+                  <span>{file ? machine.platformLabel : t("сборка для другой ОС")}</span>
                   {release.createdAt ? (
                     <>
                       <span className="dot" />
@@ -189,13 +190,13 @@ export function ReleaseModal({
               <div className="install-panel">
                 <div className="install-panel-top">
                   <div>
-                    <div className="label">Установка в 1 клик</div>
+                    <div className="label">{t("Установка в 1 клик")}</div>
                     <div className="value">
                       {release.category === "plugins"
-                        ? "VST3 + AU → системные папки"
+                        ? t("VST3 + AU → системные папки")
                         : release.category === "presets"
                           ? "FL Studio → Presets / Aether Plugins"
-                          : "Сэмплы → выбранная папка"}
+                          : t("Сэмплы → выбранная папка")}
                     </div>
                   </div>
                   <InstallButton release={release} />
@@ -209,7 +210,7 @@ export function ReleaseModal({
                       {file.filename || "release.zip"}
                     </>
                   ) : (
-                    <>Сборка для {machine.platformLabel} ещё не загружена</>
+                    <>{t("Сборка для {os} ещё не загружена", { os: machine.platformLabel })}</>
                   )}
                 </div>
 
@@ -217,21 +218,21 @@ export function ReleaseModal({
                   <div className="file-row" style={{ opacity: 0.65 }}>
                     <Download size={11} />
                     {machine.os === "windows" ? "macOS" : "Windows"} ·{" "}
-                    {formatBytes(otherFile.sizeBytes)} · для другой ОС
+                    {formatBytes(otherFile.sizeBytes)} · {t("для другой ОС")}
                   </div>
                 ) : null}
 
                 {record ? (
                   <div style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                     <span style={{ fontSize: 10, color: "var(--dim)" }}>
-                      Установлено {timeAgo(record.installedAt)}
+                      {t("Установлено {time}", { time: timeAgo(record.installedAt) })}
                     </span>
                     <button
                       className="ghost-link"
                       style={{ fontSize: 10.5 }}
                       onClick={() => void openFolder(record.paths[0] ?? "")}
                     >
-                      <FolderOpen size={11} /> Открыть папку
+                      <FolderOpen size={11} /> {t("Открыть папку")}
                     </button>
                     {confirmUninstall ? (
                       <>
@@ -242,13 +243,13 @@ export function ReleaseModal({
                             setConfirmUninstall(false);
                           }}
                         >
-                          Точно удалить
+                          {t("Точно удалить")}
                         </button>
                         <button
                           className="btn btn-ghost btn-sm"
                           onClick={() => setConfirmUninstall(false)}
                         >
-                          Отмена
+                          {t("Отмена")}
                         </button>
                       </>
                     ) : (
@@ -257,7 +258,7 @@ export function ReleaseModal({
                         style={{ fontSize: 10.5, color: "var(--dim)" }}
                         onClick={() => setConfirmUninstall(true)}
                       >
-                        <Trash2 size={11} /> Удалить
+                        <Trash2 size={11} /> {t("Удалить")}
                       </button>
                     )}
                   </div>
@@ -272,11 +273,11 @@ export function ReleaseModal({
               </div>
 
               <div className="rating-block">
-                <h3>Оценка релиза</h3>
+                <h3>{t("Оценка релиза")}</h3>
                 <p>
                   {myRating
-                    ? "Спасибо — ваша оценка уже учтена."
-                    : "Поставьте от 1 до 5 звёзд, чтобы поддержать релиз."}
+                    ? t("Спасибо — ваша оценка уже учтена.")
+                    : t("Поставьте от 1 до 5 звёзд, чтобы поддержать релиз.")}
                 </p>
                 <div className="rating-row">
                   <span className="rating-score">
@@ -289,7 +290,12 @@ export function ReleaseModal({
                     size={19}
                   />
                   <span style={{ fontSize: 10.5, color: "var(--dim)" }}>
-                    {release.ratingCount} оценок{myRating ? ` · ваша ${myRating} ★` : ""}
+                    {myRating
+                      ? t("{count} оценок · ваша {mine} ★", {
+                          count: release.ratingCount,
+                          mine: myRating,
+                        })
+                      : t("{count} оценок", { count: release.ratingCount })}
                   </span>
                 </div>
               </div>
@@ -297,11 +303,12 @@ export function ReleaseModal({
               {release.category === "plugins" ? (
                 <div className="license-card">
                   <h3>
-                    <KeyRound size={14} /> Лицензия Aether
+                    <KeyRound size={14} /> {t("Лицензия Aether")}
                   </h3>
                   <p className="hint">
-                    Ключ подписывает Machine ID этого компьютера. Он не переносится на другое
-                    устройство и проверяется плагином каждые 7 секунд.
+                    {t(
+                      "Ключ подписывает Machine ID этого компьютера. Он не переносится на другое устройство и проверяется плагином каждые 7 секунд.",
+                    )}
                   </p>
 
                   {idEditing ? (
@@ -310,7 +317,7 @@ export function ReleaseModal({
                         <input
                           value={idDraft}
                           onChange={(event) => setIdDraft(event.target.value)}
-                          placeholder="Machine ID из окна плагина"
+                          placeholder={t("Machine ID из окна плагина")}
                           style={{ fontFamily: "var(--mono)", fontSize: 11 }}
                           spellCheck={false}
                         />
@@ -320,23 +327,24 @@ export function ReleaseModal({
                             updateSettings({ licenseMachineId: idDraft.trim() || null });
                             await refreshCloudUser();
                             setIdEditing(false);
-                            toast({ kind: "success", title: "Machine ID обновлён" });
+                            toast({ kind: "success", title: t("Machine ID обновлён") });
                           }}
                         >
                           OK
                         </button>
                       </div>
                       <span className="hint">
-                        Если плагин показывает другой ID — вставьте его сюда. Пустое поле
-                        вернёт автоматический HWID.
+                        {t(
+                          "Если плагин показывает другой ID — вставьте его сюда. Пустое поле вернёт автоматический HWID.",
+                        )}
                       </span>
                     </div>
                   ) : (
                     <div className="id-box">
                       <span>{licensingMachineId}</span>
                       <button
-                        onClick={() => void copy(licensingMachineId, "Machine ID скопирован")}
-                        title="Скопировать Machine ID"
+                        onClick={() => void copy(licensingMachineId, t("Machine ID скопирован"))}
+                        title={t("Скопировать Machine ID")}
                       >
                         <Copy size={13} />
                       </button>
@@ -345,7 +353,7 @@ export function ReleaseModal({
                           setIdDraft(licensingMachineId);
                           setIdEditing(true);
                         }}
-                        title="Указать ID из плагина"
+                        title={t("Указать ID из плагина")}
                       >
                         <Pencil size={12} />
                       </button>
@@ -355,18 +363,18 @@ export function ReleaseModal({
                   {activeKey ? (
                     <div className="license-active">
                       <div className="top">
-                        <ShieldCheck size={12} /> Лицензия активна
+                        <ShieldCheck size={12} /> {t("Лицензия активна")}
                       </div>
                       <div className="key-box">{activeKey}</div>
                       <div className="license-actions">
                         <button
                           className="btn btn-soft btn-sm"
-                          onClick={() => void copy(activeKey, "Ключ скопирован")}
+                          onClick={() => void copy(activeKey, t("Ключ скопирован"))}
                         >
-                          <Copy size={11} /> Скопировать ключ
+                          <Copy size={11} /> {t("Скопировать ключ")}
                         </button>
                         <span style={{ fontSize: 9.5, color: "var(--dim)", alignSelf: "center" }}>
-                          Вставьте его в окно активации плагина
+                          {t("Вставьте его в окно активации плагина")}
                         </span>
                       </div>
                     </div>
@@ -374,8 +382,8 @@ export function ReleaseModal({
                     <>
                       {pending ? (
                         <div className="request-status">
-                          <span className="status-dot offline" /> Заявка отправлена — ждём
-                          одобрения
+                          <span className="status-dot offline" />{" "}
+                          {t("Заявка отправлена — ждём одобрения")}
                         </div>
                       ) : null}
 
@@ -386,7 +394,7 @@ export function ReleaseModal({
                           disabled={Boolean(pending)}
                         >
                           <KeyRound size={11} />
-                          {pending ? "Заявка на рассмотрении" : "Запросить ключ активации"}
+                          {pending ? t("Заявка на рассмотрении") : t("Запросить ключ активации")}
                         </button>
                         <button
                           className="btn btn-ghost btn-sm"
@@ -397,7 +405,7 @@ export function ReleaseModal({
                       </div>
                       {profile.nickname ? (
                         <p style={{ margin: "10px 0 0", fontSize: 9.5, color: "var(--dim)" }}>
-                          Заявка уйдёт от имени <b style={{ color: "var(--muted)" }}>{profile.nickname}</b>.
+                          {t("Заявка уйдёт от имени {name}.", { name: profile.nickname })}
                         </p>
                       ) : null}
                     </>
@@ -410,14 +418,14 @@ export function ReleaseModal({
               <div className="comments-head">
                 <h3>
                   <MessageSquare size={12} style={{ verticalAlign: -2, marginRight: 5 }} />
-                  Комментарии
+                  {t("Комментарии")}
                 </h3>
                 <span>{list?.length ?? 0}</span>
               </div>
 
               <div className="comments-list" ref={listRef}>
                 {!list ? (
-                  <div className="comments-empty">Загружаем комментарии…</div>
+                  <div className="comments-empty">{t("Загружаем комментарии…")}</div>
                 ) : list.length ? (
                   list.map((comment) => (
                     <div className="comment" key={comment.id}>
@@ -433,7 +441,7 @@ export function ReleaseModal({
                         <button
                           className="comment-del"
                           onClick={() => void removeComment(release.id, comment.id)}
-                          title="Удалить комментарий"
+                          title={t("Удалить комментарий")}
                         >
                           <Trash2 size={11} />
                         </button>
@@ -442,7 +450,7 @@ export function ReleaseModal({
                   ))
                 ) : (
                   <div className="comments-empty">
-                    Пока тихо. Оставьте первый комментарий — это увидят все.
+                    {t("Пока тихо. Оставьте первый комментарий — это увидят все.")}
                   </div>
                 )}
               </div>
@@ -452,7 +460,7 @@ export function ReleaseModal({
                 <textarea
                   value={draft}
                   onChange={(event) => setDraft(event.target.value)}
-                  placeholder="Написать комментарий…"
+                  placeholder={t("Написать комментарий…")}
                   maxLength={1200}
                   onKeyDown={(event) => {
                     if (event.key === "Enter" && !event.shiftKey) {
@@ -461,7 +469,7 @@ export function ReleaseModal({
                     }
                   }}
                 />
-                <button className="send-btn" onClick={() => void send()} disabled={!draft.trim() || sending} aria-label="Отправить">
+                <button className="send-btn" onClick={() => void send()} disabled={!draft.trim() || sending} aria-label={t("Отправить")}>
                   <Send size={14} />
                 </button>
               </div>

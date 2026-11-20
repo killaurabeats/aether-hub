@@ -155,9 +155,13 @@ export interface CloudConfig {
   adminToken: string;
 }
 
+export type Language = "ru" | "en";
+
 export interface Settings {
+  language: Language;
   soundEnabled: boolean;
   soundVolume: number;
+  glassBlur: boolean;
   reduceEffects: boolean;
   presetDir: string | null;
   drumkitDir: string | null;

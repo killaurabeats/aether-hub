@@ -30,7 +30,7 @@ const NAV = [
 ] as const;
 
 export function Sidebar({ view, onNavigate, onOpenSettings }: Props) {
-  const { releases, admin, catalogSource, installs, requests, profile } = useStore();
+  const { releases, admin, catalogSource, installs, requests, profile, t } = useStore();
 
   const counts = {
     plugins: releases.filter((r) => r.category === "plugins").length,
@@ -59,8 +59,8 @@ export function Sidebar({ view, onNavigate, onOpenSettings }: Props) {
           onClick={() => onNavigate({ name: "home" })}
           whileHover={{ scale: 1.03 }}
           whileTap={{ scale: 0.97 }}
-          title="Главное меню"
-          aria-label="Aether Hub — главное меню"
+          title={t("Главное меню")}
+          aria-label={`Aether Hub — ${t("Главное меню")}`}
         >
           <img src="/logo.png" alt="" draggable={false} />
         </motion.button>
@@ -71,7 +71,7 @@ export function Sidebar({ view, onNavigate, onOpenSettings }: Props) {
       </div>
 
       <div className="nav-group">
-        <div className="nav-label">Библиотека</div>
+        <div className="nav-label">{t("Библиотека")}</div>
         {NAV.map((item) => {
           const Icon = item.icon;
           const active = isActive(item.key);
@@ -83,7 +83,7 @@ export function Sidebar({ view, onNavigate, onOpenSettings }: Props) {
               onClick={() => navigate(item.key)}
             >
               <Icon size={17} />
-              <span>{item.label}</span>
+              <span>{t(item.label)}</span>
               {count ? <span className="nav-count">{count}</span> : null}
             </button>
           );
@@ -132,24 +132,24 @@ export function Sidebar({ view, onNavigate, onOpenSettings }: Props) {
         </div>
         <div className="hint">
           {admin.enabled
-            ? "Приватный ключ найден. Панель создателя активна."
+            ? t("Приватный ключ найден. Панель создателя активна.")
             : catalogSource === "cloud"
-              ? "Каталог синхронизирован с облаком."
-              : "Облако не подключено — каталог работает локально."}
+              ? t("Каталог синхронизирован с облаком.")
+              : t("Облако не подключено — каталог работает локально.")}
         </div>
         <div className="hint" style={{ color: "var(--muted)" }}>
-          {installedCount ? `${installedCount} установлено · ` : ""}v1.1.0
+          {installedCount ? `${t("{count} установлено", { count: installedCount })} · ` : ""}v1.1.0
         </div>
       </div>
 
       <div className="side-actions">
         <button className="side-action" onClick={onOpenSettings}>
           <Settings2 size={14} />
-          Настройки
+          {t("Настройки")}
         </button>
         <button className="side-action" onClick={() => void openExternal(TELEGRAM_URL)}>
           <LifeBuoy size={14} />
-          Telegram
+          {t("Telegram")}
         </button>
       </div>
     </aside>

@@ -5,15 +5,14 @@ import { useStore } from "../lib/store";
 import { playIntro, setIntroVolume, stopIntro } from "../lib/sound";
 
 export function Splash() {
-  const { settings, updateSettings } = useStore();
+  const { settings, updateSettings, t } = useStore();
 
   useEffect(() => {
     if (settings.soundEnabled) {
       playIntro(settings.soundVolume);
     }
-    return () => {
-      stopIntro();
-    };
+    // The sting is intentionally allowed to finish after the splash fades:
+    // its 1.6 s decay is part of the cinematic transition.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -96,8 +95,8 @@ export function Splash() {
         onClick={toggleSound}
         className="icon-button"
         style={{ position: "absolute", right: 22, bottom: 22, zIndex: 3 }}
-        title={settings.soundEnabled ? "Выключить звук заставки" : "Включить звук заставки"}
-        aria-label="Звук заставки"
+        title={settings.soundEnabled ? t("Выключить звук заставки") : t("Включить звук заставки")}
+        aria-label={t("Звук заставки")}
       >
         {settings.soundEnabled ? <Volume2 size={15} /> : <VolumeX size={15} />}
       </button>

@@ -3,7 +3,7 @@ import { CheckCircle2, Info, X, XCircle } from "lucide-react";
 import { useStore } from "../lib/store";
 
 export function Toasts() {
-  const { toasts, dismissToast } = useStore();
+  const { toasts, dismissToast, t } = useStore();
 
   return (
     <div className="toasts">
@@ -28,7 +28,7 @@ export function Toasts() {
                 <b>{toast.title}</b>
                 {toast.message ? <p>{toast.message}</p> : null}
               </div>
-              <button className="x" onClick={() => dismissToast(toast.id)} aria-label="Закрыть">
+              <button className="x" onClick={() => dismissToast(toast.id)} aria-label={t("Закрыть")}>
                 <X size={13} />
               </button>
             </motion.div>

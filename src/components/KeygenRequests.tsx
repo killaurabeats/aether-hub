@@ -38,6 +38,7 @@ export function KeygenRequests() {
     requests,
     toast,
     machine,
+    t,
   } = useStore();
 
   const [log, setLog] = useState<IssueLogEntry[]>([]);
@@ -88,11 +89,11 @@ export function KeygenRequests() {
 
       toast({
         kind: "success",
-        title: "Ключ выдан и скопирован",
+        title: t("Ключ выдан и скопирован"),
         message: `${request.nickname} · ${issued.key.slice(0, 26)}…`,
       });
     } catch (error) {
-      toast({ kind: "error", title: "Не удалось выдать ключ", message: String(error) });
+      toast({ kind: "error", title: t("Не удалось выдать ключ"), message: String(error) });
     } finally {
       setIssuing(null);
     }
@@ -102,15 +103,15 @@ export function KeygenRequests() {
     try {
       await rejectRequest(request);
       await refreshAdminData();
-      toast({ kind: "info", title: "Заявка отклонена" });
+      toast({ kind: "info", title: t("Заявка отклонена") });
     } catch (error) {
-      toast({ kind: "error", title: "Не удалось отклонить", message: String(error) });
+      toast({ kind: "error", title: t("Не удалось отклонить"), message: String(error) });
     }
   };
 
   const copy = async (value: string, title: string) => {
     const ok = await copyText(value);
-    toast({ kind: ok ? "success" : "error", title: ok ? title : "Не удалось скопировать" });
+    toast({ kind: ok ? "success" : "error", title: ok ? title : t("Не удалось скопировать") });
   };
 
   if (!admin.enabled) {
@@ -120,8 +121,8 @@ export function KeygenRequests() {
           <div className="icon">
             <ShieldCheck size={22} />
           </div>
-          <h3>Creator mode закрыт</h3>
-          <p>На этом устройстве нет приватного ключа.</p>
+          <h3>{t("Creator mode закрыт")}</h3>
+          <p>{t("На этом устройстве нет приватного ключа.")}</p>
         </div>
       </div>
     );
@@ -139,15 +140,15 @@ export function KeygenRequests() {
         <div className="copy">
           <h2>Keygen & Requests</h2>
           <p>
-            Ed25519 · BLAKE2b · совместимо с <code>AetherVocal Strip</code>. Ключ подписывает
-            Machine ID и не переносится.
+            Ed25519 · BLAKE2b · {t("совместимо с")} <code>AetherVocal Strip</code>.{" "}
+            {t("Ключ подписывает Machine ID и не переносится.")}
           </p>
         </div>
         <span className="chip green">
           <ShieldCheck size={9} /> {pending.length} PENDING
         </span>
         <button className="btn btn-ghost btn-sm" onClick={() => void refresh()} disabled={loading}>
-          <RefreshCw size={12} className={loading ? "spin" : ""} /> Обновить
+          <RefreshCw size={12} className={loading ? "spin" : ""} /> {t("Обновить")}
         </button>
       </div>
 
@@ -155,9 +156,10 @@ export function KeygenRequests() {
         <div className="notice">
           <AlertTriangle size={15} />
           <div>
-            <b>{cloudEnabled ? "Облако только для чтения." : "Локальный режим."}</b> Ключи
-            выдаются и проверяются локально, журнал пишется в папку приложения. Чтобы ключ
-            автоматически появился у пользователя, подключите Supabase и токен админа.
+            <b>{cloudEnabled ? t("Облако только для чтения.") : t("Локальный режим.")}</b>{" "}
+            {t(
+              "Ключи выдаются и проверяются локально, журнал пишется в папку приложения. Чтобы ключ автоматически появился у пользователя, подключите Supabase и токен админа.",
+            )}
           </div>
         </div>
       ) : null}
@@ -174,13 +176,16 @@ export function KeygenRequests() {
           <div className="admin-card glass">
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <div>
-                <h3>Входящие заявки</h3>
+                <h3>{t("Входящие заявки")}</h3>
                 <p className="sub" style={{ marginBottom: 12 }}>
-                  Одобрение генерирует подпись приватным ключом и отправляет ключ в профиль
-                  пользователя.
+                  {t(
+                    "Одобрение генерирует подпись приватным ключом и отправляет ключ в профиль пользователя.",
+                  )}
                 </p>
               </div>
-              <span className="chip gold">{pending.length} ждут</span>
+              <span className="chip gold">
+                {t("{count} ждут", { count: pending.length })}
+              </span>
             </div>
 
             {pending.length ? (
@@ -202,16 +207,16 @@ export function KeygenRequests() {
                 <div className="icon">
                   <UserCheck size={20} />
                 </div>
-                <h3>Все заявки обработаны</h3>
-                <p>Новые появятся здесь автоматически после запроса из плагина.</p>
+                <h3>{t("Все заявки обработаны")}</h3>
+                <p>{t("Новые появятся здесь автоматически после запроса из плагина.")}</p>
               </div>
             )}
           </div>
 
           {resolved.length ? (
             <div className="admin-card glass">
-              <h3>История заявок</h3>
-              <p className="sub">Последние решения.</p>
+              <h3>{t("История заявок")}</h3>
+              <p className="sub">{t("Последние решения.")}</p>
               {resolved.map((request) => (
                 <div className="req-item" key={request.id}>
                   <Avatar name={request.nickname} src={request.avatarUrl} size={28} />
@@ -224,14 +229,14 @@ export function KeygenRequests() {
                   {request.key ? (
                     <button
                       className="row-icon"
-                      onClick={() => void copy(request.key!, "Ключ скопирован")}
-                      title="Скопировать ключ"
+                      onClick={() => void copy(request.key!, t("Ключ скопирован"))}
+                      title={t("Скопировать ключ")}
                     >
                       <Copy size={12} />
                     </button>
                   ) : null}
                   <span className={`req-status ${request.status}`}>
-                    {request.status === "approved" ? "одобрено" : "отклонено"}
+                    {request.status === "approved" ? t("одобрено") : t("отклонено")}
                   </span>
                 </div>
               ))}
@@ -243,7 +248,7 @@ export function KeygenRequests() {
           <div className="admin-card glass">
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
               <Sparkles size={14} style={{ color: "var(--pink)" }} />
-              <h3 style={{ margin: 0 }}>Ключ создателя</h3>
+              <h3 style={{ margin: 0 }}>{t("Ключ создателя")}</h3>
             </div>
             <div className="field">
               <label>Private key</label>
@@ -287,27 +292,28 @@ export function KeygenRequests() {
                   if (parent) void openFolder(parent);
                 }}
               >
-                Открыть папку ключа
+                {t("Открыть папку ключа")}
               </button>
               <button
                 className="btn btn-ghost btn-sm"
-                onClick={() => void copy(machine.formatted, "Machine ID скопирован")}
+                onClick={() => void copy(machine.formatted, t("Machine ID скопирован"))}
               >
-                <Copy size={11} /> Мой Machine ID
+                <Copy size={11} /> {t("Мой Machine ID")}
               </button>
             </div>
             <p style={{ margin: "12px 0 0", fontSize: 9.5, color: "var(--dim)", lineHeight: 1.6 }}>
-              Приватный ключ никогда не покидает этот Mac и не попадает в сборку. Публичная
-              часть зашита в плагин.
+              {t(
+                "Приватный ключ никогда не покидает этот Mac и не попадает в сборку. Публичная часть зашита в плагин.",
+              )}
             </p>
           </div>
 
           <div className="admin-card glass">
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <h3>Журнал выдачи</h3>
+              <h3>{t("Журнал выдачи")}</h3>
               <span className="chip">{log.length}</span>
             </div>
-            <p className="sub">Локальный журнал, последние 200 ключей.</p>
+            <p className="sub">{t("Локальный журнал, последние 200 ключей.")}</p>
 
             {log.length ? (
               <div className="issue-log">
@@ -321,8 +327,8 @@ export function KeygenRequests() {
                     </div>
                     <button
                       className="row-icon"
-                      onClick={() => void copy(entry.key, "Ключ скопирован")}
-                      title="Скопировать"
+                      onClick={() => void copy(entry.key, t("Ключ скопирован"))}
+                      title={t("Скопировать")}
                     >
                       <Copy size={12} />
                     </button>
@@ -331,14 +337,18 @@ export function KeygenRequests() {
               </div>
             ) : (
               <p style={{ fontSize: 10.5, color: "var(--dim)", lineHeight: 1.6, margin: 0 }}>
-                Пока ни одного ключа. Выданные ключи появятся здесь и в профиле пользователя.
+                {t(
+                  "Пока ни одного ключа. Выданные ключи появятся здесь и в профиле пользователя.",
+                )}
               </p>
             )}
           </div>
 
           <div className="admin-card glass">
-            <h3>Связь</h3>
-            <p className="sub">Пользователь получает ключ автоматически, но может написать в Telegram.</p>
+            <h3>{t("Связь")}</h3>
+            <p className="sub">
+              {t("Пользователь получает ключ автоматически, но может написать в Telegram.")}
+            </p>
             <button className="btn btn-soft" onClick={() => void openExternal(TELEGRAM_URL)}>
               <ExternalLink size={13} /> @whofriends1
             </button>
@@ -364,6 +374,7 @@ function RequestCard({
   onReject: () => void;
   onCopy: (value: string, title: string) => Promise<void>;
 }) {
+  const { t } = useStore();
   return (
     <div className="request-card">
       <div className="request-top">
@@ -374,7 +385,7 @@ function RequestCard({
             {request.pluginTitle} · {timeAgo(request.createdAt)}
           </span>
         </div>
-        <span className="req-status pending">ждёт</span>
+        <span className="req-status pending">{t("ждёт")}</span>
       </div>
 
       <div className="request-line">
@@ -385,7 +396,7 @@ function RequestCard({
         <button
           className="row-icon"
           style={{ marginLeft: "auto", width: 24, height: 24 }}
-          onClick={() => void onCopy(request.machineId, "Machine ID скопирован")}
+          onClick={() => void onCopy(request.machineId, t("Machine ID скопирован"))}
         >
           <Copy size={11} />
         </button>
@@ -394,29 +405,29 @@ function RequestCard({
       {issuedKey ? (
         <div className="license-active">
           <div className="top">
-            <Check size={11} /> Ключ выдан
+            <Check size={11} /> {t("Ключ выдан")}
           </div>
           <div className="key-box">{issuedKey}</div>
           <button
             className="btn btn-soft btn-sm"
             style={{ marginTop: 8 }}
-            onClick={() => void onCopy(issuedKey, "Ключ скопирован")}
+            onClick={() => void onCopy(issuedKey, t("Ключ скопирован"))}
           >
-            <Copy size={11} /> Скопировать ещё раз
+            <Copy size={11} /> {t("Скопировать ещё раз")}
           </button>
         </div>
       ) : (
         <div className="request-actions">
           <button className="btn btn-primary btn-sm" onClick={onApprove} disabled={busy}>
             {busy ? <Loader2 size={12} className="spin" /> : <KeyRound size={12} />}
-            Одобрить и выдать ключ
+            {t("Одобрить и выдать ключ")}
           </button>
           <button className="btn btn-ghost btn-sm" onClick={onReject} disabled={busy}>
-            <X size={12} /> Отклонить
+            <X size={12} /> {t("Отклонить")}
           </button>
           <button
             className="btn btn-ghost btn-sm"
-            onClick={() => void onCopy(request.machineId, "Machine ID скопирован")}
+            onClick={() => void onCopy(request.machineId, t("Machine ID скопирован"))}
           >
             <Copy size={12} /> ID
           </button>

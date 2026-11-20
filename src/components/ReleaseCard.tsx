@@ -16,7 +16,7 @@ const categoryIcon: Record<Category, typeof Boxes> = {
 let activeAudio: HTMLAudioElement | null = null;
 
 export function PreviewButton({ release }: { release: Release }) {
-  const { settings, updateSettings } = useStore();
+  const { settings, updateSettings, t } = useStore();
   const [playing, setPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const preview = release.previews?.[0];
@@ -63,7 +63,7 @@ export function PreviewButton({ release }: { release: Release }) {
         event.stopPropagation();
         toggle();
       }}
-      aria-label={playing ? "Пауза" : "Прослушать демо"}
+      aria-label={playing ? t("Пауза") : t("Прослушать демо")}
     >
       {playing ? (
         <span className="bars">
@@ -89,7 +89,7 @@ export function ReleaseCard({
   onOpen: (release: Release) => void;
   index?: number;
 }) {
-  const { machine, installs, progress, getFileForOS } = useStore();
+  const { machine, installs, progress, getFileForOS, t } = useStore();
   const record = installs[release.slug];
   const job = progress[release.slug];
   const file = getFileForOS(release);
@@ -128,14 +128,14 @@ export function ReleaseCard({
           <span className="chip violet">{meta.singular}</span>
           {release.badge ? <span className="chip gold">{release.badge}</span> : null}
           <span className="spacer" />
-          <span className="rating-pill" title={`${release.ratingCount} оценок`}>
+          <span className="rating-pill" title={t("{count} оценок", { count: release.ratingCount })}>
             <Star size={10} /> {release.ratingAvg.toFixed(1)}
           </span>
         </div>
 
         {record ? (
           <span className="installed-mark">
-            <Check size={10} /> УСТАНОВЛЕНО
+            <Check size={10} /> {t("УСТАНОВЛЕНО")}
           </span>
         ) : null}
 

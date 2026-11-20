@@ -47,7 +47,7 @@ function Shell() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [settingsSection, setSettingsSection] = useState<SettingsSection>("sound");
+  const [settingsSection, setSettingsSection] = useState<SettingsSection>("general");
   const [refreshing, setRefreshing] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement | null>(null);
@@ -100,7 +100,7 @@ function Shell() {
 
   const openRelease = (release: Release) => setSelectedId(release.id);
 
-  const openSettings = (section: SettingsSection = "sound") => {
+  const openSettings = (section: SettingsSection = "general") => {
     setSettingsSection(section);
     setSettingsOpen(true);
   };
@@ -150,7 +150,11 @@ function Shell() {
   })();
 
   return (
-    <div className={`app-shell ${settings.reduceEffects ? "reduce-effects" : ""}`}>
+    <div
+      className={`app-shell ${settings.reduceEffects ? "reduce-effects" : ""} ${
+        settings.glassBlur ? "" : "no-blur"
+      }`}
+    >
       <Background />
       <WindowChrome />
 
@@ -158,7 +162,7 @@ function Shell() {
         <Sidebar
           view={effectiveView}
           onNavigate={navigate}
-          onOpenSettings={() => openSettings("sound")}
+          onOpenSettings={() => openSettings("general")}
         />
 
         <main className="main">

@@ -69,6 +69,7 @@ export function AdminStudio() {
     adminOverview: overview,
     toast,
     removeComment,
+    t,
   } = useStore();
 
   const [tab, setTab] = useState<Tab>("publish");
@@ -120,8 +121,8 @@ export function AdminStudio() {
         if (!lower.endsWith(".zip") && !lower.endsWith(".rar")) {
           toast({
             kind: "info",
-            title: "Неподдерживаемый файл",
-            message: `${name}: нужен ZIP-архив или изображение обложки.`,
+            title: t("Неподдерживаемый файл"),
+            message: t("{name}: нужен ZIP-архив или изображение обложки.", { name }),
           });
           continue;
         }
@@ -141,7 +142,7 @@ export function AdminStudio() {
         }));
         toast({
           kind: "success",
-          title: `ZIP добавлен: ${target === "macos" ? "macOS" : "Windows"}`,
+          title: t("ZIP добавлен: {os}", { os: target === "macos" ? "macOS" : "Windows" }),
           message: name,
         });
       }
@@ -252,15 +253,15 @@ export function AdminStudio() {
 
   const publish = async () => {
     if (!form.title.trim()) {
-      toast({ kind: "error", title: "Нужно название релиза" });
+      toast({ kind: "error", title: t("Нужно название релиза") });
       return;
     }
     if (!form.slug.trim()) {
-      toast({ kind: "error", title: "Нужен slug" });
+      toast({ kind: "error", title: t("Нужен slug") });
       return;
     }
     if (!files.macos && !files.windows) {
-      toast({ kind: "error", title: "Добавьте хотя бы один ZIP", message: "macOS или Windows сборку." });
+      toast({ kind: "error", title: t("Добавьте хотя бы один ZIP"), message: t("macOS или Windows сборку.") });
       return;
     }
 
@@ -268,7 +269,7 @@ export function AdminStudio() {
     const useCloud = cloudEnabled && cloudAdminReady;
 
     setBusy(true);
-    setStep(useCloud ? "Подготовка облака…" : "Сохранение локального каталога…");
+    setStep(useCloud ? t("Подготовка облака…") : t("Сохранение локального каталога…"));
 
     try {
       const nextFiles: Release["files"] = {};
@@ -278,7 +279,7 @@ export function AdminStudio() {
         if (!picked) continue;
 
         if (useCloud && picked.path) {
-          setStep(`Загрузка ${os === "macos" ? "macOS" : "Windows"} сборки…`);
+          setStep(t("Загрузка {os} сборки…", { os: os === "macos" ? "macOS" : "Windows" }));
           const filename = `${form.slug}-${os}-${Date.now()}.zip`;
           const result = await import("../lib/cloud").then(({ adminUpload }) =>
             adminUpload({
@@ -311,7 +312,7 @@ export function AdminStudio() {
 
       if (cover?.path) {
         if (useCloud) {
-          setStep("Загрузка обложки…");
+          setStep(t("Загрузка обложки…"));
           const filename = `${form.slug}-cover-${Date.now()}.jpg`;
           const { adminUpload } = await import("../lib/cloud");
           const result = await adminUpload({
@@ -327,7 +328,7 @@ export function AdminStudio() {
         coverUrl = cover.url;
       }
 
-      setStep("Публикация в каталог…");
+      setStep(t("Публикация в каталог…"));
 
       const saved = await saveRelease({
         id: editingId ?? undefined,
@@ -350,16 +351,16 @@ export function AdminStudio() {
       await refreshAdminData();
       toast({
         kind: "success",
-        title: editingId ? "Релиз обновлён" : "Релиз опубликован",
+        title: editingId ? t("Релиз обновлён") : t("Релиз опубликован"),
         message: useCloud
-          ? `${saved.title} уже доступен всем пользователям.`
-          : `${saved.title} сохранён в локальном каталоге (облако не подключено).`,
+          ? t("{name} уже доступен всем пользователям.", { name: saved.title })
+          : t("{name} сохранён в локальном каталоге (облако не подключено).", { name: saved.title }),
       });
       resetForm();
       setTab("releases");
       document.querySelector(".content")?.scrollTo({ top: 0, behavior: "smooth" });
     } catch (error) {
-      toast({ kind: "error", title: "Публикация не удалась", message: String(error) });
+      toast({ kind: "error", title: t("Публикация не удалась"), message: String(error) });
     } finally {
       setBusy(false);
       setStep("");
@@ -372,10 +373,10 @@ export function AdminStudio() {
       await refreshCatalog();
       await refreshAdminData();
       setConfirmDelete(null);
-      toast({ kind: "success", title: `${release.title} удалён` });
+      toast({ kind: "success", title: t("{name} удалён", { name: release.title }) });
       if (editingId === release.id) resetForm();
     } catch (error) {
-      toast({ kind: "error", title: "Удаление не удалось", message: String(error) });
+      toast({ kind: "error", title: t("Удаление не удалось"), message: String(error) });
     }
   };
 
@@ -388,9 +389,9 @@ export function AdminStudio() {
           <ShieldCheck size={19} />
         </div>
         <div className="copy">
-          <h2>Creator mode · только это устройство</h2>
+          <h2>{t("Creator mode · только это устройство")}</h2>
           <p>
-            Приватный ключ: <code>{admin.privateKeyPath?.split(/[\\/]/).slice(-2).join("/")}</code>{" "}
+            {t("Приватный ключ:")} <code>{admin.privateKeyPath?.split(/[\\/]/).slice(-2).join("/")}</code>{" "}
             · <code>{cloudAdminReady ? "cloud write enabled" : cloudEnabled ? "cloud read-only" : "local mode"}</code>
           </p>
         </div>
@@ -404,7 +405,7 @@ export function AdminStudio() {
             void refreshCatalog();
           }}
         >
-          <RefreshCw size={12} /> Обновить
+          <RefreshCw size={12} /> {t("Обновить")}
         </button>
       </div>
 
@@ -412,23 +413,28 @@ export function AdminStudio() {
         <div className="notice">
           <AlertTriangle size={15} />
           <div>
-            <b>Публикация только локально.</b> Чтобы релизы видели все пользователи, добавьте
-            Supabase URL, anon key и <code>VITE_AETHER_ADMIN_TOKEN</code> в <code>.env</code>,
-            задеплойте Edge Function и пересоберите приложение. Сейчас изменения сохраняются в
-            локальный каталог этого Mac.
+            <b>{t("Публикация только локально.")}</b>{" "}
+            {t(
+              "Чтобы релизы видели все пользователи, добавьте Supabase URL, anon key и",
+            )}{" "}
+            <code>VITE_AETHER_ADMIN_TOKEN</code> {" "}
+            {t(
+              "задеплойте Edge Function и пересоберите приложение. Сейчас изменения сохраняются в локальный каталог этого Mac.",
+            )}
           </div>
         </div>
       ) : null}
 
       <div className="segmented">
         <button className={tab === "publish" ? "active" : ""} onClick={() => setTab("publish")}>
-          <Plus size={12} /> {editingId ? "Редактирование" : "Новый релиз"}
+          <Plus size={12} /> {editingId ? t("Редактирование") : t("Новый релиз")}
         </button>
         <button className={tab === "releases" ? "active" : ""} onClick={() => setTab("releases")}>
-          <Sparkles size={12} /> Релизы <span style={{ opacity: 0.55 }}>{releases.length}</span>
+          <Sparkles size={12} /> {t("Релизы")}{" "}
+          <span style={{ opacity: 0.55 }}>{releases.length}</span>
         </button>
         <button className={tab === "moderation" ? "active" : ""} onClick={() => setTab("moderation")}>
-          <MessageSquare size={12} /> Модерация{" "}
+          <MessageSquare size={12} /> {t("Модерация")}{" "}
           <span style={{ opacity: 0.55 }}>{comments.length}</span>
         </button>
       </div>
@@ -444,17 +450,19 @@ export function AdminStudio() {
             }
           >
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
-              <h3 style={{ margin: 0 }}>{editingId ? "Живое редактирование" : "Публикация релиза"}</h3>
+              <h3 style={{ margin: 0 }}>{editingId ? t("Живое редактирование") : t("Публикация релиза")}</h3>
               {editingId ? <span className="chip violet">EDIT</span> : null}
               {dragActive ? (
                 <span className="chip green" style={{ marginLeft: "auto" }}>
-                  <UploadCloud size={9} /> Отпустите файлы
+                  <UploadCloud size={9} /> {t("Отпустите файлы")}
                 </span>
               ) : null}
             </div>
             <p className="sub">
-              Перетащите ZIP-архивы и обложку прямо в это окно (или выберите файлы). Для macOS
-              положите в архив <code>.vst3</code> / <code>.component</code>, для Windows —{" "}
+              {t(
+                "Перетащите ZIP-архивы и обложку прямо в это окно (или выберите файлы). Для macOS положите в архив",
+              )}{" "}
+              <code>.vst3</code> / <code>.component</code>, {t("для Windows —")}{" "}
               <code>.vst3</code>.
             </p>
 
@@ -467,7 +475,7 @@ export function AdminStudio() {
                     </span>
                     <span className="dz-title">{files.macos.name}</span>
                     <span className="dz-hint">
-                      {files.macos.path ? formatBytes(files.macos.size) : "уже в облаке"} · ZIP
+                      {files.macos.path ? formatBytes(files.macos.size) : t("уже в облаке")} · ZIP
                     </span>
                     <span
                       className="dz-clear"
@@ -485,7 +493,7 @@ export function AdminStudio() {
                     <span className="dz-label">
                       <FileArchive size={9} /> macOS
                     </span>
-                    <span className="dz-title">Перетащите ZIP</span>
+                    <span className="dz-title">{t("Перетащите ZIP")}</span>
                     <span className="dz-hint">VST3 + AU, universal</span>
                   </>
                 )}
@@ -499,7 +507,7 @@ export function AdminStudio() {
                     </span>
                     <span className="dz-title">{files.windows.name}</span>
                     <span className="dz-hint">
-                      {files.windows.path ? formatBytes(files.windows.size) : "уже в облаке"} · ZIP
+                      {files.windows.path ? formatBytes(files.windows.size) : t("уже в облаке")} · ZIP
                     </span>
                     <span
                       className="dz-clear"
@@ -517,7 +525,7 @@ export function AdminStudio() {
                     <span className="dz-label">
                       <FileArchive size={9} /> Windows
                     </span>
-                    <span className="dz-title">Перетащите ZIP</span>
+                    <span className="dz-title">{t("Перетащите ZIP")}</span>
                     <span className="dz-hint">VST3 x64</span>
                   </>
                 )}
@@ -533,10 +541,12 @@ export function AdminStudio() {
                 ) : null}
                 <div className="cover-copy" style={{ position: "relative" }}>
                   <span className="dz-label">
-                    <ImageIcon size={9} /> Обложка
+                    <ImageIcon size={9} /> {t("Обложка")}
                   </span>
                   <span className="dz-title" style={{ display: "block" }}>
-                    {cover?.name === "cover" ? "Текущая обложка" : cover?.name || "Перетащите JPG"}
+                    {cover?.name === "cover"
+                      ? t("Текущая обложка")
+                      : cover?.name || t("Перетащите JPG")}
                   </span>
                   <span className="dz-hint">1200×750 · JPG / PNG</span>
                 </div>
@@ -557,7 +567,7 @@ export function AdminStudio() {
 
             <div className="form-grid">
               <div className="field">
-                <label>Название</label>
+                <label>{t("Название")}</label>
                 <input value={form.title} onChange={(event) => onTitle(event.target.value)} placeholder="AetherVocal Strip" />
               </div>
               <div className="field">
@@ -572,7 +582,7 @@ export function AdminStudio() {
                 />
               </div>
               <div className="field">
-                <label>Версия</label>
+                <label>{t("Версия")}</label>
                 <input
                   value={form.version}
                   onChange={(event) => setForm((prev) => ({ ...prev, version: event.target.value }))}
@@ -580,7 +590,7 @@ export function AdminStudio() {
                 />
               </div>
               <div className="field">
-                <label>Категория</label>
+                <label>{t("Категория")}</label>
                 <select
                   value={form.category}
                   onChange={(event) =>
@@ -593,7 +603,7 @@ export function AdminStudio() {
                 </select>
               </div>
               <div className="field">
-                <label>Product tag (лицензия)</label>
+                <label>{t("Product tag (лицензия)")}</label>
                 <input
                   value={form.productTag}
                   onChange={(event) =>
@@ -604,7 +614,7 @@ export function AdminStudio() {
                 />
               </div>
               <div className="field">
-                <label>Бейдж</label>
+                <label>{t("Бейдж")}</label>
                 <input
                   value={form.badge}
                   onChange={(event) => setForm((prev) => ({ ...prev, badge: event.target.value }))}
@@ -616,17 +626,17 @@ export function AdminStudio() {
                 <input
                   value={form.preview}
                   onChange={(event) => setForm((prev) => ({ ...prev, preview: event.target.value }))}
-                  placeholder="https://…/demo.mp3 — для мини-плеера в карточке драм-кита"
+                  placeholder={t("https://…/demo.mp3 — для мини-плеера в карточке драм-кита")}
                 />
               </div>
               <div className="field span2">
-                <label>Описание</label>
+                <label>{t("Описание")}</label>
                 <textarea
                   value={form.description}
                   onChange={(event) =>
                     setForm((prev) => ({ ...prev, description: event.target.value }))
                   }
-                  placeholder="Что внутри, для кого, чем отличается версия…"
+                  placeholder={t("Что внутри, для кого, чем отличается версия…")}
                   rows={4}
                 />
               </div>
@@ -646,7 +656,7 @@ export function AdminStudio() {
                 onClick={() => setForm((prev) => ({ ...prev, featured: !prev.featured }))}
                 aria-label="Featured"
               />
-              <span style={{ fontSize: 11, color: "var(--muted)" }}>Featured на главной</span>
+              <span style={{ fontSize: 11, color: "var(--muted)" }}>{t("Featured на главной")}</span>
 
               <div style={{ flex: 1 }} />
 
@@ -658,27 +668,27 @@ export function AdminStudio() {
 
               {editingId ? (
                 <button className="btn btn-ghost" onClick={resetForm} disabled={busy}>
-                  Отмена
+                  {t("Отмена")}
                 </button>
               ) : null}
 
               <button className="btn btn-primary" onClick={() => void publish()} disabled={busy}>
                 {busy ? <Loader2 size={14} className="spin" /> : <CloudUpload size={14} />}
-                {editingId ? "Сохранить в облако" : "Опубликовать"}
+                {editingId ? t("Сохранить в облако") : t("Опубликовать")}
               </button>
             </div>
           </div>
 
           <div className="admin-card glass">
-            <h3>Быстрые факты</h3>
-            <p className="sub">Так релиз увидят пользователи прямо сейчас.</p>
+            <h3>{t("Быстрые факты")}</h3>
+            <p className="sub">{t("Так релиз увидят пользователи прямо сейчас.")}</p>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
               <div className="glass-soft" style={{ padding: 14 }}>
                 <div className="label" style={{ fontSize: 9, color: "var(--dim)", letterSpacing: ".16em", textTransform: "uppercase" }}>
                   Apple Silicon / Intel
                 </div>
                 <div style={{ marginTop: 6, fontSize: 12 }}>
-                  {files.macos ? formatBytes(files.macos.size) : "не задано"}
+                  {files.macos ? formatBytes(files.macos.size) : t("не задано")}
                 </div>
               </div>
               <div className="glass-soft" style={{ padding: 14 }}>
@@ -686,15 +696,17 @@ export function AdminStudio() {
                   Windows x64
                 </div>
                 <div style={{ marginTop: 6, fontSize: 12 }}>
-                  {files.windows ? formatBytes(files.windows.size) : "не задано"}
+                  {files.windows ? formatBytes(files.windows.size) : t("не задано")}
                 </div>
               </div>
               <div className="glass-soft" style={{ padding: 14 }}>
                 <div style={{ fontSize: 9, color: "var(--dim)", letterSpacing: ".16em", textTransform: "uppercase" }}>
-                  Аудитория
+                  {t("Аудитория")}
                 </div>
                 <div style={{ marginTop: 6, fontSize: 12 }}>
-                  {pendingRequests ? `${pendingRequests} заявок ждут` : "нет новых заявок"}
+                  {pendingRequests
+                    ? t("{count} заявок ждут", { count: pendingRequests })
+                    : t("нет новых заявок")}
                 </div>
               </div>
             </div>
@@ -706,14 +718,15 @@ export function AdminStudio() {
         <div className="admin-card glass">
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
             <div>
-              <h3>Живой каталог</h3>
+              <h3>{t("Живой каталог")}</h3>
               <p className="sub" style={{ marginBottom: 10 }}>
-                Карандаш открывает live-редактирование. Изменения уходят в облако сразу после
-                сохранения.
+                {t(
+                  "Карандаш открывает live-редактирование. Изменения уходят в облако сразу после сохранения.",
+                )}
               </p>
             </div>
             <button className="btn btn-soft btn-sm" onClick={() => setTab("publish")}>
-              <Plus size={12} /> Новый
+              <Plus size={12} /> {t("Новый")}
             </button>
           </div>
 
@@ -738,20 +751,20 @@ export function AdminStudio() {
                   {release.featured ? <span className="chip gold">FEATURED</span> : null}
                   <span className="chip violet">{release.ratingAvg.toFixed(1)} ★</span>
                   <div className="row-actions">
-                    <button className="row-icon" onClick={() => startEdit(release)} title="Редактировать">
+                    <button className="row-icon" onClick={() => startEdit(release)} title={t("Редактировать")}>
                       <Pencil size={13} />
                     </button>
                     {confirmDelete === release.id ? (
                       <>
-                        <button className="row-icon danger" onClick={() => void remove(release)} title="Подтвердить">
+                        <button className="row-icon danger" onClick={() => void remove(release)} title={t("Подтвердить")}>
                           <Check size={13} />
                         </button>
-                        <button className="row-icon" onClick={() => setConfirmDelete(null)} title="Отмена">
+                        <button className="row-icon" onClick={() => setConfirmDelete(null)} title={t("Отмена")}>
                           <X size={13} />
                         </button>
                       </>
                     ) : (
-                      <button className="row-icon danger" onClick={() => setConfirmDelete(release.id)} title="Удалить">
+                      <button className="row-icon danger" onClick={() => setConfirmDelete(release.id)} title={t("Удалить")}>
                         <Trash2 size={13} />
                       </button>
                     )}
@@ -766,8 +779,8 @@ export function AdminStudio() {
               <div className="icon">
                 <Sparkles size={20} />
               </div>
-              <h3>Каталог пуст</h3>
-              <p>Опубликуйте первый релиз — он сразу появится у всех пользователей.</p>
+              <h3>{t("Каталог пуст")}</h3>
+              <p>{t("Опубликуйте первый релиз — он сразу появится у всех пользователей.")}</p>
             </div>
           ) : null}
         </div>
@@ -777,13 +790,13 @@ export function AdminStudio() {
         <div className="admin-card glass">
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div>
-              <h3>Модерация комментариев</h3>
+              <h3>{t("Модерация комментариев")}</h3>
               <p className="sub" style={{ marginBottom: 12 }}>
-                Удаление мгновенно убирает комментарий из облака у всех пользователей.
+                {t("Удаление мгновенно убирает комментарий из облака у всех пользователей.")}
               </p>
             </div>
             <button className="btn btn-ghost btn-sm" onClick={() => void refreshAdminData()}>
-              <RefreshCw size={12} /> Обновить
+              <RefreshCw size={12} /> {t("Обновить")}
             </button>
           </div>
 
@@ -806,7 +819,7 @@ export function AdminStudio() {
                   setLocalComments((prev) => (prev ?? comments).filter((c) => c.id !== comment.id));
                   void removeComment(comment.releaseId, comment.id);
                 }}
-                title="Удалить комментарий"
+                title={t("Удалить комментарий")}
               >
                 <Trash2 size={13} />
               </button>
@@ -818,8 +831,8 @@ export function AdminStudio() {
               <div className="icon">
                 <MessageSquare size={20} />
               </div>
-              <h3>Комментариев нет</h3>
-              <p>Здесь появятся все сообщения пользователей для модерации.</p>
+              <h3>{t("Комментариев нет")}</h3>
+              <p>{t("Здесь появятся все сообщения пользователей для модерации.")}</p>
             </div>
           ) : null}
         </div>

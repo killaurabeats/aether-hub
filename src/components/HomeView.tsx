@@ -43,6 +43,7 @@ export function HomeView({
     licenses,
     toast,
     catalogError,
+    t,
   } = useStore();
 
   const featured = releases.find((r) => r.featured) ?? releases[0];
@@ -60,7 +61,7 @@ export function HomeView({
     const ok = await copyText(licensingMachineId);
     toast({
       kind: ok ? "success" : "error",
-      title: ok ? "Machine ID скопирован" : "Не удалось скопировать",
+      title: ok ? t("Machine ID скопирован") : t("Не удалось скопировать"),
     });
   };
 
@@ -70,10 +71,12 @@ export function HomeView({
         <div className="notice violet">
           <Unplug size={15} />
           <div style={{ flex: 1 }}>
-            <b>Локальный каталог.</b> Приложение полностью работает, но рейтинги, комментарии и
-            заявки сохраняются только на этом Mac.{" "}
+            <b>{t("Локальный каталог.")}</b>{" "}
+            {t(
+              "Приложение полностью работает, но рейтинги, комментарии и заявки сохраняются только на этом Mac.",
+            )}{" "}
             <button className="ghost-link" onClick={onOpenSettings} style={{ fontSize: 11.5 }}>
-              Подключить Supabase <ArrowRight size={11} />
+              {t("Подключить Supabase")} <ArrowRight size={11} />
             </button>
             {catalogError ? (
               <span style={{ display: "block", marginTop: 4, color: "var(--dim)", fontSize: 10 }}>
@@ -88,20 +91,21 @@ export function HomeView({
         <div className="hero-copy">
           <span className="eyebrow">Aether Plugins · est. 2026</span>
           <h1>
-            Звук, который
+            {t("Звук, который")}
             <br />
-            <em>не хочется трогать.</em>
+            <em>{t("не хочется трогать.")}</em>
           </h1>
           <p>
-            Плагины, драм-киты и пресеты в одном приватном хабе. Установка в один клик,
-            живые оценки, мгновенные обновления — без переустановки лаунчера.
+            {t(
+              "Плагины, драм-киты и пресеты в одном приватном хабе. Установка в один клик, живые оценки, мгновенные обновления — без переустановки лаунчера.",
+            )}
           </p>
           <div className="hero-actions">
             <button
               className="btn btn-primary btn-lg"
               onClick={() => onNavigate({ name: "category", category: "plugins" })}
             >
-              <Boxes size={15} /> Смотреть плагины
+              <Boxes size={15} /> {t("Смотреть плагины")}
             </button>
             {featured ? (
               <button className="btn btn-ghost btn-lg" onClick={() => onOpenRelease(featured)}>
@@ -112,21 +116,21 @@ export function HomeView({
           <div className="hero-stats">
             <div className="hero-stat">
               <strong>{releases.length}</strong>
-              <span>релизов</span>
+              <span>{t("релизов")}</span>
             </div>
             <div className="hero-stat">
               <strong>{Object.keys(installs).length}</strong>
-              <span>установлено</span>
+              <span>{t("установлено")}</span>
             </div>
             <div className="hero-stat">
               <strong style={{ display: "flex", alignItems: "center", gap: 5 }}>
                 {avgRating.toFixed(1)} <Star size={13} style={{ color: "var(--gold)", fill: "var(--gold)" }} />
               </strong>
-              <span>рейтинг</span>
+              <span>{t("рейтинг")}</span>
             </div>
             <div className="hero-stat">
               <strong>{licenses.length || "—"}</strong>
-              <span>лицензий</span>
+              <span>{t("лицензий")}</span>
             </div>
           </div>
         </div>
@@ -156,10 +160,10 @@ export function HomeView({
           <div className="section-head">
             <div>
               <h2>Featured drop</h2>
-              <div className="sub">Ручной выбор команды Aether</div>
+              <div className="sub">{t("Ручной выбор команды Aether")}</div>
             </div>
             <button className="link" onClick={() => onOpenRelease(featured)}>
-              Открыть <ArrowRight size={12} />
+              {t("Открыть")} <ArrowRight size={12} />
             </button>
           </div>
           <div
@@ -197,8 +201,8 @@ export function HomeView({
                   <span>
                     v{featured.version} ·{" "}
                     {featured.files[machine.os === "windows" ? "windows" : "macos"]
-                      ? "готово для " + machine.platformLabel
-                      : "другая ОС"}
+                      ? t("готово для {os}", { os: machine.platformLabel })
+                      : t("другая ОС")}
                   </span>
                 </span>
               </div>
@@ -209,14 +213,14 @@ export function HomeView({
 
       <div className="section-head">
         <div>
-          <h2>Свежие дропы</h2>
-          <div className="sub">Обновляется из облака при каждом запуске</div>
+          <h2>{t("Свежие дропы")}</h2>
+          <div className="sub">{t("Обновляется из облака при каждом запуске")}</div>
         </div>
         <button
           className="link"
           onClick={() => onNavigate({ name: "category", category: "plugins" })}
         >
-          Вся библиотека <ArrowRight size={12} />
+          {t("Вся библиотека")} <ArrowRight size={12} />
         </button>
       </div>
 
@@ -231,8 +235,8 @@ export function HomeView({
           <div className="icon">
             <Cloud size={22} />
           </div>
-          <h3>Каталог пуст</h3>
-          <p>Нажмите «Обновить» сверху или опубликуйте первый релиз в Admin Studio.</p>
+          <h3>{t("Каталог пуст")}</h3>
+          <p>{t("Нажмите «Обновить» сверху или опубликуйте первый релиз в Admin Studio.")}</p>
         </div>
       )}
 
@@ -250,9 +254,11 @@ export function HomeView({
               <KeyRound size={15} />
             </span>
             <div>
-              <div style={{ fontSize: 13, fontWeight: 600 }}>Активация лицензии</div>
+              <div style={{ fontSize: 13, fontWeight: 600 }}>{t("Активация лицензии")}</div>
               <div style={{ fontSize: 10.5, color: "var(--dim)" }}>
-                Machine ID для лицензий{settings.licenseMachineId ? " · из плагина" : " этого компьютера"}
+                {settings.licenseMachineId
+                  ? t("Machine ID для лицензий · из плагина")
+                  : t("Machine ID для лицензий этого компьютера")}
               </div>
             </div>
             <span className="chip green" style={{ marginLeft: "auto" }}>
@@ -261,7 +267,7 @@ export function HomeView({
           </div>
           <div className="id-box">
             <span>{licensingMachineId}</span>
-            <button onClick={() => void copyMachine()} title="Скопировать Machine ID">
+            <button onClick={() => void copyMachine()} title={t("Скопировать Machine ID")}>
               <Copy size={13} />
             </button>
           </div>
@@ -277,15 +283,16 @@ export function HomeView({
                 }
               }}
             >
-              <KeyRound size={12} /> Запросить ключ
+              <KeyRound size={12} /> {t("Запросить ключ")}
             </button>
             <button className="btn btn-ghost btn-sm" onClick={() => void openExternal(TELEGRAM_URL)}>
               @whofriends1
             </button>
           </div>
           <p style={{ margin: "12px 0 0", fontSize: 10.5, color: "var(--dim)", lineHeight: 1.55 }}>
-            Ключ подписывает именно этот Machine ID. Пока админ не одобрит заявку, ключ
-            появится в профиле со статусом «ожидает».
+            {t(
+              "Ключ подписывает именно этот Machine ID. Пока админ не одобрит заявку, ключ появится в профиле со статусом «ожидает».",
+            )}
           </p>
         </div>
 
@@ -305,13 +312,16 @@ export function HomeView({
               <HardDriveDownload size={15} />
             </span>
             <div>
-              <div style={{ fontSize: 13, fontWeight: 600 }}>Установлено на этом Mac</div>
+              <div style={{ fontSize: 13, fontWeight: 600 }}>{t("Установлено на этом Mac")}</div>
               <div style={{ fontSize: 10.5, color: "var(--dim)" }}>
-                {Object.keys(installs).length} из {releases.length} релизов
+                {t("{count} из {total} релизов", {
+                  count: Object.keys(installs).length,
+                  total: releases.length,
+                })}
               </div>
             </div>
             <button className="ghost-link" style={{ marginLeft: "auto", fontSize: 11 }} onClick={onOpenSettings}>
-              <Settings2 size={12} /> Пути
+              <Settings2 size={12} /> {t("Пути")}
             </button>
           </div>
 
@@ -345,9 +355,9 @@ export function HomeView({
             </div>
           ) : (
             <div style={{ padding: "18px 0 8px", fontSize: 11.5, color: "var(--dim)", lineHeight: 1.6 }}>
-              Пока ничего не установлено. Откройте любой релиз и нажмите{" "}
-              <b style={{ color: "var(--muted)" }}>Установить</b> — файлы встанут в системные
-              папки автоматически.
+              {t(
+                "Пока ничего не установлено. Откройте любой релиз и нажмите «Установить» — файлы встанут в системные папки автоматически.",
+              )}
             </div>
           )}
 
@@ -356,13 +366,13 @@ export function HomeView({
               className="btn btn-ghost btn-sm"
               onClick={() => onNavigate({ name: "category", category: "drumkits" })}
             >
-              <Music4 size={12} /> Драм-киты
+              <Music4 size={12} /> {t("Драм-киты")}
             </button>
             <button
               className="btn btn-ghost btn-sm"
               onClick={() => onNavigate({ name: "category", category: "presets" })}
             >
-              <Sparkles size={12} /> Пресеты
+              <Sparkles size={12} /> {t("Пресеты")}
             </button>
           </div>
         </div>
@@ -388,14 +398,16 @@ export function HomeView({
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 11.5, fontWeight: 600 }}>Aether Plugins · by. @killaurabeats</div>
           <div style={{ fontSize: 10, color: "var(--dim)", marginTop: 2 }}>
-            Обновления каталога приходят из облака. Сам лаунчер переустанавливать не нужно.
+            {t(
+              "Обновления каталога приходят из облака. Сам лаунчер переустанавливать не нужно.",
+            )}
           </div>
         </div>
         <span className="chip">
           <ShieldCheck size={9} /> {profile.nickname}
         </span>
         <button className="btn btn-soft btn-sm" onClick={() => void openExternal(TELEGRAM_URL)}>
-          Telegram <ArrowRight size={11} />
+          {t("Telegram")} <ArrowRight size={11} />
         </button>
       </div>
     </div>

@@ -3315,16 +3315,59 @@ a {
 
 /* -------------------------------------------------------- reduced effects */
 
-.reduce-effects .glass,
-.reduce-effects .release-card,
-.reduce-effects .modal,
-.reduce-effects .toast,
-.reduce-effects .chip,
-.reduce-effects .rating-pill,
-.reduce-effects .cover-play,
-.reduce-effects .hero-badge {
+/* Glass Blur OFF — dense, opaque surfaces and no backdrop-filter anywhere. */
+.no-blur *,
+.no-blur *::before,
+.no-blur *::after {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
+}
+
+.no-blur .glass {
+  background: linear-gradient(160deg, rgba(16, 13, 30, 0.97), rgba(10, 8, 18, 0.98));
+}
+
+.no-blur .glass-soft,
+.no-blur .modal,
+.no-blur .toast,
+.no-blur .side-status,
+.no-blur .profile-chip,
+.no-blur .search-box,
+.no-blur .icon-button,
+.no-blur .filter-row,
+.no-blur .segmented {
+  background: rgba(16, 13, 30, 0.96);
+}
+
+.no-blur .modal {
+  background: #100d1e;
+}
+
+.no-blur .toast {
+  background: #100d1e;
+}
+
+.no-blur .chip,
+.no-blur .rating-pill,
+.no-blur .cover-play,
+.no-blur .hero-badge,
+.no-blur .installed-mark,
+.no-blur .segmented button.active,
+.no-blur .filter-pill.active {
+  background: #141026;
+}
+
+.no-blur .modal-backdrop {
+  background: rgba(4, 3, 9, 0.9);
+}
+
+.no-blur .id-box,
+.no-blur .key-box,
+.no-blur .comment-form textarea,
+.no-blur .field input,
+.no-blur .field textarea,
+.no-blur .field select {
+  background: #08060f;
 }
 
 .reduce-effects .bg-orb,

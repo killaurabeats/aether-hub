@@ -11,7 +11,7 @@ export function InstallButton({
   size?: "sm" | "md" | "lg";
   className?: string;
 }) {
-  const { installs, progress, install, getFileForOS, machine } = useStore();
+  const { installs, progress, install, getFileForOS, machine, t } = useStore();
   const record = installs[release.slug];
   const job = progress[release.slug];
   const file = getFileForOS(release);
@@ -23,7 +23,7 @@ export function InstallButton({
       <button
         className={`install-btn busy ${sizeClass} ${className}`}
         onClick={(event) => event.stopPropagation()}
-        aria-label="Установка"
+        aria-label={t("Установка")}
       >
         <Loader2 size={13} className="spin" />
         {Math.round(job.percent)}%
@@ -36,10 +36,10 @@ export function InstallButton({
       <button
         className={`install-btn busy ${sizeClass} ${className}`}
         onClick={(event) => event.stopPropagation()}
-        title={`Нет сборки для ${machine.platformLabel}`}
+        title={t("Нет сборки для {os}", { os: machine.platformLabel })}
       >
         <Download size={13} />
-        {machine.os === "windows" ? "Windows soon" : "macOS soon"}
+        {machine.os === "windows" ? t("Windows soon") : t("macOS soon")}
       </button>
     );
   }
@@ -53,15 +53,15 @@ export function InstallButton({
           event.stopPropagation();
           if (!isCurrent) void install(release);
         }}
-        aria-label={isCurrent ? "Установлено" : "Обновить"}
+        aria-label={isCurrent ? t("Установлено") : t("Обновить")}
       >
         {isCurrent ? (
           <>
-            <Check size={13} /> Установлено
+            <Check size={13} /> {t("Установлено")}
           </>
         ) : (
           <>
-            <RotateCw size={13} /> Обновить
+            <RotateCw size={13} /> {t("Обновить")}
           </>
         )}
       </button>
@@ -76,7 +76,7 @@ export function InstallButton({
         void install(release);
       }}
     >
-      <Download size={13} /> Установить
+      <Download size={13} /> {t("Установить")}
     </button>
   );
 }

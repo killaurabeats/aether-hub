@@ -15,7 +15,7 @@ export function CategoryView({
   category: Category;
   onOpenRelease: (release: Release) => void;
 }) {
-  const { releases, installs, catalogLoading } = useStore();
+  const { releases, installs, catalogLoading, t } = useStore();
   const [filter, setFilter] = useState<Filter>("all");
   const [sort, setSort] = useState<Sort>("new");
 
@@ -36,10 +36,10 @@ export function CategoryView({
     <div className="page">
       <div className="category-head">
         <div>
-          <span className="eyebrow">Библиотека Aether</span>
+          <span className="eyebrow">{t("Библиотека Aether")}</span>
           <h1>{meta.label}</h1>
           <p>
-            {meta.sub} · {items.length} {items.length === 1 ? "релиз" : "релизов"}
+            {meta.sub} · {t("Релизов: {count}", { count: items.length })}
           </p>
         </div>
 
@@ -49,13 +49,13 @@ export function CategoryView({
               className={`filter-pill ${filter === "all" ? "active" : ""}`}
               onClick={() => setFilter("all")}
             >
-              Все
+              {t("Все")}
             </button>
             <button
               className={`filter-pill ${filter === "installed" ? "active" : ""}`}
               onClick={() => setFilter("installed")}
             >
-              Установленные
+              {t("Установленные")}
             </button>
           </div>
           <div className="filter-row">
@@ -64,13 +64,13 @@ export function CategoryView({
               onClick={() => setSort("new")}
             >
               <Clock3 size={10} style={{ marginRight: 4, verticalAlign: -1 }} />
-              Новые
+              {t("Новые")}
             </button>
             <button
               className={`filter-pill ${sort === "rating" ? "active" : ""}`}
               onClick={() => setSort("rating")}
             >
-              ★ Рейтинг
+              ★ {t("Рейтинг")}
             </button>
           </div>
         </div>
@@ -100,12 +100,12 @@ export function CategoryView({
             {filter === "installed" ? <CheckCircle2 size={22} /> : <ShieldAlert size={22} />}
           </div>
           <h3>
-            {filter === "installed" ? "Здесь пока пусто" : "Релизов пока нет"}
+            {filter === "installed" ? t("Здесь пока пусто") : t("Релизов пока нет")}
           </h3>
           <p>
             {filter === "installed"
-              ? "Установите что-нибудь из общей библиотеки — и это появится здесь."
-              : "Админ ещё не опубликовал контент в этой категории. Загляните позже."}
+              ? t("Установите что-нибудь из общей библиотеки — и это появится здесь.")
+              : t("Админ ещё не опубликовал контент в этой категории. Загляните позже.")}
           </p>
         </div>
       )}
@@ -120,7 +120,7 @@ export function SearchResults({
   query: string;
   onOpenRelease: (release: Release) => void;
 }) {
-  const { releases } = useStore();
+  const { releases, t } = useStore();
   const needle = query.trim().toLowerCase();
 
   const matches = useMemo(() => {
@@ -143,9 +143,9 @@ export function SearchResults({
     <div className="page">
       <div className="category-head">
         <div>
-          <span className="eyebrow">Поиск</span>
-          <h1>«{query.trim()}»</h1>
-          <p>{matches.length} совпадений по каталогу</p>
+          <span className="eyebrow">{t("Поиск")}</span>
+          <h1>{t("«{query}»", { query: query.trim() })}</h1>
+          <p>{t("{count} совпадений по каталогу", { count: matches.length })}</p>
         </div>
       </div>
 
@@ -160,8 +160,8 @@ export function SearchResults({
           <div className="icon">
             <SearchX size={22} />
           </div>
-          <h3>Ничего не найдено</h3>
-          <p>Попробуйте короче: «vocal», «808», «preset».</p>
+          <h3>{t("Ничего не найдено")}</h3>
+          <p>{t("Попробуйте короче: «vocal», «808», «preset».")}</p>
         </div>
       )}
     </div>

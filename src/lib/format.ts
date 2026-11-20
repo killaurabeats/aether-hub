@@ -1,3 +1,13 @@
+let formatLanguage: "ru" | "en" = "ru";
+
+export function setFormatLanguage(language: "ru" | "en") {
+  formatLanguage = language;
+}
+
+function locale() {
+  return formatLanguage === "en" ? "en-US" : "ru-RU";
+}
+
 export function formatBytes(bytes?: number | null): string {
   if (!bytes || bytes <= 0) return "—";
   const mb = bytes / (1024 * 1024);
@@ -9,7 +19,7 @@ export function formatBytes(bytes?: number | null): string {
 }
 
 export function formatExactBytes(bytes: number): string {
-  return `${bytes.toLocaleString("ru-RU")} байт`;
+  return `${bytes.toLocaleString(locale())} ${formatLanguage === "en" ? "bytes" : "байт"}`;
 }
 
 export function timeAgo(iso: string): string {
@@ -18,6 +28,17 @@ export function timeAgo(iso: string): string {
 
   const diff = Date.now() - date;
   const minutes = Math.floor(diff / 60_000);
+
+  if (formatLanguage === "en") {
+    if (minutes < 1) return "just now";
+    if (minutes < 60) return `${minutes} min ago`;
+    const hoursEn = Math.floor(minutes / 60);
+    if (hoursEn < 24) return `${hoursEn} h ago`;
+    const daysEn = Math.floor(hoursEn / 24);
+    if (daysEn === 1) return "yesterday";
+    if (daysEn < 30) return `${daysEn} d ago`;
+    return new Date(iso).toLocaleDateString("en-US", { day: "numeric", month: "short" });
+  }
 
   if (minutes < 1) return "только что";
   if (minutes < 60) return `${minutes} мин назад`;
@@ -36,7 +57,7 @@ export function timeAgo(iso: string): string {
 }
 
 export function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("ru-RU", {
+  return new Date(iso).toLocaleDateString(locale(), {
     day: "numeric",
     month: "long",
     year: "numeric",

@@ -32,6 +32,7 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
     refreshCloudUser,
     toast,
     catalogSource,
+    t,
   } = useStore();
 
   const [nickname, setNickname] = useState(profile.nickname);
@@ -44,14 +45,14 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
   const pickAvatar = async (file?: File) => {
     if (!file) return;
     if (!file.type.startsWith("image/")) {
-      toast({ kind: "error", title: "Нужен файл изображения" });
+      toast({ kind: "error", title: t("Нужен файл изображения") });
       return;
     }
     try {
       const processed = await processAvatar(file, 256);
       setAvatar(processed);
     } catch (error) {
-      toast({ kind: "error", title: "Не удалось обработать аватар", message: String(error) });
+      toast({ kind: "error", title: t("Не удалось обработать аватар"), message: String(error) });
     }
   };
 
@@ -63,7 +64,7 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
 
   const copy = async (value: string, title: string) => {
     const ok = await copyText(value);
-    toast({ kind: ok ? "success" : "error", title: ok ? title : "Не удалось скопировать" });
+    toast({ kind: ok ? "success" : "error", title: ok ? title : t("Не удалось скопировать") });
   };
 
   return (
@@ -85,10 +86,10 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
       >
         <div className="modal-head">
           <div>
-            <h2>Профиль</h2>
-            <div className="sub">Ник, аватар и лицензии Aether</div>
+            <h2>{t("Профиль")}</h2>
+            <div className="sub">{t("Ник, аватар и лицензии Aether")}</div>
           </div>
-          <button className="modal-close" onClick={onClose} aria-label="Закрыть">
+          <button className="modal-close" onClick={onClose} aria-label={t("Закрыть")}>
             <X size={15} />
           </button>
         </div>
@@ -111,7 +112,7 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
 
               <div className="profile-fields">
                 <div className="field">
-                  <label>Никнейм</label>
+                  <label>{t("Никнейм")}</label>
                   <input
                     value={nickname}
                     onChange={(event) => setNickname(event.target.value)}
@@ -119,14 +120,15 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
                     placeholder="aether user"
                   />
                   <span className="hint">
-                    Аватар обрезается в квадрат и сжимается до 256 px — файл остаётся на
-                    устройстве.
+                    {t(
+                      "Аватар обрезается в квадрат и сжимается до 256 px — файл остаётся на устройстве.",
+                    )}
                   </span>
                 </div>
               </div>
               <button className="btn btn-primary" onClick={() => void save()} disabled={saving}>
                 {saving ? <Loader2 size={14} className="spin" /> : <CheckCircle2 size={14} />}
-                Сохранить
+                {t("Сохранить")}
               </button>
             </div>
 
@@ -143,7 +145,7 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
                     <input
                       value={idDraft}
                       onChange={(event) => setIdDraft(event.target.value)}
-                      placeholder="XXXX-XXXX-… из окна плагина"
+                      placeholder={t("XXXX-XXXX-… из окна плагина")}
                       spellCheck={false}
                       style={{ fontFamily: "var(--mono)" }}
                     />
@@ -153,34 +155,37 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
                         updateSettings({ licenseMachineId: idDraft.trim() || null });
                         await refreshCloudUser();
                         setIdEditing(false);
-                        toast({ kind: "success", title: "Machine ID для лицензий обновлён" });
+                        toast({ kind: "success", title: t("Machine ID для лицензий обновлён") });
                       }}
                     >
-                      Сохранить
+                      {t("Сохранить")}
                     </button>
                     <button className="btn btn-ghost btn-sm" onClick={() => setIdEditing(false)}>
-                      Отмена
+                      {t("Отмена")}
                     </button>
                   </div>
                   <span className="hint">
-                    Вставьте Machine ID, который показывает плагин в окне активации. Пустое
-                    значение — автоматический HWID этого компьютера.
+                    {t(
+                      "Вставьте Machine ID, который показывает плагин в окне активации. Пустое значение — автоматический HWID этого компьютера.",
+                    )}
                   </span>
                 </div>
               ) : (
                 <div className="id-box">
                   <span>{licensingMachineId}</span>
-                  <button onClick={() => void copy(licensingMachineId, "Machine ID скопирован")}>
+                  <button onClick={() => void copy(licensingMachineId, t("Machine ID скопирован"))}>
                     <Copy size={13} />
                   </button>
-                  <button onClick={() => { setIdDraft(licensingMachineId); setIdEditing(true); }} title="Указать ID из плагина">
+                  <button onClick={() => { setIdDraft(licensingMachineId); setIdEditing(true); }} title={t("Указать ID из плагина")}>
                     <Pencil size={12} />
                   </button>
                 </div>
               )}
               {licensingMachineId !== machine.formatted ? (
                 <span className="hint" style={{ display: "block", marginTop: 6 }}>
-                  Используется ID из плагина. Автоматический HWID: {machine.formatted}
+                  {t("Используется ID из плагина. Автоматический HWID: {id}", {
+                    id: machine.formatted,
+                  })}
                 </span>
               ) : null}
               <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
@@ -189,9 +194,9 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
                 </button>
                 <button
                   className="btn btn-ghost btn-sm"
-                  onClick={() => void copy(licensingMachineId, "Machine ID скопирован")}
+                  onClick={() => void copy(licensingMachineId, t("Machine ID скопирован"))}
                 >
-                  <Copy size={11} /> Скопировать ID
+                  <Copy size={11} /> {t("Скопировать ID")}
                 </button>
               </div>
             </div>
@@ -199,10 +204,12 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
             <div className="profile-section">
               <div className="profile-section-head">
                 <h3>
-                  <KeyRound size={13} /> Мои лицензии
+                  <KeyRound size={13} /> {t("Мои лицензии")}
                 </h3>
                 <span>
-                  {catalogSource === "cloud" ? "синхронизировано с облаком" : "локальный демо-режим"}
+                  {catalogSource === "cloud"
+                    ? t("синхронизировано с облаком")
+                    : t("локальный демо-режим")}
                 </span>
               </div>
 
@@ -217,8 +224,8 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
                       <code>{license.key}</code>
                       <button
                         className="row-icon"
-                        onClick={() => void copy(license.key, "Ключ скопирован")}
-                        title="Скопировать ключ"
+                        onClick={() => void copy(license.key, t("Ключ скопирован"))}
+                        title={t("Скопировать ключ")}
                       >
                         <Copy size={12} />
                       </button>
@@ -229,8 +236,9 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
                 <div className="notice violet" style={{ marginBottom: 0 }}>
                   <KeyRound size={14} />
                   <div>
-                    Пока нет выданных ключей. Откройте плагин и нажмите «Запросить ключ
-                    активации» — после одобрения ключ появится здесь автоматически.
+                    {t(
+                      "Пока нет выданных ключей. Откройте плагин и нажмите «Запросить ключ активации» — после одобрения ключ появится здесь автоматически.",
+                    )}
                   </div>
                 </div>
               )}
@@ -238,7 +246,7 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
               {requests.length ? (
                 <div style={{ marginTop: 12 }}>
                   <div className="profile-section-head">
-                    <h3 style={{ fontSize: 11, color: "var(--muted)" }}>Заявки</h3>
+                    <h3 style={{ fontSize: 11, color: "var(--muted)" }}>{t("Заявки")}</h3>
                   </div>
                   {requests.map((request) => (
                     <div className="req-item" key={request.id}>
@@ -250,16 +258,16 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
                       </div>
                       <span className={`req-status ${request.status}`}>
                         {request.status === "pending"
-                          ? "ожидает"
+                          ? t("ожидает")
                           : request.status === "approved"
-                            ? "одобрено"
-                            : "отклонено"}
+                            ? t("одобрено")
+                            : t("отклонено")}
                       </span>
                       {request.key ? (
                         <button
                           className="row-icon"
-                          onClick={() => void copy(request.key!, "Ключ скопирован")}
-                          title="Скопировать ключ"
+                          onClick={() => void copy(request.key!, t("Ключ скопирован"))}
+                          title={t("Скопировать ключ")}
                         >
                           <Copy size={12} />
                         </button>
@@ -273,11 +281,11 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
             <div className="profile-section">
               <div className="profile-section-head">
                 <h3>
-                  <Mail size={13} /> Связь
+                  <Mail size={13} /> {t("Связь")}
                 </h3>
               </div>
               <p style={{ margin: 0, fontSize: 11, color: "var(--dim)", lineHeight: 1.6 }}>
-                Вопросы по лицензии, приватные дропы и поддержка — Telegram{" "}
+                {t("Вопросы по лицензии, приватные дропы и поддержка — Telegram")}{" "}
                 <button className="ghost-link" onClick={() => void openExternal(TELEGRAM_URL)}>
                   @whofriends1
                 </button>

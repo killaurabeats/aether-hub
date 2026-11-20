@@ -46,6 +46,8 @@ import {
 } from "./cloud";
 import { formatBytes } from "./format";
 import { processAvatar } from "./image";
+import { setFormatLanguage } from "./format";
+import { translate, type Language } from "./i18n";
 
 export const isTauri =
   typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
@@ -54,8 +56,10 @@ const PROFILE_KEY = "aether.profile.v1";
 const SETTINGS_KEY = "aether.settings.v1";
 
 const defaultSettings: Settings = {
+  language: "ru",
   soundEnabled: true,
   soundVolume: 0.6,
+  glassBlur: true,
   reduceEffects: false,
   presetDir: null,
   drumkitDir: null,
@@ -116,6 +120,8 @@ interface StoreValue {
   progress: Record<string, InstallProgress>;
   profile: Profile;
   settings: Settings;
+  language: Language;
+  t: (text: string, vars?: Record<string, string | number>) => string;
   licensingMachineId: string;
   comments: Record<string, Comment[]>;
   myRatings: Record<string, number>;
@@ -165,6 +171,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [adminData, setAdminData] = useState<AdminOverview | null>(null);
 
+  setFormatLanguage(settings.language);
+
+  useEffect(() => {
+    document.documentElement.lang = settings.language;
+  }, [settings.language]);
+
+  const t = useCallback(
+    (text: string, vars?: Record<string, string | number>) =>
+      translate(settings.language, text, vars),
+    [settings.language],
+  );
+
   const licensingMachineId = useMemo(
     () => settings.licenseMachineId?.trim() || machine.formatted,
     [settings.licenseMachineId, machine.formatted],
@@ -211,16 +229,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (result.source === "demo" && cloudEnabled && result.error) {
         toast({
           kind: "error",
-          title: "Облако недоступно",
-          message: "Показан резервный каталог. Проверьте интернет и ключи Supabase.",
+          title: t("Облако недоступно"),
+          message: t("Показан резервный каталог. Проверьте интернет и ключи Supabase."),
         });
       }
     } catch (error) {
-      toast({ kind: "error", title: "Не удалось загрузить каталог", message: String(error) });
+      toast({ kind: "error", title: t("Не удалось загрузить каталог"), message: String(error) });
     } finally {
       setCatalogLoading(false);
     }
-  }, [toast]);
+  }, [toast, t]);
 
   const refreshCloudUser = useCallback(async () => {
     if (!licensingMachineId) return;
@@ -246,10 +264,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setRequests(data.requests);
       return data;
     } catch (error) {
-      toast({ kind: "error", title: "Не удалось обновить панель", message: String(error) });
+      toast({ kind: "error", title: t("Не удалось обновить панель"), message: String(error) });
       return null;
     }
-  }, [toast]);
+  }, [toast, t]);
 
   // Boot -------------------------------------------------------------------
   useEffect(() => {
@@ -265,6 +283,25 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       let nextMachine = fallbackMachine;
       let nextPaths = fallbackPaths;
       let nextAdmin: AdminStatus = { enabled: false };
+
+      const params = new URLSearchParams(window.location.search);
+      const langParam = params.get("lang");
+      if (langParam === "en" || langParam === "ru") {
+        const nextLanguage: Language = langParam === "en" ? "en" : "ru";
+        setSettings((prev) => {
+          const next = { ...prev, language: nextLanguage };
+          localStorage.setItem(SETTINGS_KEY, JSON.stringify(next));
+          return next;
+        });
+      }
+
+      if (params.get("noblur") === "1") {
+        setSettings((prev) => {
+          const next = { ...prev, glassBlur: false };
+          localStorage.setItem(SETTINGS_KEY, JSON.stringify(next));
+          return next;
+        });
+      }
 
       if (isTauri) {
         const results = await Promise.allSettled([
@@ -369,14 +406,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (!file) {
         toast({
           kind: "error",
-          title: "Нет сборки для этой ОС",
-          message: `${release.title} пока не собран для ${machine.platformLabel}.`,
+          title: t("Нет сборки для этой ОС"),
+          message: t("{name} пока не собран для {os}.", {
+            name: release.title,
+            os: machine.platformLabel,
+          }),
         });
         return;
       }
 
       if (!isTauri) {
-        toast({ kind: "info", title: "Установка доступна в приложении", message: "Запустите Aether Hub.app." });
+        toast({ kind: "info", title: t("Установка доступна в приложении"), message: t("Запустите Aether Hub.app.") });
         return;
       }
 
@@ -388,7 +428,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           received: 0,
           total: file.sizeBytes,
           percent: 1,
-          message: "Подготовка…",
+          message: t("Подготовка…"),
         },
       }));
 
@@ -408,11 +448,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         setInstalls((prev) => ({ ...prev, [release.slug]: record }));
         toast({
           kind: "success",
-          title: `${release.title} установлен`,
+          title: t("{name} установлен", { name: release.title }),
           message:
             release.category === "plugins"
-              ? "VST3 / AU скопированы в системные папки плагинов."
-              : `${formatBytes(record.sizeBytes)} распакованы.`,
+              ? t("VST3 / AU скопированы в системные папки плагинов.")
+              : t("{size} распакованы.", { size: formatBytes(record.sizeBytes) }),
         });
 
         window.setTimeout(() => {
@@ -430,12 +470,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         });
         toast({
           kind: "error",
-          title: "Установка не удалась",
+          title: t("Установка не удалась"),
           message: String(error),
         });
       }
     },
-    [getFileForOS, machine.platformLabel, settings.drumkitDir, settings.presetDir, toast],
+    [getFileForOS, machine.platformLabel, settings.drumkitDir, settings.presetDir, toast, t],
   );
 
   const uninstall = useCallback(
@@ -444,12 +484,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       try {
         const next = await invoke<Installs>("uninstall_release", { slug: release.slug });
         setInstalls(next);
-        toast({ kind: "info", title: `${release.title} удалён` });
+        toast({ kind: "info", title: t("{name} удалён", { name: release.title }) });
       } catch (error) {
-        toast({ kind: "error", title: "Не удалось удалить", message: String(error) });
+        toast({ kind: "error", title: t("Не удалось удалить"), message: String(error) });
       }
     },
-    [toast],
+    [toast, t],
   );
 
   const loadComments = useCallback(async (releaseId: string, force = false) => {
@@ -467,7 +507,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const text = body.trim();
       if (!text) return;
       if (!profile.nickname.trim()) {
-        toast({ kind: "info", title: "Сначала задайте никнейм в профиле" });
+        toast({ kind: "info", title: t("Сначала задайте никнейм в профиле") });
         return;
       }
 
@@ -484,10 +524,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           [release.id]: [comment, ...(prev[release.id] ?? [])],
         }));
       } catch (error) {
-        toast({ kind: "error", title: "Комментарий не отправлен", message: String(error) });
+        toast({ kind: "error", title: t("Комментарий не отправлен"), message: String(error) });
       }
     },
-    [machine.formatted, profile.avatarUrl, profile.nickname, toast],
+    [machine.formatted, profile.avatarUrl, profile.nickname, toast, t],
   );
 
   const removeComment = useCallback(
@@ -501,12 +541,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         setAdminData((prev) =>
           prev ? { ...prev, comments: prev.comments.filter((c) => c.id !== commentId) } : prev,
         );
-        toast({ kind: "success", title: "Комментарий удалён" });
+        toast({ kind: "success", title: t("Комментарий удалён") });
       } catch (error) {
-        toast({ kind: "error", title: "Не удалось удалить", message: String(error) });
+        toast({ kind: "error", title: t("Не удалось удалить"), message: String(error) });
       }
     },
-    [toast],
+    [toast, t],
   );
 
   const rate = useCallback(
@@ -521,12 +561,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
               : r,
           ),
         );
-        toast({ kind: "success", title: `Оценка ${value} ★ сохранена` });
+        toast({ kind: "success", title: t("Оценка {value} ★ сохранена", { value }) });
       } catch (error) {
-        toast({ kind: "error", title: "Оценка не сохранена", message: String(error) });
+        toast({ kind: "error", title: t("Оценка не сохранена"), message: String(error) });
       }
     },
-    [machine.formatted, toast],
+    [machine.formatted, toast, t],
   );
 
   const loadMyRating = useCallback(
@@ -562,12 +602,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
       try {
         await upsertProfile(next);
-        toast({ kind: "success", title: "Профиль сохранён" });
+        toast({ kind: "success", title: t("Профиль сохранён") });
       } catch (error) {
-        toast({ kind: "error", title: "Профиль сохранён локально", message: String(error) });
+        toast({ kind: "error", title: t("Профиль сохранён локально"), message: String(error) });
       }
     },
-    [licensingMachineId, profile, toast],
+    [licensingMachineId, profile, toast, t],
   );
 
   const updateSettings = useCallback((patch: Partial<Settings>) => {
@@ -581,7 +621,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const requestKey = useCallback(
     async (release: Release) => {
       if (!profile.nickname.trim()) {
-        toast({ kind: "info", title: "Сначала задайте никнейм в профиле" });
+        toast({ kind: "info", title: t("Сначала задайте никнейм в профиле") });
         return;
       }
 
@@ -597,14 +637,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         await refreshCloudUser();
         toast({
           kind: "success",
-          title: "Заявка отправлена",
-          message: "Ключ появится в профиле, как только его одобрят.",
+          title: t("Заявка отправлена"),
+          message: t("Ключ появится в профиле, как только его одобрят."),
         });
       } catch (error) {
-        toast({ kind: "error", title: "Заявка не отправлена", message: String(error) });
+        toast({ kind: "error", title: t("Заявка не отправлена"), message: String(error) });
       }
     },
-    [licensingMachineId, profile.avatarUrl, profile.nickname, refreshCloudUser, toast],
+    [licensingMachineId, profile.avatarUrl, profile.nickname, refreshCloudUser, toast, t],
   );
 
   const pickFolder = useCallback(
@@ -614,17 +654,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const selected = await openDialog({
           directory: true,
           multiple: false,
-          title: kind === "presetDir" ? "Папка пресетов" : "Папка драм-китов",
+          title: kind === "presetDir" ? t("Папка пресетов") : t("Папка драм-китов"),
           defaultPath: kind === "presetDir" ? paths.presetsDir : paths.drumkitsDir,
         });
         if (typeof selected === "string") {
           updateSettings({ [kind]: selected } as Partial<Settings>);
         }
       } catch (error) {
-        toast({ kind: "error", title: "Не удалось выбрать папку", message: String(error) });
+        toast({ kind: "error", title: t("Не удалось выбрать папку"), message: String(error) });
       }
     },
-    [paths.drumkitsDir, paths.presetsDir, toast, updateSettings],
+    [paths.drumkitsDir, paths.presetsDir, toast, updateSettings, t],
   );
 
   const resetDemo = useCallback(async () => {
@@ -632,8 +672,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setReleases(next);
     setCatalogSource("demo");
     setComments({});
-    toast({ kind: "info", title: "Демо-каталог восстановлен" });
-  }, [toast]);
+    toast({ kind: "info", title: t("Демо-каталог восстановлен") });
+  }, [toast, t]);
 
   const value = useMemo<StoreValue>(
     () => ({
@@ -649,6 +689,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       progress,
       profile,
       settings,
+      language: settings.language,
+      t,
       licensingMachineId,
       comments,
       myRatings,
@@ -688,6 +730,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       progress,
       profile,
       settings,
+      t,
       licensingMachineId,
       comments,
       myRatings,
