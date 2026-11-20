@@ -33,6 +33,7 @@ function Shell() {
   const {
     settings,
     admin,
+    adminVisible,
     releases,
     refreshCatalog,
     refreshCloudUser,
@@ -67,10 +68,10 @@ function Shell() {
   }, [releases]);
 
   useEffect(() => {
-    if (!admin.enabled && (view.name === "admin" || view.name === "keygen")) {
+    if (!adminVisible && (view.name === "admin" || view.name === "keygen")) {
       setView({ name: "home" });
     }
-  }, [admin.enabled, view.name]);
+  }, [adminVisible, view.name]);
 
   useEffect(() => {
     const onHash = () => setView(initialView());
@@ -110,7 +111,7 @@ function Shell() {
     try {
       await refreshCatalog();
       await refreshCloudUser();
-      if (admin.enabled) await refreshAdminData();
+      if (adminVisible) await refreshAdminData();
       toast({ kind: "info", title: "Каталог обновлён" });
     } finally {
       setRefreshing(false);
@@ -141,9 +142,9 @@ function Shell() {
       case "search":
         return <SearchResults query={effectiveView.query} onOpenRelease={openRelease} />;
       case "admin":
-        return admin.enabled ? <AdminStudio /> : null;
+        return adminVisible ? <AdminStudio /> : null;
       case "keygen":
-        return admin.enabled ? <KeygenRequests /> : null;
+        return adminVisible ? <KeygenRequests /> : null;
       default:
         return null;
     }

@@ -112,6 +112,9 @@ interface StoreValue {
   machine: MachineInfo;
   paths: AppPaths;
   admin: AdminStatus;
+  adminView: "admin" | "user";
+  adminVisible: boolean;
+  setAdminView: (mode: "admin" | "user") => void;
   releases: Release[];
   catalogSource: "cloud" | "cache" | "demo";
   catalogError: string | null;
@@ -156,6 +159,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [machine, setMachine] = useState<MachineInfo>(fallbackMachine);
   const [paths, setPaths] = useState<AppPaths>(fallbackPaths);
   const [admin, setAdmin] = useState<AdminStatus>({ enabled: false });
+  // Creator builds start in Admin view. Switching to User view is a temporary
+  // preview and resets to Admin on the next launch.
+  const [adminView, setAdminViewState] = useState<"admin" | "user">("admin");
   const [releases, setReleases] = useState<Release[]>([]);
   const [catalogSource, setCatalogSource] = useState<"cloud" | "cache" | "demo">("demo");
   const [catalogError, setCatalogError] = useState<string | null>(null);
@@ -187,6 +193,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     () => settings.licenseMachineId?.trim() || machine.formatted,
     [settings.licenseMachineId, machine.formatted],
   );
+
+  const adminVisible = admin.enabled && adminView === "admin";
+
+  const setAdminView = useCallback((mode: "admin" | "user") => {
+    setAdminViewState(mode);
+  }, []);
 
   const booted = useRef(false);
   const timers = useRef<number[]>([]);
@@ -681,6 +693,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       machine,
       paths,
       admin,
+      adminView,
+      adminVisible,
+      setAdminView,
       releases,
       catalogSource,
       catalogError,
@@ -722,6 +737,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       machine,
       paths,
       admin,
+      adminView,
+      adminVisible,
+      setAdminView,
       releases,
       catalogSource,
       catalogError,

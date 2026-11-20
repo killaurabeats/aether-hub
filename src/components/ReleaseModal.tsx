@@ -4,7 +4,6 @@ import {
   Check,
   Copy,
   Download,
-  ExternalLink,
   FolderOpen,
   KeyRound,
   MessageSquare,
@@ -19,7 +18,7 @@ import type { Release } from "../types";
 import { CATEGORY_META } from "../types";
 import { useStore } from "../lib/store";
 import { copyText, formatBytes, formatDate, timeAgo } from "../lib/format";
-import { openExternal, openFolder, TELEGRAM_URL } from "../lib/desktop";
+import { openFolder } from "../lib/desktop";
 import { Avatar } from "./Avatar";
 import { Stars } from "./Stars";
 import { InstallButton } from "./InstallButton";
@@ -41,7 +40,7 @@ export function ReleaseModal({
     licenses,
     requests,
     profile,
-    admin,
+    adminVisible,
     installs,
     progress,
     loadComments,
@@ -396,12 +395,6 @@ export function ReleaseModal({
                           <KeyRound size={11} />
                           {pending ? t("Заявка на рассмотрении") : t("Запросить ключ активации")}
                         </button>
-                        <button
-                          className="btn btn-ghost btn-sm"
-                          onClick={() => void openExternal(TELEGRAM_URL)}
-                        >
-                          <ExternalLink size={11} /> @whofriends1
-                        </button>
                       </div>
                       {profile.nickname ? (
                         <p style={{ margin: "10px 0 0", fontSize: 9.5, color: "var(--dim)" }}>
@@ -437,7 +430,7 @@ export function ReleaseModal({
                         </div>
                         <p>{comment.body}</p>
                       </div>
-                      {admin.enabled ? (
+                      {adminVisible ? (
                         <button
                           className="comment-del"
                           onClick={() => void removeComment(release.id, comment.id)}

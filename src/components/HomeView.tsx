@@ -19,7 +19,7 @@ import {
 import type { Release, View } from "../types";
 import { useStore } from "../lib/store";
 import { copyText, formatBytes } from "../lib/format";
-import { openExternal, TELEGRAM_URL } from "../lib/desktop";
+import { openExternal, TELEGRAM_CHANNEL_URL, TELEGRAM_URL } from "../lib/desktop";
 import { ReleaseCard } from "./ReleaseCard";
 import { InstallButton } from "./InstallButton";
 
@@ -406,8 +406,12 @@ export function HomeView({
         <span className="chip">
           <ShieldCheck size={9} /> {profile.nickname}
         </span>
-        <button className="btn btn-soft btn-sm" onClick={() => void openExternal(TELEGRAM_URL)}>
-          {t("Telegram")} <ArrowRight size={11} />
+        <button
+          className="btn btn-soft btn-sm"
+          onClick={() => void openExternal(TELEGRAM_CHANNEL_URL)}
+          title="https://t.me/aetherplugins"
+        >
+          @aetherplugins <ArrowRight size={11} />
         </button>
       </div>
     </div>

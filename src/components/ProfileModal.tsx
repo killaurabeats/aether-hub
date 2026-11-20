@@ -1,10 +1,9 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import {
   Camera,
   CheckCircle2,
   Copy,
-  ExternalLink,
   KeyRound,
   Loader2,
   Mail,
@@ -14,10 +13,10 @@ import {
 } from "lucide-react";
 import { useStore } from "../lib/store";
 import { copyText, formatDate, timeAgo } from "../lib/format";
-import { processAvatar } from "../lib/image";
 import { openExternal, TELEGRAM_URL } from "../lib/desktop";
 import { Avatar } from "./Avatar";
 import { Stars } from "./Stars";
+import { AvatarCropper } from "./AvatarCropper";
 
 export function ProfileModal({ onClose }: { onClose: () => void }) {
   const {
@@ -26,7 +25,7 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
     licensingMachineId,
     licenses,
     requests,
-    admin,
+    adminVisible,
     saveProfile,
     updateSettings,
     refreshCloudUser,
@@ -40,20 +39,34 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
   const [saving, setSaving] = useState(false);
   const [idEditing, setIdEditing] = useState(false);
   const [idDraft, setIdDraft] = useState(licensingMachineId);
+  const [cropperSrc, setCropperSrc] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
+  const cropUrlRef = useRef<string | null>(null);
 
-  const pickAvatar = async (file?: File) => {
+  useEffect(() => {
+    return () => {
+      if (cropUrlRef.current) URL.revokeObjectURL(cropUrlRef.current);
+    };
+  }, []);
+
+  const closeCropper = () => {
+    if (cropUrlRef.current) {
+      URL.revokeObjectURL(cropUrlRef.current);
+      cropUrlRef.current = null;
+    }
+    setCropperSrc(null);
+  };
+
+  const pickAvatar = (file?: File) => {
     if (!file) return;
     if (!file.type.startsWith("image/")) {
       toast({ kind: "error", title: t("Нужен файл изображения") });
       return;
     }
-    try {
-      const processed = await processAvatar(file, 256);
-      setAvatar(processed);
-    } catch (error) {
-      toast({ kind: "error", title: t("Не удалось обработать аватар"), message: String(error) });
-    }
+    if (cropUrlRef.current) URL.revokeObjectURL(cropUrlRef.current);
+    const url = URL.createObjectURL(file);
+    cropUrlRef.current = url;
+    setCropperSrc(url);
   };
 
   const save = async () => {
@@ -68,6 +81,7 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
   };
 
   return (
+    <>
     <motion.div
       className="modal-backdrop"
       initial={{ opacity: 0 }}
@@ -106,7 +120,10 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
                   ref={fileRef}
                   type="file"
                   accept="image/*"
-                  onChange={(event) => void pickAvatar(event.target.files?.[0])}
+                  onChange={(event) => {
+                    pickAvatar(event.target.files?.[0]);
+                    event.currentTarget.value = "";
+                  }}
                 />
               </div>
 
@@ -121,7 +138,7 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
                   />
                   <span className="hint">
                     {t(
-                      "Аватар обрезается в квадрат и сжимается до 256 px — файл остаётся на устройстве.",
+                      "Нажмите на аватар, чтобы открыть редактор. Итог — квадрат 256 × 256 px.",
                     )}
                   </span>
                 </div>
@@ -137,7 +154,7 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
                 <h3>
                   <ShieldCheck size={13} /> Machine ID
                 </h3>
-                {admin.enabled ? <span className="chip gold">ADMIN</span> : null}
+                {adminVisible ? <span className="chip gold">ADMIN</span> : null}
               </div>
               {idEditing ? (
                 <div className="field">
@@ -189,9 +206,6 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
                 </span>
               ) : null}
               <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
-                <button className="btn btn-ghost btn-sm" onClick={() => void openExternal(TELEGRAM_URL)}>
-                  <ExternalLink size={11} /> @whofriends1
-                </button>
                 <button
                   className="btn btn-ghost btn-sm"
                   onClick={() => void copy(licensingMachineId, t("Machine ID скопирован"))}
@@ -303,5 +317,16 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
         </div>
       </motion.div>
     </motion.div>
+    {cropperSrc ? (
+      <AvatarCropper
+        src={cropperSrc}
+        onCancel={closeCropper}
+        onApply={(dataUrl) => {
+          setAvatar(dataUrl);
+          closeCropper();
+        }}
+      />
+    ) : null}
+    </>
   );
 }

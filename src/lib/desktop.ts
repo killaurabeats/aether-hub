@@ -32,4 +32,7 @@ export async function readImageDataUrl(path: string): Promise<string | null> {
   }
 }
 
+/** Support / licence contact. */
 export const TELEGRAM_URL = "https://t.me/whofriends1";
+/** Public Aether plugins channel. */
+export const TELEGRAM_CHANNEL_URL = "https://t.me/aetherplugins";

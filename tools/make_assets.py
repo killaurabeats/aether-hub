@@ -165,14 +165,20 @@ def make_cover(kind: str) -> None:
 
 
 def make_plugin_cover() -> None:
-    source = Image.open(ROOT / "assets_raw" / "plugin-preview.png").convert("RGB")
+    candidates = [
+        RAW / "vocal_strip_v1_1.png",
+        RAW / "vocal_strip_v1.1.png",
+        RAW / "plugin-preview.png",
+    ]
+    source_path = next((path for path in candidates if path.is_file()), RAW / "plugin-preview.png")
+    source = Image.open(source_path).convert("RGB")
     target = (1200, 750)
     scale = max(target[0] / source.width, target[1] / source.height)
     resized = source.resize((int(source.width * scale), int(source.height * scale)), Image.LANCZOS)
     left = (resized.width - target[0]) // 2
     top = (resized.height - target[1]) // 2
     resized.crop((left, top, left + target[0], top + target[1])).save(
-        COVERS / "aether-vocal-strip.jpg", quality=90
+        COVERS / "aether-vocal-strip-v1-1.jpg", quality=90
     )
 
 

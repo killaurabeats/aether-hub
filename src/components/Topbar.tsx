@@ -51,7 +51,7 @@ function headingFor(
 }
 
 export function Topbar({ view, query, onQuery, onOpenProfile, onRefresh, refreshing }: Props) {
-  const { profile, admin, settings, updateSettings, t } = useStore();
+  const { profile, adminVisible, settings, updateSettings, t } = useStore();
   const heading = headingFor(view, profile.nickname.split(" ")[0] || "aether", t);
 
   return (
@@ -107,7 +107,7 @@ export function Topbar({ view, query, onQuery, onOpenProfile, onRefresh, refresh
           {profile.avatarUrl ? <img src={profile.avatarUrl} alt="" /> : (profile.nickname[0] || "A").toUpperCase()}
         </span>
         <span className="nick">{profile.nickname || "aether user"}</span>
-        {admin.enabled ? <ShieldCheck size={13} style={{ color: "var(--pink)" }} /> : null}
+        {adminVisible ? <ShieldCheck size={13} style={{ color: "var(--pink)" }} /> : null}
         <ChevronDown size={13} />
       </button>
     </header>

@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import type { Category, View } from "../types";
 import { useStore } from "../lib/store";
-import { openExternal, TELEGRAM_URL } from "../lib/desktop";
+import { openExternal, TELEGRAM_CHANNEL_URL } from "../lib/desktop";
 
 interface Props {
   view: View;
@@ -30,7 +30,19 @@ const NAV = [
 ] as const;
 
 export function Sidebar({ view, onNavigate, onOpenSettings }: Props) {
-  const { releases, admin, catalogSource, installs, requests, profile, t } = useStore();
+  const {
+    releases,
+    admin,
+    adminView,
+    adminVisible,
+    setAdminView,
+    catalogSource,
+    installs,
+    requests,
+    profile,
+    toast,
+    t,
+  } = useStore();
 
   const counts = {
     plugins: releases.filter((r) => r.category === "plugins").length,
@@ -90,7 +102,7 @@ export function Sidebar({ view, onNavigate, onOpenSettings }: Props) {
         })}
       </div>
 
-      {admin.enabled ? (
+      {adminVisible ? (
         <div className="nav-group">
           <div className="nav-label" style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <LockKeyhole size={9} /> Creator mode
@@ -122,21 +134,60 @@ export function Sidebar({ view, onNavigate, onOpenSettings }: Props) {
         <div className="row">
           <span
             className={`status-dot ${
-              admin.enabled ? "admin" : catalogSource === "cloud" ? "" : "offline"
+              admin.enabled
+                ? adminView === "admin"
+                  ? "admin"
+                  : "user"
+                : catalogSource === "cloud"
+                  ? ""
+                  : "offline"
             }`}
           />
-          {admin.enabled ? "Creator mode" : catalogSource === "cloud" ? "Cloud linked" : "Local demo"}
+          {admin.enabled
+            ? adminView === "admin"
+              ? "Creator mode"
+              : t("Режим пользователя")
+            : catalogSource === "cloud"
+              ? "Cloud linked"
+              : "Local demo"}
           <span style={{ marginLeft: "auto", color: "var(--dim)", letterSpacing: "0.05em" }}>
             {profile.nickname.split(" ")[0]}
           </span>
         </div>
         <div className="hint">
           {admin.enabled
-            ? t("Приватный ключ найден. Панель создателя активна.")
+            ? adminView === "admin"
+              ? t("Приватный ключ найден. Панель создателя активна.")
+              : t("Интерфейс как у пользователя. Вернуть админ-режим можно здесь.")
             : catalogSource === "cloud"
               ? t("Каталог синхронизирован с облаком.")
               : t("Облако не подключено — каталог работает локально.")}
         </div>
+        {admin.enabled ? (
+          <div className="view-mode">
+            <div className="view-mode-label">{t("Вид:")}</div>
+            <div className="view-toggle">
+              <button
+                className={adminView === "admin" ? "active" : ""}
+                onClick={() => {
+                  setAdminView("admin");
+                  toast({ kind: "info", title: t("Режим админа включён") });
+                }}
+              >
+                {t("Админ")}
+              </button>
+              <button
+                className={adminView === "user" ? "active" : ""}
+                onClick={() => {
+                  setAdminView("user");
+                  toast({ kind: "info", title: t("Режим пользователя включён") });
+                }}
+              >
+                {t("Юзер")}
+              </button>
+            </div>
+          </div>
+        ) : null}
         <div className="hint" style={{ color: "var(--muted)" }}>
           {installedCount ? `${t("{count} установлено", { count: installedCount })} · ` : ""}v1.1.0
         </div>
@@ -147,7 +198,11 @@ export function Sidebar({ view, onNavigate, onOpenSettings }: Props) {
           <Settings2 size={14} />
           {t("Настройки")}
         </button>
-        <button className="side-action" onClick={() => void openExternal(TELEGRAM_URL)}>
+        <button
+          className="side-action"
+          onClick={() => void openExternal(TELEGRAM_CHANNEL_URL)}
+          title="https://t.me/aetherplugins"
+        >
           <LifeBuoy size={14} />
           {t("Telegram")}
         </button>

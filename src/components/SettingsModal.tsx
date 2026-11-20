@@ -48,6 +48,7 @@ export function SettingsModal({
     updateSettings,
     paths,
     admin,
+    adminVisible,
     machine,
     licensingMachineId,
     installs,
@@ -625,37 +626,40 @@ VITE_AETHER_ADMIN_TOKEN=...   # only on your Mac`}
                   </button>
                 </div>
 
+                {adminVisible ? (
                 <div className="setting-row">
-                  <div className="text">
-                    <b>{t("Ключ создателя")}</b>
-                    <span>
-                      {admin.enabled
-                        ? t(
-                            "Приватный Ed25519 ключ найден. Панель создателя видна только на этом устройстве.",
-                          )
-                        : t(
-                            "Не найден — админ-панель скрыта. Обычный пользователь видит только библиотеку.",
-                          )}
+                    <div className="text">
+                      <b>{t("Ключ создателя")}</b>
+                      <span>
+                        {admin.enabled
+                          ? t(
+                              "Приватный Ed25519 ключ найден. Панель создателя видна только на этом устройстве.",
+                            )
+                          : t(
+                              "Не найден — админ-панель скрыта. Обычный пользователь видит только библиотеку.",
+                            )}
+                      </span>
+                      {admin.privateKeyPath ? (
+                        <code
+                          style={{
+                            display: "block",
+                            marginTop: 6,
+                            fontSize: 9,
+                            color: "var(--dim)",
+                            wordBreak: "break-all",
+                            userSelect: "text",
+                          }}
+                        >
+                          {admin.privateKeyPath}
+                        </code>
+                      ) : null}
+                    </div>
+                    <span className={`chip ${admin.enabled ? "violet" : ""}`}>
+                      {admin.enabled ? "CREATOR" : "USER"}
                     </span>
-                    {admin.privateKeyPath ? (
-                      <code
-                        style={{
-                          display: "block",
-                          marginTop: 6,
-                          fontSize: 9,
-                          color: "var(--dim)",
-                          wordBreak: "break-all",
-                          userSelect: "text",
-                        }}
-                      >
-                        {admin.privateKeyPath}
-                      </code>
-                    ) : null}
                   </div>
-                  <span className={`chip ${admin.enabled ? "violet" : ""}`}>
-                    {admin.enabled ? "CREATOR" : "USER"}
-                  </span>
-                </div>
+  
+                  ) : null}
 
                 <div className="setting-row">
                   <div className="text">

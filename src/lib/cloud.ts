@@ -55,7 +55,7 @@ export function seedReleases(): Release[] {
       version: "1.1",
       description:
         "A complete vocal channel strip: gate, 7-band air EQ, FET 1176, LA-2A, tube saturation and a −0.3 dBFS limiter. Zero-latency by default, 4× oversampling in Studio mode. VST3 + AU, universal macOS build and Windows x64.",
-      coverUrl: "/covers/aether-vocal-strip.jpg",
+      coverUrl: "/covers/aether-vocal-strip-v1-1.jpg",
       files: {
         macos: {
           url: "/releases/aether-vocal-strip-macos.zip",
@@ -74,31 +74,6 @@ export function seedReleases(): Release[] {
       featured: true,
       badge: "NEW",
       createdAt: nowMinus(20),
-    },
-    {
-      id: "rel_808_essentials",
-      slug: "aether-808-essentials",
-      category: "drumkits",
-      title: "Aether 808 Essentials",
-      version: "1.1",
-      description:
-        "Ten tuned 808s, punchy kicks, stacked claps and crisp hats — generated from scratch for Aether Hub. Every one-shot is ready for the sampler, with a four-bar demo groove inside the pack.",
-      coverUrl: "/covers/drumkit.jpg",
-      files: {
-        macos: { url: "/releases/aether-808-essentials.zip", sizeBytes: 1_513_518 },
-        windows: { url: "/releases/aether-808-essentials.zip", sizeBytes: 1_513_518 },
-      },
-      ratingAvg: 4.8,
-      ratingCount: 64,
-      featured: true,
-      badge: "FREE",
-      previews: [
-        { name: "Demo groove", url: "/previews/aether-808-demo.wav" },
-        { name: "Kick", url: "/previews/kick.wav" },
-        { name: "808", url: "/previews/808.wav" },
-        { name: "Hat", url: "/previews/hat.wav" },
-      ],
-      createdAt: nowMinus(44),
     },
     {
       id: "rel_vocal_chain",
@@ -146,14 +121,6 @@ function seedComments(): Comment[] {
       nickname: "mira.wav",
       body: "Bought a key yesterday, activation took ten seconds. Sounds crazy on ad-libs.",
       createdAt: nowMinus(26),
-      avatarUrl: null,
-    },
-    {
-      id: "c4",
-      releaseId: "rel_808_essentials",
-      nickname: "prodbysage",
-      body: "That Aether Sub 808 is ridiculous. Sits under the kick with no work at all.",
-      createdAt: nowMinus(13),
       avatarUrl: null,
     },
     {
@@ -214,13 +181,30 @@ function demoState(): DemoState {
     if (raw) {
       const parsed = JSON.parse(raw) as DemoState;
       if (Array.isArray(parsed.releases) && parsed.releases.length > 0) {
-        return {
-          releases: parsed.releases,
-          comments: parsed.comments ?? [],
+        // Migration: the old bundled demo drumkit is no longer part of the
+        // default catalog. Remove it (and its comments) for existing installs.
+        const releases = parsed.releases.filter(
+          (release) => release.id !== "rel_808_essentials",
+        );
+        const comments = (parsed.comments ?? []).filter(
+          (comment) => comment.releaseId !== "rel_808_essentials",
+        );
+
+        const migrated: DemoState = {
+          releases,
+          comments,
           ratings: parsed.ratings ?? {},
           requests: parsed.requests ?? [],
           licenses: parsed.licenses ?? [],
         };
+
+        if (releases.length !== parsed.releases.length || comments.length !== (parsed.comments ?? []).length) {
+          saveDemo(migrated);
+        }
+
+        if (releases.length > 0) {
+          return migrated;
+        }
       }
     }
   } catch {

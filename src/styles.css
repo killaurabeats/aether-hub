@@ -3533,3 +3533,360 @@ a {
     padding-right: 2px;
   }
 }
+
+
+/* --------------------------------------------------------------- drumkit SOON */
+.soon-panel {
+  position: relative;
+  max-width: 680px;
+  min-height: 390px;
+  margin: 30px auto 10px;
+  padding: 56px 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  isolation: isolate;
+  text-align: center;
+}
+
+.soon-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(55% 70% at 50% 45%, rgba(139, 92, 246, 0.18), transparent 70%),
+    linear-gradient(150deg, rgba(196, 181, 253, 0.05), transparent 55%);
+  z-index: -1;
+}
+
+.soon-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(30px);
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.soon-orb-a {
+  width: 230px;
+  height: 230px;
+  top: -120px;
+  right: -70px;
+  background: rgba(139, 92, 246, 0.32);
+}
+
+.soon-orb-b {
+  width: 200px;
+  height: 200px;
+  bottom: -120px;
+  left: -70px;
+  background: rgba(232, 121, 249, 0.18);
+}
+
+.soon-ring {
+  position: absolute;
+  width: 310px;
+  height: 310px;
+  border-radius: 50%;
+  border: 1px solid rgba(196, 181, 253, 0.09);
+  box-shadow: inset 0 0 80px rgba(139, 92, 246, 0.06);
+  pointer-events: none;
+}
+
+.soon-ring::after {
+  content: "";
+  position: absolute;
+  inset: 42px;
+  border-radius: 50%;
+  border: 1px dashed rgba(196, 181, 253, 0.08);
+}
+
+.soon-word {
+  position: relative;
+  font-size: clamp(64px, 9vw, 108px);
+  line-height: 0.9;
+  font-weight: 720;
+  letter-spacing: 0.13em;
+  padding-left: 0.13em;
+  background: linear-gradient(105deg, #f5f2ff 0%, #d9c8ff 35%, #c4b5fd 62%, #8b5cf6 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 28px rgba(139, 92, 246, 0.45));
+  animation: soon-pulse 4.2s ease-in-out infinite;
+}
+
+@keyframes soon-pulse {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 22px rgba(139, 92, 246, 0.35));
+  }
+  50% {
+    filter: drop-shadow(0 0 40px rgba(196, 181, 253, 0.58));
+  }
+}
+
+.soon-panel p {
+  position: relative;
+  margin: 18px 0 0;
+  color: var(--muted);
+  font-size: 12.5px;
+  letter-spacing: 0.04em;
+}
+
+.soon-line {
+  display: block;
+  width: 84px;
+  height: 1px;
+  margin-top: 22px;
+  background: linear-gradient(90deg, transparent, rgba(196, 181, 253, 0.65), transparent);
+}
+
+.reduce-effects .soon-word {
+  animation: none;
+}
+
+.status-dot.user {
+  background: var(--lav);
+  box-shadow: 0 0 10px rgba(196, 181, 253, 0.75);
+}
+
+.view-mode {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 9px;
+  margin-top: 2px;
+  border-top: 1px solid rgba(196, 181, 253, 0.08);
+}
+
+.view-mode-label {
+  flex: 1;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+.view-toggle {
+  display: flex;
+  gap: 3px;
+  padding: 3px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: rgba(5, 4, 10, 0.4);
+}
+
+.view-toggle button {
+  height: 23px;
+  padding: 0 8px;
+  border-radius: 6px;
+  font-size: 9.5px;
+  font-weight: 600;
+  color: var(--dim);
+  transition: 0.2s ease;
+}
+
+.view-toggle button:hover {
+  color: var(--text);
+}
+
+.view-toggle button.active {
+  color: var(--text);
+  background: linear-gradient(110deg, rgba(139, 92, 246, 0.34), rgba(232, 121, 249, 0.2));
+  box-shadow: inset 0 0 0 1px rgba(196, 181, 253, 0.18);
+}
+
+
+/* --------------------------------------------------------- avatar cropper */
+.cropper-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 170;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(4, 3, 9, 0.78);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.cropper-card {
+  width: min(382px, 100%);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  border-radius: 22px;
+  border: 1px solid rgba(196, 181, 253, 0.2);
+  background:
+    radial-gradient(90% 120% at 50% 0%, rgba(139, 92, 246, 0.13), transparent 60%),
+    linear-gradient(160deg, rgba(28, 21, 48, 0.98), rgba(11, 8, 20, 0.99));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    0 40px 100px rgba(0, 0, 0, 0.65),
+    0 0 80px -40px rgba(139, 92, 246, 0.8);
+}
+
+.cropper-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cropper-head h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 620;
+}
+
+.cropper-head .sub {
+  display: block;
+  margin-top: 3px;
+  color: var(--dim);
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+}
+
+.cropper-viewport {
+  position: relative;
+  align-self: center;
+  margin: 4px 0;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #07050e;
+  border: 1px solid rgba(196, 181, 253, 0.35);
+  box-shadow:
+    0 0 0 12px rgba(139, 92, 246, 0.045),
+    0 0 60px rgba(139, 92, 246, 0.2),
+    inset 0 0 40px rgba(0, 0, 0, 0.55);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.cropper-viewport.dragging {
+  cursor: grabbing;
+}
+
+.cropper-viewport img {
+  position: absolute;
+  max-width: none;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  user-select: none;
+}
+
+.cropper-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px rgba(196, 181, 253, 0.22);
+  pointer-events: none;
+}
+
+.cropper-ring::after {
+  content: "";
+  position: absolute;
+  inset: 18px;
+  border-radius: 50%;
+  border: 1px dashed rgba(196, 181, 253, 0.12);
+}
+
+.cropper-cross {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 26px;
+  height: 26px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  opacity: 0.45;
+}
+
+.cropper-cross::before,
+.cropper-cross::after {
+  content: "";
+  position: absolute;
+  background: var(--lav);
+}
+
+.cropper-cross::before {
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+}
+
+.cropper-cross::after {
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+}
+
+.cropper-loading {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, rgba(255, 255, 255, 0.02) 30%, rgba(255, 255, 255, 0.06) 50%, rgba(255, 255, 255, 0.02) 70%);
+  background-size: 220% 100%;
+  animation: shimmer 1.6s linear infinite;
+}
+
+.cropper-error {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  color: var(--red);
+  font-size: 11px;
+  text-align: center;
+}
+
+.cropper-hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 10.5px;
+  color: var(--dim);
+  text-align: center;
+}
+
+.cropper-zoom {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 11px;
+  border: 1px solid var(--line);
+  background: rgba(5, 4, 10, 0.4);
+  color: var(--muted);
+}
+
+.cropper-zoom .slider {
+  flex: 1;
+  width: auto;
+}
+
+.cropper-zoom .mono {
+  width: 42px;
+  text-align: right;
+  font-size: 10px;
+  color: var(--lav);
+}
+
+.cropper-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.no-blur .cropper-backdrop {
+  background: rgba(4, 3, 9, 0.94);
+}

@@ -20,6 +20,7 @@ export function CategoryView({
   const [sort, setSort] = useState<Sort>("new");
 
   const meta = CATEGORY_META[category];
+  const categoryTotal = releases.filter((release) => release.category === category).length;
 
   const items = useMemo(() => {
     let list = releases.filter((release) => release.category === category);
@@ -76,7 +77,9 @@ export function CategoryView({
         </div>
       </div>
 
-      {catalogLoading && !items.length ? (
+      {category === "drumkits" && categoryTotal === 0 ? (
+        <SoonPanel />
+      ) : catalogLoading && !items.length ? (
         <div className="release-grid">
           {[0, 1, 2].map((i) => (
             <div key={i} className="glass" style={{ height: 268 }}>
@@ -109,6 +112,21 @@ export function CategoryView({
           </p>
         </div>
       )}
+    </div>
+  );
+}
+
+function SoonPanel() {
+  const { t } = useStore();
+
+  return (
+    <div className="soon-panel glass">
+      <span className="soon-orb soon-orb-a" />
+      <span className="soon-orb soon-orb-b" />
+      <div className="soon-ring" />
+      <div className="soon-word">SOON</div>
+      <p>{t("Скоро здесь появятся драм-киты")}</p>
+      <span className="soon-line" />
     </div>
   );
 }
