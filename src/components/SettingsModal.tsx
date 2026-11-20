@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import {
   Boxes,
@@ -23,7 +23,7 @@ import {
 import { useStore } from "../lib/store";
 import { copyText, formatBytes } from "../lib/format";
 import { openExternal, openFolder } from "../lib/desktop";
-import { cloudConfig, cloudEnabled, cloudAdminReady } from "../lib/cloud";
+import { cloudConfig, cloudEnabled } from "../lib/cloud";
 import { checkCloudHealth, type CloudHealth } from "../lib/cloudHealth";
 import { playIntro, setIntroVolume, stopIntro } from "../lib/sound";
 
@@ -40,9 +40,11 @@ const TABS: { id: SettingsSection; label: string; icon: typeof Volume2 }[] = [
 export function SettingsModal({
   onClose,
   initialSection = "general",
+  onAdminUnlocked,
 }: {
   onClose: () => void;
   initialSection?: SettingsSection;
+  onAdminUnlocked: () => void;
 }) {
   const {
     settings,
@@ -50,6 +52,10 @@ export function SettingsModal({
     paths,
     admin,
     adminVisible,
+    adminTokenReady,
+    adminTokenBaked,
+    unlockAdminToken,
+    lockAdminToken,
     machine,
     licensingMachineId,
     installs,
@@ -67,6 +73,38 @@ export function SettingsModal({
   const [version, setVersion] = useState("1.1.0");
   const [health, setHealth] = useState<CloudHealth | null>(null);
   const [checkingCloud, setCheckingCloud] = useState(false);
+  const [secretOpen, setSecretOpen] = useState(false);
+  const [secretValue, setSecretValue] = useState("");
+  const [secretBusy, setSecretBusy] = useState(false);
+  const [secretError, setSecretError] = useState<string | null>(null);
+  const versionClicks = useRef({ count: 0, last: 0 });
+
+  const handleVersionClick = () => {
+    const now = Date.now();
+    if (now - versionClicks.current.last > 700) versionClicks.current.count = 0;
+    versionClicks.current.last = now;
+    versionClicks.current.count += 1;
+    if (versionClicks.current.count >= 5) {
+      versionClicks.current.count = 0;
+      setSecretValue("");
+      setSecretError(null);
+      setSecretOpen(true);
+    }
+  };
+
+  const submitSecret = async () => {
+    setSecretBusy(true);
+    setSecretError(null);
+    const result = await unlockAdminToken(secretValue);
+    setSecretBusy(false);
+    if (!result.ok) {
+      setSecretError(result.error ? `${t("Неверный ключ")} · ${result.error}` : t("Неверный ключ"));
+      return;
+    }
+    setSecretOpen(false);
+    setSecretValue("");
+    onAdminUnlocked();
+  };
 
   const runHealthCheck = async () => {
     setCheckingCloud(true);
@@ -485,17 +523,17 @@ export function SettingsModal({
                   <div className="text">
                     <b>{t("Admin API")}</b>
                     <span>
-                      {cloudAdminReady
+                      {adminTokenReady
                         ? t(
-                            "Токен админа присутствует в этой сборке. Публикация и модерация включены.",
+                            "Токен админа активен на этом ПК. Публикация и модерация включены.",
                           )
                         : t(
-                            "Токен админа отсутствует — эта сборка безопасна для публикации. Admin Studio работает локально и через приватный ключ.",
+                            "Токен админа не задан — эта сборка безопасна для публикации. Admin Studio работает локально и через приватный ключ.",
                           )}
                     </span>
                   </div>
-                  <span className={`chip ${cloudAdminReady ? "violet" : ""}`}>
-                    {cloudAdminReady ? "ADMIN READY" : "READ ONLY"}
+                  <span className={`chip ${adminTokenReady ? "violet" : ""}`}>
+                    {adminTokenReady ? "ADMIN READY" : "READ ONLY"}
                   </span>
                 </div>
 
@@ -670,7 +708,16 @@ VITE_AETHER_ADMIN_TOKEN=...   # only on your Mac`}
                   />
                   <div>
                     <div style={{ fontSize: 15, fontWeight: 620 }}>Aether Hub</div>
-                    <div style={{ fontSize: 10.5, color: "var(--dim)", marginTop: 3 }}>
+                    <div
+                      onClick={handleVersionClick}
+                      style={{
+                        fontSize: 10.5,
+                        color: "var(--dim)",
+                        marginTop: 3,
+                        userSelect: "none",
+                        cursor: "default",
+                      }}
+                    >
                       v{version} · Aether Plugins · by. @killaurabeats
                     </div>
                   </div>
@@ -686,7 +733,13 @@ VITE_AETHER_ADMIN_TOKEN=...   # only on your Mac`}
                       {machine.platformLabel} · {paths.arch} · HWID {machine.canonical.slice(0, 8)}…
                     </span>
                   </div>
-                  <span className="chip">v{version}</span>
+                  <span
+                    className="chip"
+                    onClick={handleVersionClick}
+                    style={{ userSelect: "none", cursor: "default" }}
+                  >
+                    v{version}
+                  </span>
                 </div>
 
                 <div className="setting-row">
@@ -717,9 +770,13 @@ VITE_AETHER_ADMIN_TOKEN=...   # only on your Mac`}
                           ? t(
                               "Приватный Ed25519 ключ найден. Панель создателя видна только на этом устройстве.",
                             )
-                          : t(
-                              "Не найден — админ-панель скрыта. Обычный пользователь видит только библиотеку.",
-                            )}
+                          : adminTokenReady
+                            ? t(
+                                "Admin Token активен на этом ПК — Admin Studio и Support Tickets открыты.",
+                              )
+                            : t(
+                                "Не найден — админ-панель скрыта. Обычный пользователь видит только библиотеку.",
+                              )}
                       </span>
                       {admin.privateKeyPath ? (
                         <code
@@ -736,8 +793,8 @@ VITE_AETHER_ADMIN_TOKEN=...   # only on your Mac`}
                         </code>
                       ) : null}
                     </div>
-                    <span className={`chip ${admin.enabled ? "violet" : ""}`}>
-                      {admin.enabled ? "CREATOR" : "USER"}
+                    <span className={`chip ${admin.enabled || adminTokenReady ? "violet" : ""}`}>
+                      {admin.enabled ? "CREATOR" : adminTokenReady ? "ADMIN TOKEN" : "USER"}
                     </span>
                   </div>
   
@@ -779,6 +836,100 @@ VITE_AETHER_ADMIN_TOKEN=...   # only on your Mac`}
           </div>
         </div>
       </motion.div>
+
+      {secretOpen ? (
+        <div
+          className="modal-backdrop"
+          style={{ zIndex: 140 }}
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setSecretOpen(false);
+          }}
+        >
+          <div className="modal narrow">
+            <div className="modal-head">
+              <div>
+                <h2>{t("Ключ создателя (Admin Token)")}</h2>
+                <div className="sub">{t("Скрытый вход в админ-панель на этом ПК")}</div>
+              </div>
+              <button
+                className="modal-close"
+                onClick={() => setSecretOpen(false)}
+                aria-label={t("Закрыть")}
+              >
+                <X size={15} />
+              </button>
+            </div>
+            <div className="modal-scroll" style={{ padding: "18px 20px 20px" }}>
+              <div className="field">
+                <label>ADMIN_TOKEN</label>
+                <input
+                  type="password"
+                  autoFocus
+                  autoComplete="off"
+                  spellCheck={false}
+                  value={secretValue}
+                  placeholder="AETHER_…"
+                  onChange={(event) => {
+                    setSecretValue(event.target.value);
+                    if (secretError) setSecretError(null);
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" && secretValue.trim() && !secretBusy) {
+                      void submitSecret();
+                    }
+                  }}
+                />
+                <div className="hint">
+                  {t(
+                    "Ключ сохраняется только в localStorage этого ПК и не попадает в публичную сборку.",
+                  )}
+                </div>
+                {secretError ? (
+                  <div style={{ fontSize: 10.5, color: "#ff8d8d", lineHeight: 1.5 }}>
+                    {secretError}
+                  </div>
+                ) : null}
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  gap: 8,
+                  marginTop: 16,
+                  justifyContent: "flex-end",
+                  flexWrap: "wrap",
+                }}
+              >
+                {adminTokenReady && !adminTokenBaked ? (
+                  <button
+                    className="btn btn-ghost"
+                    onClick={() => {
+                      lockAdminToken();
+                      setSecretOpen(false);
+                    }}
+                  >
+                    {t("Удалить ключ")}
+                  </button>
+                ) : null}
+                <button className="btn btn-ghost" onClick={() => setSecretOpen(false)}>
+                  {t("Отмена")}
+                </button>
+                <button
+                  className="btn btn-primary"
+                  onClick={() => void submitSecret()}
+                  disabled={secretBusy || !secretValue.trim()}
+                >
+                  {secretBusy ? (
+                    <Loader2 size={12} className="spin" />
+                  ) : (
+                    <KeyRound size={12} />
+                  )}{" "}
+                  {t("Включить админ-режим")}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </motion.div>
   );
 }

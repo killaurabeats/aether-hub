@@ -54,6 +54,45 @@ async function probe(path: string): Promise<{ status: number; body: string }> {
   }
 }
 
+/**
+ * The bucket metadata endpoint (`GET /storage/v1/bucket/:id`) answers 404
+ * NoSuchBucket for publishable keys even when the bucket exists, so we ask for
+ * an object listing instead: an existing bucket returns 200 (even when empty),
+ * a missing one returns NoSuchBucket/404, and a private bucket returns 401/403.
+ */
+async function probeBucket(): Promise<CloudCheck> {
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), 8000);
+
+  try {
+    const response = await fetch(`${cloudConfig.url}/storage/v1/object/list/${BUCKET}`, {
+      method: "POST",
+      headers: { ...requestHeaders(), "Content-Type": "application/json" },
+      body: JSON.stringify({
+        prefix: "",
+        limit: 1,
+        offset: 0,
+        sortBy: { column: "name", order: "asc" },
+      }),
+      signal: controller.signal,
+    });
+    const body = await response.text();
+
+    if (response.status === 200) return { key: BUCKET, status: "ok" };
+    if (response.status === 401 || response.status === 403) {
+      return { key: BUCKET, status: "secured" };
+    }
+    if (response.status === 404 || body.includes("NoSuchBucket")) {
+      return { key: BUCKET, status: "missing" };
+    }
+    return { key: BUCKET, status: "error", detail: `HTTP ${response.status}` };
+  } catch (error) {
+    return { key: BUCKET, status: "error", detail: String(error) };
+  } finally {
+    window.clearTimeout(timer);
+  }
+}
+
 export async function checkCloudHealth(): Promise<CloudHealth> {
   if (!cloudEnabled) {
     return {
@@ -88,20 +127,7 @@ export async function checkCloudHealth(): Promise<CloudHealth> {
     }),
   );
 
-  let bucket: CloudCheck = { key: BUCKET, status: "error" };
-  try {
-    const result = await probe(`/storage/v1/bucket/${BUCKET}`);
-    if (result.status === 200) bucket = { key: BUCKET, status: "ok" };
-    else if (result.status === 401 || result.status === 403) {
-      bucket = { key: BUCKET, status: "secured" };
-    } else if (result.body.includes("NoSuchBucket") || result.status === 404) {
-      bucket = { key: BUCKET, status: "missing" };
-    } else {
-      bucket = { key: BUCKET, status: "error", detail: `HTTP ${result.status}` };
-    }
-  } catch (error) {
-    bucket = { key: BUCKET, status: "error", detail: String(error) };
-  }
+  const bucket = await probeBucket();
 
   return { tables, bucket, checkedAt: new Date().toISOString() };
 }

@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import type { IssueLogEntry, LicenseRequest } from "../types";
 import { useStore } from "../lib/store";
-import { approveRequest, rejectRequest, cloudAdminReady, cloudEnabled } from "../lib/cloud";
+import { approveRequest, rejectRequest, cloudEnabled } from "../lib/cloud";
 import { copyText, formatDate, timeAgo } from "../lib/format";
 import { openExternal, openFolder, TELEGRAM_URL } from "../lib/desktop";
 import { Avatar } from "./Avatar";
@@ -32,6 +32,7 @@ interface IssuedLicense {
 export function KeygenRequests() {
   const {
     admin,
+    adminTokenReady,
     adminOverview,
     refreshAdminData,
     refreshCloudUser,
@@ -152,7 +153,7 @@ export function KeygenRequests() {
         </button>
       </div>
 
-      {!cloudAdminReady ? (
+      {!adminTokenReady ? (
         <div className="notice">
           <AlertTriangle size={15} />
           <div>

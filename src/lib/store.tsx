@@ -30,18 +30,21 @@ import type {
 import {
   addComment as cloudAddComment,
   adminOverview,
-  cloudAdminReady,
+  adminTokenIsBaked,
   cloudEnabled,
   fetchProfile,
   deleteComment as cloudDeleteComment,
   fetchComments,
   fetchMyLicenses,
   fetchMyRequests,
+  hasAdminToken,
   loadCatalog,
   rateRelease as cloudRate,
   requestLicense as cloudRequestLicense,
   resetDemoCatalog,
+  storeAdminToken,
   upsertProfile,
+  verifyAdminToken,
   type AdminOverview,
 } from "./cloud";
 import { formatBytes } from "./format";
@@ -114,7 +117,11 @@ interface StoreValue {
   admin: AdminStatus;
   adminView: "admin" | "user";
   adminVisible: boolean;
+  adminTokenReady: boolean;
+  adminTokenBaked: boolean;
   setAdminView: (mode: "admin" | "user") => void;
+  unlockAdminToken: (token: string) => Promise<{ ok: boolean; error?: string }>;
+  lockAdminToken: () => void;
   releases: Release[];
   catalogSource: "cloud" | "cache" | "demo";
   catalogError: string | null;
@@ -159,6 +166,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [machine, setMachine] = useState<MachineInfo>(fallbackMachine);
   const [paths, setPaths] = useState<AppPaths>(fallbackPaths);
   const [admin, setAdmin] = useState<AdminStatus>({ enabled: false });
+  // Runtime unlock: public builds start with no token, but a creator can enter
+  // one on a trusted device. It is kept in localStorage and never bundled.
+  const [adminTokenReady, setAdminTokenReady] = useState(() => hasAdminToken());
   // Creator builds start in Admin view. Switching to User view is a temporary
   // preview and resets to Admin on the next launch.
   const [adminView, setAdminViewState] = useState<"admin" | "user">("admin");
@@ -194,7 +204,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     [settings.licenseMachineId, machine.formatted],
   );
 
-  const adminVisible = admin.enabled && adminView === "admin";
+  // Either a local private key (full creator mode) or a runtime Cloud admin
+  // token unlocks the panel. Keygen additionally requires admin.enabled.
+  const adminVisible = (admin.enabled || adminTokenReady) && adminView === "admin";
 
   const setAdminView = useCallback((mode: "admin" | "user") => {
     setAdminViewState(mode);
@@ -274,7 +286,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [licensingMachineId]);
 
   const refreshAdminData = useCallback(async () => {
-    if (cloudEnabled && !cloudAdminReady) return null;
+    if (cloudEnabled && !hasAdminToken()) return null;
 
     try {
       const data = await adminOverview();
@@ -286,6 +298,33 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       return null;
     }
   }, [toast, t]);
+
+  const unlockAdminToken = useCallback(
+    async (token: string) => {
+      const trimmed = token.trim();
+      if (!trimmed) return { ok: false, error: "Enter a key" };
+      const check = await verifyAdminToken(trimmed);
+      if (!check.ok) return check;
+      storeAdminToken(trimmed);
+      setAdminTokenReady(true);
+      setAdminViewState("admin");
+      toast({ kind: "success", title: t("Админ-режим включён") });
+      void refreshAdminData();
+      return { ok: true };
+    },
+    [refreshAdminData, t, toast],
+  );
+
+  const lockAdminToken = useCallback(() => {
+    storeAdminToken("");
+    const stillReady = hasAdminToken();
+    setAdminTokenReady(stillReady);
+    setAdminViewState("admin");
+    toast({
+      kind: "info",
+      title: stillReady ? t("Ключ вшит в эту сборку") : t("Ключ удалён"),
+    });
+  }, [t, toast]);
 
   // Boot -------------------------------------------------------------------
   useEffect(() => {
@@ -358,7 +397,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setReady(true);
       void refreshCatalog();
       void refreshCloudUser();
-      if (nextAdmin.enabled) void refreshAdminData();
+      if (nextAdmin.enabled || hasAdminToken()) void refreshAdminData();
 
       if (cloudEnabled) {
         const identity = savedSettings.licenseMachineId?.trim() || nextMachine.formatted;
@@ -701,7 +740,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       admin,
       adminView,
       adminVisible,
+      adminTokenReady,
+      adminTokenBaked: adminTokenIsBaked(),
       setAdminView,
+      unlockAdminToken,
+      lockAdminToken,
       releases,
       catalogSource,
       catalogError,
@@ -745,7 +788,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       admin,
       adminView,
       adminVisible,
+      adminTokenReady,
       setAdminView,
+      unlockAdminToken,
+      lockAdminToken,
       releases,
       catalogSource,
       catalogError,

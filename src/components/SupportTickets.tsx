@@ -14,7 +14,6 @@ import { useStore } from "../lib/store";
 import {
   clearClosedSupportTickets,
   closeSupportTicket,
-  cloudAdminReady,
   cloudEnabled,
   deleteSupportTicket,
   fetchSupportTickets,
@@ -26,7 +25,7 @@ import { TicketChat } from "./TicketChat";
 type Filter = "all" | "open" | "closed";
 
 export function SupportTickets() {
-  const { toast, t } = useStore();
+  const { toast, t, adminTokenReady } = useStore();
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<Filter>("all");
@@ -61,7 +60,7 @@ export function SupportTickets() {
   }, [load]);
 
   useEffect(() => {
-    if (!cloudAdminReady) return;
+    if (!adminTokenReady) return;
     const interval = window.setInterval(() => void load(true), 8000);
     const focus = () => void load(true);
     window.addEventListener("focus", focus);
@@ -126,7 +125,7 @@ export function SupportTickets() {
     }
   };
 
-  const cloudAgreement = cloudEnabled && !cloudAdminReady;
+  const cloudAgreement = cloudEnabled && !adminTokenReady;
 
   return (
     <div className="page">
@@ -137,13 +136,13 @@ export function SupportTickets() {
         <div className="copy">
           <h2>{t("Обращения пользователей")}</h2>
           <p>
-            {cloudAdminReady
+            {adminTokenReady
               ? t("Обновление каждые 8 секунд · таблица support_tickets")
               : t("Локальный демо-режим · обращения сохраняются на этом Mac")}
           </p>
         </div>
-        <span className={`chip ${cloudAdminReady ? "green" : "gold"}`}>
-          {cloudAdminReady ? "LIVE" : "LOCAL"}
+        <span className={`chip ${adminTokenReady ? "green" : "gold"}`}>
+          {adminTokenReady ? "LIVE" : "LOCAL"}
         </span>
         <button className="btn btn-ghost btn-sm" onClick={() => void load()} disabled={loading}>
           <RefreshCw size={12} className={loading ? "spin" : ""} /> {t("Обновить")}

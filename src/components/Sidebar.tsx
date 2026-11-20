@@ -39,6 +39,7 @@ export function Sidebar({ view, onNavigate, onOpenSettings, onOpenSupport }: Pro
     admin,
     adminView,
     adminVisible,
+    adminTokenReady,
     setAdminView,
     catalogSource,
     installs,
@@ -121,21 +122,25 @@ export function Sidebar({ view, onNavigate, onOpenSettings, onOpenSupport }: Pro
             <span>Admin Studio</span>
             <span className="nav-badge">LIVE</span>
           </button>
-          <button
-            className={`nav-item ${view.name === "keygen" ? "active" : ""}`}
-            onClick={() => onNavigate({ name: "keygen" })}
-          >
-            <KeyRound size={17} />
-            <span>Keygen & Requests</span>
-            {pending ? <span className="nav-badge">{pending}</span> : null}
-          </button>
-          <button
-            className={`nav-item ${view.name === "tickets" ? "active" : ""}`}
-            onClick={() => onNavigate({ name: "tickets" })}
-          >
-            <Ticket size={17} />
-            <span>{t("Обращения пользователей")}</span>
-          </button>
+          {admin.enabled ? (
+            <button
+              className={`nav-item ${view.name === "keygen" ? "active" : ""}`}
+              onClick={() => onNavigate({ name: "keygen" })}
+            >
+              <KeyRound size={17} />
+              <span>Keygen & Requests</span>
+              {pending ? <span className="nav-badge">{pending}</span> : null}
+            </button>
+          ) : null}
+          {adminTokenReady ? (
+            <button
+              className={`nav-item ${view.name === "tickets" ? "active" : ""}`}
+              onClick={() => onNavigate({ name: "tickets" })}
+            >
+              <Ticket size={17} />
+              <span>{t("Обращения пользователей")}</span>
+            </button>
+          ) : null}
         </div>
       ) : null}
 
@@ -145,7 +150,7 @@ export function Sidebar({ view, onNavigate, onOpenSettings, onOpenSupport }: Pro
         <div className="row">
           <span
             className={`status-dot ${
-              admin.enabled
+              admin.enabled || adminTokenReady
                 ? adminView === "admin"
                   ? "admin"
                   : "user"
@@ -154,7 +159,7 @@ export function Sidebar({ view, onNavigate, onOpenSettings, onOpenSupport }: Pro
                   : "offline"
             }`}
           />
-          {admin.enabled
+          {admin.enabled || adminTokenReady
             ? adminView === "admin"
               ? "Creator mode"
               : t("Режим пользователя")
@@ -172,13 +177,17 @@ export function Sidebar({ view, onNavigate, onOpenSettings, onOpenSupport }: Pro
             ? adminView === "admin"
               ? t("Приватный ключ найден. Панель создателя активна.")
               : t("Интерфейс как у пользователя. Вернуть админ-режим можно здесь.")
-            : catalogSource === "cloud"
-              ? t("Каталог синхронизирован с облаком.")
-              : cloudEnabled
-                ? t("Облако подключено, но каталог пуст — показан демо-набор.")
-                : t("Облако не подключено — каталог работает локально.")}
+            : adminTokenReady
+              ? adminView === "admin"
+                ? t("Admin Token активен на этом ПК — панель создателя открыта.")
+                : t("Интерфейс как у пользователя. Вернуть админ-режим можно здесь.")
+              : catalogSource === "cloud"
+                ? t("Каталог синхронизирован с облаком.")
+                : cloudEnabled
+                  ? t("Облако подключено, но каталог пуст — показан демо-набор.")
+                  : t("Облако не подключено — каталог работает локально.")}
         </div>
-        {admin.enabled ? (
+        {admin.enabled || adminTokenReady ? (
           <div className="view-mode">
             <div className="view-mode-label">{t("Вид:")}</div>
             <div className="view-toggle">

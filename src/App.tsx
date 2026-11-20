@@ -36,6 +36,7 @@ function Shell() {
     settings,
     admin,
     adminVisible,
+    adminTokenReady,
     releases,
     refreshCatalog,
     refreshCloudUser,
@@ -71,13 +72,14 @@ function Shell() {
   }, [releases]);
 
   useEffect(() => {
-    if (
-      !adminVisible &&
-      (view.name === "admin" || view.name === "keygen" || view.name === "tickets")
-    ) {
+    const blockedAdminView =
+      !adminVisible ||
+      (view.name === "keygen" && !admin.enabled) ||
+      (view.name === "tickets" && !adminTokenReady);
+    if (blockedAdminView && (view.name === "admin" || view.name === "keygen" || view.name === "tickets")) {
       setView({ name: "home" });
     }
-  }, [adminVisible, view.name]);
+  }, [admin.enabled, adminTokenReady, adminVisible, view.name]);
 
   useEffect(() => {
     const onHash = () => setView(initialView());
@@ -111,6 +113,11 @@ function Shell() {
   const openSettings = (section: SettingsSection = "general") => {
     setSettingsSection(section);
     setSettingsOpen(true);
+  };
+
+  const handleAdminUnlocked = () => {
+    setSettingsOpen(false);
+    setView({ name: "admin" });
   };
 
   const refresh = async () => {
@@ -222,6 +229,7 @@ function Shell() {
             key="settings"
             initialSection={settingsSection}
             onClose={() => setSettingsOpen(false)}
+            onAdminUnlocked={handleAdminUnlocked}
           />
         ) : null}
       </AnimatePresence>

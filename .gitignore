@@ -29,7 +29,11 @@ src-tauri/.cargo/
 
 # local release artifacts
 release/
+release_public/
 *.dmg
+
+# supabase cli
+supabase/.temp/
 
 # assets that are generated from assets_raw
 src-tauri/icons/android/

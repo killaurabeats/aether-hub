@@ -10,11 +10,7 @@ import {
 } from "lucide-react";
 import type { SupportTicket, TicketMessage } from "../types";
 import { useStore } from "../lib/store";
-import {
-  cloudAdminReady,
-  fetchTicketMessages,
-  sendTicketMessage,
-} from "../lib/cloud";
+import { fetchTicketMessages, sendTicketMessage } from "../lib/cloud";
 import { timeAgo } from "../lib/format";
 import { Avatar } from "./Avatar";
 
@@ -27,7 +23,7 @@ export function TicketChat({
   onClose: () => void;
   onMinimize: () => void;
 }) {
-  const { profile, adminVisible, toast, t } = useStore();
+  const { profile, adminVisible, adminTokenReady, toast, t } = useStore();
   const [messages, setMessages] = useState<TicketMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
@@ -63,7 +59,7 @@ export function TicketChat({
   }, [load]);
 
   useEffect(() => {
-    if (!cloudAdminReady) return;
+    if (!adminTokenReady) return;
     const interval = window.setInterval(() => void load(true), 5000);
     return () => window.clearInterval(interval);
   }, [load]);
@@ -218,7 +214,7 @@ export function TicketChat({
 
         <div className="chat-foot">
           <MessageCircle size={11} /> {t("Чат по тикету")} ·{" "}
-          {cloudAdminReady ? t("обновляется каждые 5 секунд") : t("локальный демо-чат")}
+          {adminTokenReady ? t("обновляется каждые 5 секунд") : t("локальный демо-чат")}
         </div>
       </motion.aside>
     </motion.div>

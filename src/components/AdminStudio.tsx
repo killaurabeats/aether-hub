@@ -21,7 +21,7 @@ import {
 import type { Category, Comment, Release } from "../types";
 import { CATEGORY_META } from "../types";
 import { useStore } from "../lib/store";
-import { cloudAdminReady, cloudEnabled, deleteRelease, saveRelease } from "../lib/cloud";
+import { cloudEnabled, deleteRelease, saveRelease } from "../lib/cloud";
 import { fileStat, readImageDataUrl } from "../lib/desktop";
 import { formatBytes, formatDate, slugify, timeAgo } from "../lib/format";
 import { Avatar } from "./Avatar";
@@ -65,6 +65,7 @@ const emptyForm: FormState = {
 export function AdminStudio() {
   const {
     admin,
+    adminTokenReady,
     releases,
     refreshCatalog,
     refreshAdminData,
@@ -269,7 +270,7 @@ export function AdminStudio() {
     }
 
     const editingRelease = editingId ? releases.find((r) => r.id === editingId) : undefined;
-    const useCloud = cloudEnabled && cloudAdminReady;
+    const useCloud = cloudEnabled && adminTokenReady;
 
     setBusy(true);
     setStep(useCloud ? t("Подготовка облака…") : t("Сохранение локального каталога…"));
@@ -397,11 +398,11 @@ export function AdminStudio() {
           <h2>{t("Creator mode · только это устройство")}</h2>
           <p>
             {t("Приватный ключ:")} <code>{admin.privateKeyPath?.split(/[\\/]/).slice(-2).join("/")}</code>{" "}
-            · <code>{cloudAdminReady ? "cloud write enabled" : cloudEnabled ? "cloud read-only" : "local mode"}</code>
+            · <code>{adminTokenReady ? "cloud write enabled" : cloudEnabled ? "cloud read-only" : "local mode"}</code>
           </p>
         </div>
-        <span className={`chip ${cloudAdminReady ? "green" : "gold"}`}>
-          {cloudAdminReady ? "LIVE CLOUD" : cloudEnabled ? "CLOUD RO" : "LOCAL"}
+        <span className={`chip ${adminTokenReady ? "green" : "gold"}`}>
+          {adminTokenReady ? "LIVE CLOUD" : cloudEnabled ? "CLOUD RO" : "LOCAL"}
         </span>
         <button
           className="btn btn-ghost btn-sm"
@@ -414,7 +415,7 @@ export function AdminStudio() {
         </button>
       </div>
 
-      {!cloudAdminReady ? (
+      {!adminTokenReady ? (
         <div className="notice">
           <AlertTriangle size={15} />
           <div>

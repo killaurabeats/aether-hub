@@ -143,11 +143,17 @@ Deno.serve(async (request) => {
 
         if (error) return json({ error: error.message }, 400);
 
+        // supabase-js may return either an absolute upload URL or a path such
+        // as `/object/upload/sign/...`; only prefix the path form once.
+        const signedUrl = data.signedUrl.startsWith("http")
+          ? data.signedUrl
+          : `${supabaseUrl}/storage/v1${data.signedUrl}`;
+
         return json({
           bucket,
           path,
           token: data.token,
-          signedUrl: `${supabaseUrl}/storage/v1${data.signedUrl}`,
+          signedUrl,
           publicUrl: `${supabaseUrl}/storage/v1/object/public/${bucket}/${path}`,
         });
       }

@@ -272,6 +272,24 @@ const en: Record<string, string> = {
   "Платформа": "Platform",
   "Machine ID для лицензий": "Machine ID for licences",
   "Ключ создателя": "Creator key",
+  "Ключ создателя (Admin Token)": "Creator key (Admin Token)",
+  "Скрытый вход в админ-панель на этом ПК": "Hidden admin panel unlock for this PC",
+  "Ключ сохраняется только в localStorage этого ПК и не попадает в публичную сборку.":
+    "The key is stored only in this PC's localStorage and never ships in the public build.",
+  "Включить админ-режим": "Enable admin mode",
+  "Удалить ключ": "Remove key",
+  "Неверный ключ": "Invalid key",
+  "Админ-режим включён": "Admin mode enabled",
+  "Ключ удалён": "Key removed",
+  "Ключ вшит в эту сборку": "The key is baked into this build",
+  "Токен админа активен на этом ПК. Публикация и модерация включены.":
+    "The admin token is active on this PC. Publishing and moderation are enabled.",
+  "Токен админа не задан — эта сборка безопасна для публикации. Admin Studio работает локально и через приватный ключ.":
+    "No admin token — this build is safe to distribute. Admin Studio works locally through the private key.",
+  "Admin Token активен на этом ПК — Admin Studio и Support Tickets открыты.":
+    "Admin Token is active on this PC — Admin Studio and Support Tickets are unlocked.",
+  "Admin Token активен на этом ПК — панель создателя открыта.":
+    "Admin Token is active on this PC — the creator panel is open.",
   "Приватный Ed25519 ключ найден. Панель создателя видна только на этом устройстве.":
     "The private Ed25519 key is present. The creator panel is visible only on this device.",
   "Не найден — админ-панель скрыта. Обычный пользователь видит только библиотеку.":

@@ -379,6 +379,14 @@ revoke all on public.releases from anon, authenticated;
 grant select on public.releases to anon, authenticated;
 grant select, insert on public.comments to anon, authenticated;
 
+-- The Edge Function talks to PostgREST with the service role. Keep its grants
+-- explicit so the admin API keeps working even if the project's default
+-- privileges were changed by an older schema revision.
+grant usage on schema public to service_role;
+grant all privileges on all tables in schema public to service_role;
+grant all privileges on all sequences in schema public to service_role;
+grant execute on all functions in schema public to service_role;
+
 -- -------------------------------------------------------------- storage -----
 insert into storage.buckets (id, name, public)
 values ('aether-assets', 'aether-assets', true)

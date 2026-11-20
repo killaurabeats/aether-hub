@@ -29,14 +29,78 @@ import type {
 
 const env = import.meta.env as Record<string, string | undefined>;
 
+export const ADMIN_TOKEN_STORAGE_KEY = "aether.admin.token.v1";
+
+function readStoredAdminToken(): string {
+  try {
+    return localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY)?.trim() ?? "";
+  } catch {
+    return "";
+  }
+}
+
+/** Public builds ship with an empty token. The creator can unlock admin mode
+ *  on a trusted device; the token then lives in that device's localStorage. */
+const bakedAdminToken = (env.VITE_AETHER_ADMIN_TOKEN || "").trim();
+
 export const cloudConfig: CloudConfig = {
   url: (env.VITE_SUPABASE_URL || "").replace(/\/$/, ""),
   anonKey: env.VITE_SUPABASE_ANON_KEY || "",
-  adminToken: env.VITE_AETHER_ADMIN_TOKEN || "",
+  adminToken: bakedAdminToken || readStoredAdminToken(),
 };
 
 export const cloudEnabled = Boolean(cloudConfig.url && cloudConfig.anonKey);
-export const cloudAdminReady = Boolean(cloudEnabled && cloudConfig.adminToken);
+
+export function hasAdminToken(): boolean {
+  return Boolean(cloudConfig.adminToken);
+}
+
+export function adminTokenIsBaked(): boolean {
+  return Boolean(bakedAdminToken);
+}
+
+/** Saves (or clears) the device-local admin token and updates cloudConfig. */
+export function storeAdminToken(token: string | null): void {
+  if (bakedAdminToken) return;
+  const next = (token ?? "").trim();
+  cloudConfig.adminToken = next;
+  try {
+    if (next) localStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, next);
+    else localStorage.removeItem(ADMIN_TOKEN_STORAGE_KEY);
+  } catch {
+    // localStorage can be unavailable in hardened webviews; keep the token
+    // for this session only.
+  }
+}
+
+/** Verifies a candidate token against the deployed Edge Function. */
+export async function verifyAdminToken(
+  token: string,
+): Promise<{ ok: boolean; error?: string }> {
+  if (!cloudEnabled) return { ok: false, error: "Supabase is not configured" };
+  try {
+    const headers: Record<string, string> = {
+      apikey: cloudConfig.anonKey,
+      "Content-Type": "application/json",
+    };
+    if (!usesPublishableKey) headers.Authorization = `Bearer ${cloudConfig.anonKey}`;
+
+    const response = await fetch(`${cloudConfig.url}/functions/v1/aether-admin`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ token: token.trim(), action: "overview" }),
+    });
+
+    if (response.status === 401) return { ok: false, error: "Invalid admin token" };
+    if (!response.ok) {
+      const text = await response.text();
+      return { ok: false, error: text || `HTTP ${response.status}` };
+    }
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error: String(error) };
+  }
+}
 
 /** Supabase's new publishable/secret keys are not JWTs and must go in `apikey`
  *  only. Legacy anon JWT keys also need the Authorization header. */
