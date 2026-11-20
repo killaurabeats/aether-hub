@@ -150,8 +150,8 @@ jobs:
         shell: bash
         run: |
           if [ -z "${GH_TOKEN:-}" ]; then
-            echo "::warning::RELEASES_TOKEN is not set; latest.json was uploaded as an artifact only."
-            exit 0
+            echo "::error::RELEASES_TOKEN is missing. Add it in Settings → Secrets and variables → Actions of killaurabeats/aether-hub."
+            exit 1
           fi
           TAG="${GITHUB_REF_NAME}"
           REPO="killaurabeats/aether-hub-releases"
