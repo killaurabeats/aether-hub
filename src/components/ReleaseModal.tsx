@@ -1,12 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { motion } from "framer-motion";
 import {
+  Apple,
   Check,
   Copy,
   Download,
   FolderOpen,
   KeyRound,
+  Loader2,
   MessageSquare,
+  Monitor,
   Send,
   Pencil,
   ShieldCheck,
@@ -16,8 +20,8 @@ import {
 } from "lucide-react";
 import type { Release } from "../types";
 import { CATEGORY_META } from "../types";
-import { useStore } from "../lib/store";
-import { copyText, formatBytes, formatDate, timeAgo } from "../lib/format";
+import { isTauri, useStore } from "../lib/store";
+import { copyText, descriptionFor, formatBytes, formatDate, timeAgo } from "../lib/format";
 import { openFolder } from "../lib/desktop";
 import { Avatar } from "./Avatar";
 import { Stars } from "./Stars";
@@ -51,6 +55,8 @@ export function ReleaseModal({
     requestKey,
     uninstall,
     toast,
+    language,
+    install,
     t,
   } = useStore();
 
@@ -59,6 +65,7 @@ export function ReleaseModal({
   const [confirmUninstall, setConfirmUninstall] = useState(false);
   const [idEditing, setIdEditing] = useState(false);
   const [idDraft, setIdDraft] = useState(licensingMachineId);
+  const [downloadingOs, setDownloadingOs] = useState<"macos" | "windows" | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
 
   const list = comments[release.id];
@@ -116,6 +123,36 @@ export function ReleaseModal({
   };
 
   const avgLabel = release.ratingAvg.toFixed(1);
+  const currentOs = machine.os === "windows" ? "windows" : "macos";
+
+  const downloadFor = async (os: "macos" | "windows") => {
+    const target = release.files[os];
+    if (!target) return;
+    if (!isTauri) {
+      toast({ kind: "info", title: t("Скачивание доступно в приложении") });
+      return;
+    }
+
+    setDownloadingOs(os);
+    try {
+      const path = await invoke<string>("download_release", {
+        request: {
+          url: target.url,
+          filename: target.filename || `${release.slug}-${os}.zip`,
+          title: release.title,
+        },
+      });
+      toast({
+        kind: "success",
+        title: t("Скачано"),
+        message: t("Файл сохранён в {path}", { path }),
+      });
+    } catch (error) {
+      toast({ kind: "error", title: t("Скачать не удалось"), message: String(error) });
+    } finally {
+      setDownloadingOs(null);
+    }
+  };
 
   return (
     <motion.div
@@ -184,42 +221,131 @@ export function ReleaseModal({
 
           <div className="detail-body">
             <div className="detail-main">
-              <p className="detail-desc">{release.description}</p>
+              <p className="detail-desc">{descriptionFor(release, language)}</p>
 
               <div className="install-panel">
-                <div className="install-panel-top">
-                  <div>
-                    <div className="label">{t("Установка в 1 клик")}</div>
-                    <div className="value">
-                      {release.category === "plugins"
-                        ? t("VST3 + AU → системные папки")
-                        : release.category === "presets"
-                          ? "FL Studio → Presets / Aether Plugins"
-                          : t("Сэмплы → выбранная папка")}
+                {release.category === "plugins" ? (
+                  <>
+                    <div className="install-panel-top">
+                      <div>
+                        <div className="label">{t("Выберите платформу")}</div>
+                        <div className="value">{t("Установите сборку для нужной ОС")}</div>
+                      </div>
+                      <span className="chip green">
+                        <ShieldCheck size={9} /> VST3 + AU / VST3
+                      </span>
                     </div>
-                  </div>
-                  <InstallButton release={release} />
-                </div>
 
-                <div className="file-row">
-                  <Download size={11} />
-                  {file ? (
-                    <>
-                      {machine.platformLabel} · {formatBytes(file.sizeBytes)} ·{" "}
-                      {file.filename || "release.zip"}
-                    </>
-                  ) : (
-                    <>{t("Сборка для {os} ещё не загружена", { os: machine.platformLabel })}</>
-                  )}
-                </div>
+                    <div className="platform-grid">
+                      {(["macos", "windows"] as const).map((os) => {
+                        const platformFile = release.files[os];
+                        const isCurrent = os === currentOs;
+                        const osLabel = os === "macos" ? "macOS" : "Windows";
+                        const isInstalled =
+                          isCurrent && record && record.version === release.version;
+                        const isUpdating = isCurrent && record && !isInstalled;
+                        const busy = downloadingOs === os || (isCurrent && Boolean(job));
 
-                {otherFile ? (
-                  <div className="file-row" style={{ opacity: 0.65 }}>
-                    <Download size={11} />
-                    {machine.os === "windows" ? "macOS" : "Windows"} ·{" "}
-                    {formatBytes(otherFile.sizeBytes)} · {t("для другой ОС")}
-                  </div>
-                ) : null}
+                        return (
+                          <div
+                            className={`platform-card ${isCurrent ? "current" : ""} ${
+                              platformFile ? "" : "disabled"
+                            }`}
+                            key={os}
+                          >
+                            <div className="platform-head">
+                              <span className="platform-icon">
+                                {os === "macos" ? <Apple size={15} /> : <Monitor size={15} />}
+                              </span>
+                              {isCurrent ? (
+                                <span className="platform-recommend">
+                                  {t("Рекомендуется для вашей ОС")}
+                                </span>
+                              ) : (
+                                <span className="platform-recommend muted">
+                                  {t("Для другой ОС")}
+                                </span>
+                              )}
+                            </div>
+                            <div className="platform-title">{osLabel}</div>
+                            <div className="platform-sub">
+                              {os === "macos" ? "VST3 + AU" : "VST3"}
+                              {platformFile ? ` · ${formatBytes(platformFile.sizeBytes)}` : ""}
+                            </div>
+
+                            <button
+                              className={`btn ${isCurrent && !isInstalled ? "btn-primary" : "btn-ghost"} btn-sm platform-button`}
+                              disabled={!platformFile || busy || Boolean(isInstalled)}
+                              onClick={() => {
+                                if (!platformFile) return;
+                                if (isCurrent) {
+                                  if (!isInstalled) void install(release);
+                                } else {
+                                  void downloadFor(os);
+                                }
+                              }}
+                            >
+                              {busy ? (
+                                <Loader2 size={12} className="spin" />
+                              ) : isInstalled ? (
+                                <Check size={12} />
+                              ) : isCurrent && isUpdating ? null : (
+                                <Download size={12} />
+                              )}
+                              {!platformFile
+                                ? t("Нет сборки")
+                                : busy
+                                  ? isCurrent
+                                    ? t("Установка…")
+                                    : t("Скачивание…")
+                                  : isInstalled
+                                    ? t("Установлено")
+                                    : isCurrent && isUpdating
+                                      ? t("Обновить")
+                                      : isCurrent
+                                        ? t("Установить для {os}", { os: osLabel })
+                                        : t("Скачать для {os}", { os: osLabel })}
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="install-panel-top">
+                      <div>
+                        <div className="label">{t("Установка в 1 клик")}</div>
+                        <div className="value">
+                          {release.category === "presets"
+                            ? "FL Studio → Presets / Aether Plugins"
+                            : t("Сэмплы → выбранная папка")}
+                        </div>
+                      </div>
+                      <InstallButton release={release} />
+                    </div>
+
+                    <div className="file-row">
+                      <Download size={11} />
+                      {file ? (
+                        <>
+                          {machine.platformLabel} · {formatBytes(file.sizeBytes)} ·{" "}
+                          {file.filename || "release.zip"}
+                        </>
+                      ) : (
+                        <>{t("Сборка для {os} ещё не загружена", { os: machine.platformLabel })}</>
+                      )}
+                    </div>
+
+                    {otherFile ? (
+                      <div className="file-row" style={{ opacity: 0.65 }}>
+                        <Download size={11} />
+                        {machine.os === "windows" ? "macOS" : "Windows"} ·{" "}
+                        {formatBytes(otherFile.sizeBytes)} · {t("для другой ОС")}
+                      </div>
+                    ) : null}
+                  </>
+                )}
 
                 {record ? (
                   <div style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>

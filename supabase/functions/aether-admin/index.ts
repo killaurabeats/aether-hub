@@ -32,6 +32,8 @@ const mapRelease = (row: Record<string, any>) => ({
   title: row.title,
   version: row.version,
   description: row.description,
+  descriptionRu: row.description_ru,
+  descriptionEn: row.description_en,
   coverUrl: row.cover_url,
   files: row.files ?? {},
   ratingAvg: Number(row.rating_avg ?? 0),
@@ -55,6 +57,16 @@ const mapRequest = (row: Record<string, any>) => ({
   key: row.key,
   createdAt: row.created_at,
   resolvedAt: row.resolved_at,
+});
+
+const mapTicket = (row: Record<string, any>) => ({
+  id: String(row.id),
+  machineId: row.machine_id,
+  nickname: row.nickname,
+  os: row.os,
+  message: row.message,
+  status: row.status,
+  createdAt: row.created_at,
 });
 
 const mapComment = (row: Record<string, any>, releaseTitle?: string) => ({
@@ -147,6 +159,8 @@ Deno.serve(async (request) => {
           title: String(release.title).slice(0, 120),
           version: String(release.version ?? "1.0").slice(0, 24),
           description: String(release.description ?? "").slice(0, 6000),
+          description_ru: release.descriptionRu ?? null,
+          description_en: release.descriptionEn ?? null,
           cover_url: release.coverUrl ?? null,
           files,
           product_tag: release.productTag ? String(release.productTag).slice(0, 64) : null,
@@ -264,6 +278,46 @@ Deno.serve(async (request) => {
           .from("license_requests")
           .update({ status: "rejected", resolved_at: new Date().toISOString() })
           .eq("id", id);
+        if (error) return json({ error: error.message }, 400);
+        return json({ ok: true });
+      }
+
+      // ------------------------------------------------------- support tickets
+      case "tickets": {
+        const { data, error } = await supabase
+          .from("support_tickets")
+          .select("*")
+          .order("created_at", { ascending: false })
+          .limit(300);
+        if (error) return json({ error: error.message }, 400);
+        return json((data ?? []).map(mapTicket));
+      }
+
+      case "ticket_status": {
+        const id = String(payload.id ?? "");
+        const status = payload.status === "closed" ? "closed" : "open";
+        if (!id) return json({ error: "id required" }, 400);
+        const { error } = await supabase
+          .from("support_tickets")
+          .update({ status, updated_at: new Date().toISOString() })
+          .eq("id", id);
+        if (error) return json({ error: error.message }, 400);
+        return json({ ok: true });
+      }
+
+      case "delete_ticket": {
+        const id = String(payload.id ?? "");
+        if (!id) return json({ error: "id required" }, 400);
+        const { error } = await supabase.from("support_tickets").delete().eq("id", id);
+        if (error) return json({ error: error.message }, 400);
+        return json({ ok: true });
+      }
+
+      case "clear_closed_tickets": {
+        const { error } = await supabase
+          .from("support_tickets")
+          .delete()
+          .eq("status", "closed");
         if (error) return json({ error: error.message }, 400);
         return json({ ok: true });
       }

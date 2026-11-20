@@ -45,6 +45,8 @@ function headingFor(
       return { eyebrow: "Creator mode · private", title: t("Публикация") };
     case "keygen":
       return { eyebrow: "Creator mode · licences", title: t("Лицензии") };
+    case "tickets":
+      return { eyebrow: "Creator mode · support", title: t("Обращения пользователей") };
     default:
       return { eyebrow: "Aether Hub", title: "Aether" };
   }

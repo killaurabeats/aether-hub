@@ -14,6 +14,8 @@ create table if not exists public.releases (
   title         text not null,
   version       text not null default '1.0',
   description   text not null default '',
+  description_ru text,
+  description_en text,
   cover_url     text,
   files         jsonb not null default '{}'::jsonb,
   rating_avg    numeric(3, 2) not null default 5.00,
@@ -26,6 +28,9 @@ create table if not exists public.releases (
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now()
 );
+
+alter table public.releases add column if not exists description_ru text;
+alter table public.releases add column if not exists description_en text;
 
 create table if not exists public.profiles (
   id          text primary key,
@@ -79,11 +84,23 @@ create table if not exists public.licenses (
   unique (machine_id, product_tag)
 );
 
+create table if not exists public.support_tickets (
+  id          uuid primary key default gen_random_uuid(),
+  machine_id  text not null,
+  nickname    text not null default 'aether user',
+  os          text not null default 'macOS',
+  message     text not null,
+  status      text not null default 'open' check (status in ('open', 'closed')),
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz not null default now()
+);
+
 create index if not exists comments_release_idx on public.comments (release_id, created_at desc);
 create index if not exists ratings_release_idx on public.ratings (release_id);
 create index if not exists license_requests_machine_idx on public.license_requests (machine_id);
 create index if not exists license_requests_status_idx on public.license_requests (status, created_at desc);
 create index if not exists licenses_machine_idx on public.licenses (machine_id);
+create index if not exists support_tickets_status_idx on public.support_tickets (status, created_at desc);
 
 -- --------------------------------------------------------------- helpers ----
 create or replace function public.aether_norm_machine(p text)
@@ -103,6 +120,11 @@ begin
   return new;
 end;
 $$;
+
+drop trigger if exists support_tickets_touch on public.support_tickets;
+create trigger support_tickets_touch
+  before update on public.support_tickets
+  for each row execute function public.aether_touch_updated_at();
 
 drop trigger if exists releases_touch on public.releases;
 create trigger releases_touch
@@ -302,6 +324,7 @@ alter table public.comments enable row level security;
 alter table public.ratings enable row level security;
 alter table public.license_requests enable row level security;
 alter table public.licenses enable row level security;
+alter table public.support_tickets enable row level security;
 
 drop policy if exists releases_public_read on public.releases;
 create policy releases_public_read on public.releases
@@ -333,6 +356,7 @@ revoke all on public.profiles from anon, authenticated;
 revoke all on public.ratings from anon, authenticated;
 revoke all on public.license_requests from anon, authenticated;
 revoke all on public.licenses from anon, authenticated;
+revoke all on public.support_tickets from anon, authenticated;
 revoke all on public.comments from anon, authenticated;
 revoke all on public.releases from anon, authenticated;
 
@@ -362,6 +386,10 @@ begin
   end;
   begin
     alter publication supabase_realtime add table public.releases;
+  exception when duplicate_object then null;
+  end;
+  begin
+    alter publication supabase_realtime add table public.support_tickets;
   exception when duplicate_object then null;
   end;
 end;

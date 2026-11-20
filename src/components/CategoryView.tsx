@@ -77,8 +77,14 @@ export function CategoryView({
         </div>
       </div>
 
-      {category === "drumkits" && categoryTotal === 0 ? (
-        <SoonPanel />
+      {(category === "drumkits" || category === "presets") && categoryTotal === 0 ? (
+        <SoonPanel
+          subtitle={
+            category === "drumkits"
+              ? t("Скоро здесь появятся драм-киты")
+              : t("Скоро здесь появятся пресеты")
+          }
+        />
       ) : catalogLoading && !items.length ? (
         <div className="release-grid">
           {[0, 1, 2].map((i) => (
@@ -116,16 +122,14 @@ export function CategoryView({
   );
 }
 
-function SoonPanel() {
-  const { t } = useStore();
-
+function SoonPanel({ subtitle }: { subtitle: string }) {
   return (
     <div className="soon-panel glass">
       <span className="soon-orb soon-orb-a" />
       <span className="soon-orb soon-orb-b" />
       <div className="soon-ring" />
       <div className="soon-word">SOON</div>
-      <p>{t("Скоро здесь появятся драм-киты")}</p>
+      <p>{subtitle}</p>
       <span className="soon-line" />
     </div>
   );
@@ -147,6 +151,8 @@ export function SearchResults({
       const haystack = [
         release.title,
         release.description,
+        release.descriptionRu ?? "",
+        release.descriptionEn ?? "",
         release.slug,
         release.category,
         release.productTag ?? "",

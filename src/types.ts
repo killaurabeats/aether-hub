@@ -40,6 +40,8 @@ export interface Release {
   title: string;
   version: string;
   description: string;
+  descriptionRu?: string | null;
+  descriptionEn?: string | null;
   coverUrl?: string | null;
   files: Partial<Record<OSKey, ReleaseFile>>;
   ratingAvg: number;
@@ -149,6 +151,16 @@ export interface AdminStatus {
   source?: string | null;
 }
 
+export interface SupportTicket {
+  id: string;
+  machineId: string;
+  nickname: string;
+  os: string;
+  message: string;
+  status: "open" | "closed";
+  createdAt: string;
+}
+
 export interface CloudConfig {
   url: string;
   anonKey: string;
@@ -175,6 +187,7 @@ export type View =
   | { name: "category"; category: Category }
   | { name: "admin" }
   | { name: "keygen" }
+  | { name: "tickets" }
   | { name: "search"; query: string };
 
 export interface Toast {

@@ -215,7 +215,7 @@ export function SettingsModal({
                     <b>{t("Эффекты стекла / Glass Blur")}</b>
                     <span>
                       {t(
-                        "Включает backdrop-blur на карточках и модалках. Выключите для максимального FPS на слабых GPU: размытие заменится на плотные тёмные градиенты.",
+                        "Включает размытие фона на карточках и всплывающих окнах. Выключите для максимального FPS на слабых GPU: размытие заменится на плотные тёмные градиенты.",
                       )}
                     </span>
                   </div>
@@ -676,15 +676,9 @@ VITE_AETHER_ADMIN_TOKEN=...   # only on your Mac`}
                   </button>
                 </div>
 
-                <div className="settings-actions">
+                <div className="settings-actions" style={{ justifyContent: "flex-start" }}>
                   <button
                     className="btn btn-primary"
-                    onClick={() => void openExternal("https://t.me/whofriends1")}
-                  >
-                    <ShieldCheck size={13} /> Telegram @whofriends1
-                  </button>
-                  <button
-                    className="btn btn-ghost"
                     onClick={() => void refreshCatalog()}
                     disabled={catalogLoading}
                   >

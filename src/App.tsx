@@ -17,7 +17,9 @@ import {
 } from "./components/SettingsModal";
 import { AdminStudio } from "./components/AdminStudio";
 import { KeygenRequests } from "./components/KeygenRequests";
+import { SupportTickets } from "./components/SupportTickets";
 import { Toasts } from "./components/Toasts";
+import { SupportModal } from "./components/SupportModal";
 
 function initialView(): View {
   const hash = window.location.hash.replace("#", "").toLowerCase();
@@ -48,6 +50,7 @@ function Shell() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [supportOpen, setSupportOpen] = useState(false);
   const [settingsSection, setSettingsSection] = useState<SettingsSection>("general");
   const [refreshing, setRefreshing] = useState(false);
 
@@ -68,7 +71,10 @@ function Shell() {
   }, [releases]);
 
   useEffect(() => {
-    if (!adminVisible && (view.name === "admin" || view.name === "keygen")) {
+    if (
+      !adminVisible &&
+      (view.name === "admin" || view.name === "keygen" || view.name === "tickets")
+    ) {
       setView({ name: "home" });
     }
   }, [adminVisible, view.name]);
@@ -89,6 +95,7 @@ function Shell() {
       if (selectedId) return;
       setProfileOpen(false);
       setSettingsOpen(false);
+      setSupportOpen(false);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -145,6 +152,8 @@ function Shell() {
         return adminVisible ? <AdminStudio /> : null;
       case "keygen":
         return adminVisible ? <KeygenRequests /> : null;
+      case "tickets":
+        return adminVisible ? <SupportTickets /> : null;
       default:
         return null;
     }
@@ -164,6 +173,7 @@ function Shell() {
           view={effectiveView}
           onNavigate={navigate}
           onOpenSettings={() => openSettings("general")}
+          onOpenSupport={() => setSupportOpen(true)}
         />
 
         <main className="main">
@@ -200,6 +210,10 @@ function Shell() {
 
       <AnimatePresence>
         {profileOpen ? <ProfileModal key="profile" onClose={() => setProfileOpen(false)} /> : null}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {supportOpen ? <SupportModal key="support" onClose={() => setSupportOpen(false)} /> : null}
       </AnimatePresence>
 
       <AnimatePresence>

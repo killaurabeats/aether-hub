@@ -8,6 +8,14 @@ function locale() {
   return formatLanguage === "en" ? "en-US" : "ru-RU";
 }
 
+export function descriptionFor(
+  release: { description: string; descriptionRu?: string | null; descriptionEn?: string | null },
+  language: "ru" | "en",
+): string {
+  if (language === "en") return release.descriptionEn?.trim() || release.description;
+  return release.descriptionRu?.trim() || release.description;
+}
+
 export function formatBytes(bytes?: number | null): string {
   if (!bytes || bytes <= 0) return "—";
   const mb = bytes / (1024 * 1024);

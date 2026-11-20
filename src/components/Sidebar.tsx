@@ -4,11 +4,13 @@ import {
   Drum,
   Home,
   KeyRound,
-  LifeBuoy,
+  MessageSquareText,
+  Send,
   Settings2,
   ShieldCheck,
   SlidersHorizontal,
   Sparkles,
+  Ticket,
   Globe2,
   LockKeyhole,
 } from "lucide-react";
@@ -20,6 +22,7 @@ interface Props {
   view: View;
   onNavigate: (view: View) => void;
   onOpenSettings: () => void;
+  onOpenSupport: () => void;
 }
 
 const NAV = [
@@ -29,7 +32,7 @@ const NAV = [
   { key: "presets", label: "Presets", icon: SlidersHorizontal },
 ] as const;
 
-export function Sidebar({ view, onNavigate, onOpenSettings }: Props) {
+export function Sidebar({ view, onNavigate, onOpenSettings, onOpenSupport }: Props) {
   const {
     releases,
     admin,
@@ -125,6 +128,13 @@ export function Sidebar({ view, onNavigate, onOpenSettings }: Props) {
             <span>Keygen & Requests</span>
             {pending ? <span className="nav-badge">{pending}</span> : null}
           </button>
+          <button
+            className={`nav-item ${view.name === "tickets" ? "active" : ""}`}
+            onClick={() => onNavigate({ name: "tickets" })}
+          >
+            <Ticket size={17} />
+            <span>{t("Обращения пользователей")}</span>
+          </button>
         </div>
       ) : null}
 
@@ -198,12 +208,16 @@ export function Sidebar({ view, onNavigate, onOpenSettings }: Props) {
           <Settings2 size={14} />
           {t("Настройки")}
         </button>
+        <button className="side-action" onClick={onOpenSupport}>
+          <MessageSquareText size={14} />
+          {t("Поддержка")}
+        </button>
         <button
           className="side-action"
           onClick={() => void openExternal(TELEGRAM_CHANNEL_URL)}
           title="https://t.me/aetherplugins"
         >
-          <LifeBuoy size={14} />
+          <Send size={14} />
           {t("Telegram")}
         </button>
       </div>

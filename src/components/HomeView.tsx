@@ -6,7 +6,6 @@ import {
   Check,
   Cloud,
   Copy,
-  Download,
   HardDriveDownload,
   KeyRound,
   Music4,
@@ -18,7 +17,7 @@ import {
 } from "lucide-react";
 import type { Release, View } from "../types";
 import { useStore } from "../lib/store";
-import { copyText, formatBytes } from "../lib/format";
+import { copyText, descriptionFor, formatBytes } from "../lib/format";
 import { openExternal, TELEGRAM_CHANNEL_URL, TELEGRAM_URL } from "../lib/desktop";
 import { ReleaseCard } from "./ReleaseCard";
 import { InstallButton } from "./InstallButton";
@@ -43,6 +42,7 @@ export function HomeView({
     licenses,
     toast,
     catalogError,
+    language,
     t,
   } = useStore();
 
@@ -91,9 +91,9 @@ export function HomeView({
         <div className="hero-copy">
           <span className="eyebrow">Aether Plugins · est. 2026</span>
           <h1>
-            {t("Звук, который")}
+            {t("Ничего лишнего.")}
             <br />
-            <em>{t("не хочется трогать.")}</em>
+            <em>{t("Только звук.")}</em>
           </h1>
           <p>
             {t(
@@ -109,7 +109,7 @@ export function HomeView({
             </button>
             {featured ? (
               <button className="btn btn-ghost btn-lg" onClick={() => onOpenRelease(featured)}>
-                Featured drop <ArrowRight size={14} />
+                {t("Избранный релиз")} <ArrowRight size={14} />
               </button>
             ) : null}
           </div>
@@ -149,9 +149,6 @@ export function HomeView({
           <div className="hero-badge b1">
             <span className="status-dot" /> <b>ZERO-LATENCY</b> engine
           </div>
-          <div className="hero-badge b2">
-            <Download size={12} /> <b>1-click</b> install
-          </div>
         </div>
       </section>
 
@@ -159,7 +156,7 @@ export function HomeView({
         <>
           <div className="section-head">
             <div>
-              <h2>Featured drop</h2>
+              <h2>{t("Избранный релиз")}</h2>
               <div className="sub">{t("Ручной выбор команды Aether")}</div>
             </div>
             <button className="link" onClick={() => onOpenRelease(featured)}>
@@ -189,7 +186,7 @@ export function HomeView({
                 </span>
               </div>
               <h3>{featured.title}</h3>
-              <p>{featured.description}</p>
+              <p>{descriptionFor(featured, language)}</p>
               <div style={{ display: "flex", alignItems: "center", gap: 14, marginTop: 6 }}>
                 <InstallButton release={featured} />
                 <span className="file-meta">

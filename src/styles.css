@@ -3890,3 +3890,443 @@ a {
 .no-blur .cropper-backdrop {
   background: rgba(4, 3, 9, 0.94);
 }
+
+
+/* ------------------------------------------------------- platform install */
+.platform-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.platform-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 13px;
+  border-radius: 13px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.02);
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.platform-card.current {
+  border-color: rgba(196, 181, 253, 0.28);
+  background:
+    radial-gradient(110% 120% at 100% 0%, rgba(139, 92, 246, 0.14), transparent 60%),
+    rgba(255, 255, 255, 0.025);
+}
+
+.platform-card.disabled {
+  opacity: 0.55;
+}
+
+.platform-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.platform-icon {
+  width: 29px;
+  height: 29px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  border: 1px solid rgba(196, 181, 253, 0.16);
+  background: rgba(139, 92, 246, 0.13);
+  color: var(--lav);
+}
+
+.platform-recommend {
+  font-size: 8px;
+  line-height: 1.3;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--green);
+  text-align: right;
+}
+
+.platform-recommend.muted {
+  color: var(--dim);
+}
+
+.platform-title {
+  margin-top: 5px;
+  font-size: 14px;
+  font-weight: 620;
+  letter-spacing: -0.01em;
+}
+
+.platform-sub {
+  font-size: 10px;
+  color: var(--dim);
+}
+
+.platform-button {
+  width: 100%;
+  margin-top: 9px;
+}
+
+@media (max-width: 560px) {
+  .platform-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* ----------------------------------------------------------------- support */
+.support-body {
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.support-hero {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 16px;
+  border-radius: 15px;
+  border: 1px solid rgba(196, 181, 253, 0.14);
+  background:
+    radial-gradient(120% 130% at 100% 0%, rgba(139, 92, 246, 0.15), transparent 60%),
+    rgba(255, 255, 255, 0.02);
+}
+
+.support-seal {
+  width: 46px;
+  height: 46px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  border: 1px solid rgba(196, 181, 253, 0.22);
+  background: rgba(139, 92, 246, 0.14);
+  color: var(--lav);
+  box-shadow: 0 0 30px -10px rgba(139, 92, 246, 0.7);
+}
+
+.support-hero h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 620;
+}
+
+.support-hero p {
+  margin: 4px 0 0;
+  font-size: 11px;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+.support-contacts {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.support-contact {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 13px;
+  border-radius: 13px;
+  text-align: left;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.025);
+  color: var(--text);
+  transition: 0.2s ease;
+}
+
+.support-contact:hover {
+  border-color: var(--line-strong);
+  background: rgba(255, 255, 255, 0.05);
+  transform: translateY(-1px);
+}
+
+.support-contact-icon {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 11px;
+  border: 1px solid rgba(196, 181, 253, 0.16);
+}
+
+.support-contact-icon.telegram {
+  color: #d9c8ff;
+  background: rgba(139, 92, 246, 0.16);
+}
+
+.support-contact-icon.mail {
+  color: #a9fff1;
+  background: rgba(94, 234, 212, 0.09);
+  border-color: rgba(94, 234, 212, 0.16);
+}
+
+.support-contact-copy {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.support-contact-copy b {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.support-contact-copy span {
+  font-size: 10px;
+  color: var(--dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.support-contact > svg {
+  color: var(--dim);
+}
+
+.support-locked {
+  position: relative;
+  overflow: hidden;
+  padding: 16px;
+  border-radius: 15px;
+  border: 1px dashed rgba(255, 210, 122, 0.2);
+  background: rgba(255, 210, 122, 0.035);
+}
+
+.support-locked-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.support-lock {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  color: var(--gold);
+  background: rgba(255, 210, 122, 0.1);
+  border: 1px solid rgba(255, 210, 122, 0.18);
+}
+
+.support-locked-head > div {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.support-locked-head b {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.support-locked-head div span {
+  font-size: 9.5px;
+  color: var(--dim);
+}
+
+.support-locked-hint {
+  margin: 12px 0 0;
+  font-size: 10.5px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+.support-form-mock {
+  position: relative;
+  margin-top: 14px;
+  padding: 12px;
+  border-radius: 11px;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  background: rgba(5, 4, 10, 0.28);
+  filter: blur(0.4px);
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.support-form-line {
+  height: 9px;
+  width: 45%;
+  border-radius: 5px;
+  background: rgba(196, 181, 253, 0.12);
+}
+
+.support-form-line.short {
+  width: 28%;
+  margin-top: 8px;
+}
+
+.support-form-area {
+  height: 70px;
+  margin-top: 10px;
+  border-radius: 8px;
+  background: rgba(196, 181, 253, 0.07);
+  border: 1px solid rgba(196, 181, 253, 0.08);
+}
+
+.support-form-mock .btn {
+  margin-top: 10px;
+  opacity: 0.8;
+}
+
+.side-actions {
+  flex-wrap: wrap;
+  row-gap: 6px;
+}
+
+.side-actions .side-action {
+  flex: 1 1 calc(50% - 4px);
+}
+
+.side-actions .side-action:last-child {
+  flex: 1 1 100%;
+}
+
+
+/* ------------------------------------------------------------------ tickets */
+.tickets-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.tickets-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 42px 20px;
+  color: var(--dim);
+  font-size: 11.5px;
+}
+
+.ticket-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+  gap: 10px;
+}
+
+.ticket-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.022);
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.ticket-card.open {
+  border-color: rgba(255, 210, 122, 0.18);
+  background:
+    radial-gradient(110% 100% at 100% 0%, rgba(255, 210, 122, 0.05), transparent 60%),
+    rgba(255, 255, 255, 0.022);
+}
+
+.ticket-card.closed {
+  opacity: 0.66;
+}
+
+.ticket-top {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.ticket-who {
+  flex: 1;
+  min-width: 0;
+}
+
+.ticket-who b {
+  display: block;
+  font-size: 12px;
+  font-weight: 620;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ticket-who span {
+  display: block;
+  margin-top: 2px;
+  font-size: 9.5px;
+  color: var(--dim);
+}
+
+.ticket-message {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+  white-space: pre-line;
+}
+
+.ticket-machine {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 9px;
+  border-radius: 9px;
+  border: 1px solid var(--line);
+  background: rgba(5, 4, 10, 0.4);
+}
+
+.ticket-machine-label {
+  font-size: 8px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+.ticket-machine code {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--lav);
+  user-select: text;
+}
+
+.ticket-actions {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+  margin-top: auto;
+  padding-top: 2px;
+}
+
+.req-status.open {
+  color: var(--gold);
+  border-color: rgba(255, 210, 122, 0.25);
+  background: rgba(255, 210, 122, 0.08);
+}
+
+.req-status.closed {
+  color: var(--dim);
+  border-color: var(--line);
+  background: rgba(255, 255, 255, 0.025);
+}

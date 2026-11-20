@@ -41,7 +41,8 @@ interface FormState {
   slug: string;
   version: string;
   category: Category;
-  description: string;
+  descriptionRu: string;
+  descriptionEn: string;
   productTag: string;
   badge: string;
   preview: string;
@@ -53,7 +54,8 @@ const emptyForm: FormState = {
   slug: "",
   version: "1.1",
   category: "plugins",
-  description: "",
+  descriptionRu: "",
+  descriptionEn: "",
   productTag: "AETHER-VOCAL-STRIP",
   badge: "NEW",
   preview: "",
@@ -211,7 +213,8 @@ export function AdminStudio() {
       slug: release.slug,
       version: release.version,
       category: release.category,
-      description: release.description,
+      descriptionRu: release.descriptionRu || release.description,
+      descriptionEn: release.descriptionEn || release.description,
       productTag: release.productTag || "AETHER-VOCAL-STRIP",
       badge: release.badge || "",
       preview: release.previews?.[0]?.url || "",
@@ -336,7 +339,9 @@ export function AdminStudio() {
         category: form.category,
         title: form.title.trim(),
         version: form.version.trim() || "1.0",
-        description: form.description.trim(),
+        description: (form.descriptionEn || form.descriptionRu).trim(),
+        descriptionRu: form.descriptionRu.trim() || null,
+        descriptionEn: form.descriptionEn.trim() || null,
         coverUrl,
         files: nextFiles,
         productTag: form.category === "plugins" ? form.productTag : null,
@@ -630,14 +635,25 @@ export function AdminStudio() {
                 />
               </div>
               <div className="field span2">
-                <label>{t("Описание")}</label>
+                <label>{t("Описание (RU)")}</label>
                 <textarea
-                  value={form.description}
+                  value={form.descriptionRu}
                   onChange={(event) =>
-                    setForm((prev) => ({ ...prev, description: event.target.value }))
+                    setForm((prev) => ({ ...prev, descriptionRu: event.target.value }))
                   }
                   placeholder={t("Что внутри, для кого, чем отличается версия…")}
-                  rows={4}
+                  rows={3}
+                />
+              </div>
+              <div className="field span2">
+                <label>{t("Описание (EN)")}</label>
+                <textarea
+                  value={form.descriptionEn}
+                  onChange={(event) =>
+                    setForm((prev) => ({ ...prev, descriptionEn: event.target.value }))
+                  }
+                  placeholder={t("What's inside, who it's for and what changed…")}
+                  rows={3}
                 />
               </div>
             </div>

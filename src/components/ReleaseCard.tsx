@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { Boxes, Check, Dumbbell, Music4, Play, SlidersHorizontal, Star } from "lucide-react";
 import type { Category, Release } from "../types";
 import { CATEGORY_META } from "../types";
-import { formatBytes } from "../lib/format";
+import { descriptionFor, formatBytes } from "../lib/format";
 import { useStore } from "../lib/store";
 import { InstallButton } from "./InstallButton";
 
@@ -89,7 +89,7 @@ export function ReleaseCard({
   onOpen: (release: Release) => void;
   index?: number;
 }) {
-  const { machine, installs, progress, getFileForOS, t } = useStore();
+  const { machine, installs, progress, getFileForOS, language, t } = useStore();
   const record = installs[release.slug];
   const job = progress[release.slug];
   const file = getFileForOS(release);
@@ -147,7 +147,7 @@ export function ReleaseCard({
           <h3>{release.title}</h3>
           <span className="ver">v{release.version}</span>
         </div>
-        <p className="card-desc">{release.description}</p>
+        <p className="card-desc">{descriptionFor(release, language)}</p>
 
         <div className="card-foot">
           <div className="file-meta">
@@ -182,7 +182,7 @@ export function FeaturedRelease({
   release: Release;
   onOpen: (release: Release) => void;
 }) {
-  const { machine } = useStore();
+  const { machine, language } = useStore();
   const meta = CATEGORY_META[release.category];
 
   return (
@@ -208,7 +208,7 @@ export function FeaturedRelease({
           </span>
         </div>
         <h3>{release.title}</h3>
-        <p>{release.description}</p>
+        <p>{descriptionFor(release, language)}</p>
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 6 }}>
           <InstallButton release={release} size="md" />
           <span className="file-meta">

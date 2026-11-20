@@ -187,8 +187,11 @@ fn open_folder(path: String) -> Result<(), String> {
 
 #[tauri::command]
 fn open_url(url: String) -> Result<(), String> {
-    if !(url.starts_with("https://") || url.starts_with("http://")) {
-        return Err("Only http(s) links can be opened.".into());
+    if !(url.starts_with("https://")
+        || url.starts_with("http://")
+        || url.starts_with("mailto:"))
+    {
+        return Err("Only http(s) and mailto links can be opened.".into());
     }
 
     #[cfg(target_os = "macos")]
@@ -394,6 +397,7 @@ pub fn run() {
             install::check_installs,
             install::uninstall_release,
             install::install_release,
+            install::download_release,
             install::app_paths,
             file_stat,
             read_image_data_url,

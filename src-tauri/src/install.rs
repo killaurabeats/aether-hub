@@ -62,6 +62,139 @@ struct InstallProgress {
     message: Option<String>,
 }
 
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DownloadRequest {
+    pub url: String,
+    pub filename: String,
+    pub title: String,
+}
+
+fn safe_file_name(name: &str) -> String {
+    let cleaned: String = name
+        .chars()
+        .map(|c| {
+            if matches!(c, '/' | '\\' | ':' | '*' | '?' | '"' | '<' | '>' | '|') {
+                '-'
+            } else {
+                c
+            }
+        })
+        .collect();
+
+    let trimmed = cleaned.trim().trim_matches('.').trim();
+    if trimmed.is_empty() {
+        return "Aether Release.zip".to_string();
+    }
+
+    if trimmed.to_lowercase().ends_with(".zip") {
+        trimmed.to_string()
+    } else {
+        format!("{trimmed}.zip")
+    }
+}
+
+fn unique_destination(dir: &Path, filename: &str) -> PathBuf {
+    let candidate = dir.join(filename);
+    if !candidate.exists() {
+        return candidate;
+    }
+
+    let stem = Path::new(filename)
+        .file_stem()
+        .map(|value| value.to_string_lossy().into_owned())
+        .unwrap_or_else(|| "release".to_string());
+    let extension = Path::new(filename)
+        .extension()
+        .map(|value| value.to_string_lossy().into_owned())
+        .unwrap_or_default();
+
+    for index in 1..1000 {
+        let name = if extension.is_empty() {
+            format!("{stem} ({index})")
+        } else {
+            format!("{stem} ({index}).{extension}")
+        };
+        let candidate = dir.join(name);
+        if !candidate.exists() {
+            return candidate;
+        }
+    }
+
+    dir.join(format!("{stem}-{}.{}", uuid::Uuid::new_v4(), extension))
+}
+
+async fn download_plain(source: &Source, target: &Path) -> Result<(), String> {
+    match source {
+        Source::Local(path) => {
+            tokio::fs::copy(path, target)
+                .await
+                .map(|_| ())
+                .map_err(|e| format!("Could not copy release: {e}"))
+        }
+        Source::Remote(url) => {
+            let client = reqwest::Client::builder()
+                .user_agent("AetherHub/1.1")
+                .build()
+                .map_err(|e| e.to_string())?;
+            let response = client
+                .get(url)
+                .send()
+                .await
+                .map_err(|e| format!("Download failed: {e}"))?;
+
+            if !response.status().is_success() {
+                return Err(format!("Download failed with HTTP {}", response.status()));
+            }
+
+            let mut file = tokio::fs::File::create(target)
+                .await
+                .map_err(|e| e.to_string())?;
+            let mut stream = response.bytes_stream();
+
+            while let Some(chunk) = stream.next().await {
+                let chunk = chunk.map_err(|e| format!("Download interrupted: {e}"))?;
+                file.write_all(&chunk).await.map_err(|e| e.to_string())?;
+            }
+            file.flush().await.map_err(|e| e.to_string())?;
+            Ok(())
+        }
+    }
+}
+
+#[tauri::command]
+pub async fn download_release(app: AppHandle, request: DownloadRequest) -> Result<String, String> {
+    let source = resolve_source(&app, &request.url)?;
+    let downloads = dirs::download_dir()
+        .or_else(|| dirs::home_dir().map(|home| home.join("Downloads")))
+        .ok_or_else(|| "Could not locate the Downloads folder.".to_string())?;
+    let target_dir = downloads.join("Aether Hub");
+    fs::create_dir_all(&target_dir).map_err(|e| e.to_string())?;
+
+    let base_name = if request.filename.trim().is_empty() {
+        safe_file_name(&request.title)
+    } else {
+        safe_file_name(&request.filename)
+    };
+    let destination = unique_destination(&target_dir, &base_name);
+    let temp = std::env::temp_dir().join(format!("aether-download-{}.zip", uuid::Uuid::new_v4()));
+
+    let result = download_plain(&source, &temp).await;
+    if let Err(error) = result {
+        let _ = fs::remove_file(&temp);
+        return Err(error);
+    }
+
+    if let Err(error) = fs::copy(&temp, &destination) {
+        let _ = fs::remove_file(&temp);
+        return Err(format!("Could not save the download: {error}"));
+    }
+
+    let _ = fs::remove_file(&temp);
+    Ok(destination.display().to_string())
+}
+
 #[tauri::command]
 pub fn app_paths(app: AppHandle) -> AppPaths {
     let home = dirs::home_dir().unwrap_or_default();

@@ -52,11 +52,13 @@ Aether Hub (React)                       Supabase
 | `ratings` | одна оценка на HWID и релиз |
 | `license_requests` | заявки на ключи |
 | `licenses` | выданные ключи |
+| `support_tickets` | обращения пользователей для админки |
 | bucket `aether-assets` | обложки и ZIP-архивы, публичное чтение |
 
 RLS:
 
-- `releases` — select только `published = true`;
+- `releases` — select только `published = true`; поля `description_ru` /
+  `description_en` хранят двуязычное описание;
 - `comments` — select + insert с ограничением длины;
 - `ratings`, `profiles`, `license_requests`, `licenses` — **никакого** прямого
   доступа у anon; только SECURITY DEFINER RPC;
@@ -141,6 +143,8 @@ VITE_AETHER_ADMIN_TOKEN=<ADMIN_TOKEN>
 ## Шаг 6 — модерация и ключи
 
 - **Admin Studio → Модерация** удаляет комментарии через service role.
+- **Support Tickets → Обращения пользователей** читает `support_tickets`,
+  закрывает/удаляет тикеты и очищает закрытые. Обновление — каждые 8 секунд.
 - **Keygen & Requests → Одобрить**:
   1. Rust подписывает Machine ID приватным ключом;
   2. ключ отправляется в функцию (`approve_request`);

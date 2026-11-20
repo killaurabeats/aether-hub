@@ -21,6 +21,7 @@ import type {
   License,
   LicenseRequest,
   Profile,
+  SupportTicket,
   Release,
   ReleaseFile,
 } from "../types";
@@ -55,6 +56,10 @@ export function seedReleases(): Release[] {
       version: "1.1",
       description:
         "A complete vocal channel strip: gate, 7-band air EQ, FET 1176, LA-2A, tube saturation and a −0.3 dBFS limiter. Zero-latency by default, 4× oversampling in Studio mode. VST3 + AU, universal macOS build and Windows x64.",
+      descriptionEn:
+        "A complete vocal channel strip: gate, 7-band air EQ, FET 1176, LA-2A, tube saturation and a −0.3 dBFS limiter. Zero-latency by default, 4× oversampling in Studio mode. VST3 + AU, universal macOS build and Windows x64.",
+      descriptionRu:
+        "Полноценный вокальный комбайн: гейт, 7-полосный эквалайзер Precision Air EQ, ламповый сатуратор, компрессоры 1176 FET и LA-2A, а также лимитер с потолком -0.3 dBFS. Нулевая задержка по умолчанию, оверсэмплинг 4× в режиме Studio. Форматы VST3 и AU для macOS и Windows x64.",
       coverUrl: "/covers/aether-vocal-strip-v1-1.jpg",
       files: {
         macos: {
@@ -74,25 +79,6 @@ export function seedReleases(): Release[] {
       featured: true,
       badge: "NEW",
       createdAt: nowMinus(20),
-    },
-    {
-      id: "rel_vocal_chain",
-      slug: "aether-vocal-chain-presets",
-      category: "presets",
-      title: "Aether Vocal Chain",
-      version: "1.1",
-      description:
-        "Three mix-ready chains for AetherVocal Strip — Clean Vocal, Airy Lead and Rap Forward. Installs straight into FL Studio's Presets folder, with every module value documented.",
-      coverUrl: "/covers/presets.jpg",
-      files: {
-        macos: { url: "/releases/aether-vocal-chain-presets.zip", sizeBytes: 1_680 },
-        windows: { url: "/releases/aether-vocal-chain-presets.zip", sizeBytes: 1_680 },
-      },
-      ratingAvg: 5.0,
-      ratingCount: 21,
-      featured: true,
-      badge: "PACK",
-      createdAt: nowMinus(68),
     },
   ];
 }
@@ -121,14 +107,6 @@ function seedComments(): Comment[] {
       nickname: "mira.wav",
       body: "Bought a key yesterday, activation took ten seconds. Sounds crazy on ad-libs.",
       createdAt: nowMinus(26),
-      avatarUrl: null,
-    },
-    {
-      id: "c5",
-      releaseId: "rel_vocal_chain",
-      nickname: "mira.wav",
-      body: "Rap Forward + a touch of reverb = done. Best free chains I've found.",
-      createdAt: nowMinus(31),
       avatarUrl: null,
     },
   ];
@@ -163,6 +141,31 @@ function seedRequests(): LicenseRequest[] {
   ];
 }
 
+function seedSupportTickets(): SupportTicket[] {
+  return [
+    {
+      id: "ticket_demo_1",
+      machineId: "4F2A-91BC-77D0-3E15-8AC6-0B44-19EE-5D73",
+      nickname: "novaafterdark",
+      os: "macOS",
+      message:
+        "После установки плагин не появился в списке FL Studio. Папки VST3 и Components проверил — файлы на месте. Что ещё можно сделать?",
+      status: "open",
+      createdAt: nowMinus(3),
+    },
+    {
+      id: "ticket_demo_2",
+      machineId: "B18D-02F4-6C11-9AE0-4D77-5C22-9011-3FE8",
+      nickname: "prodbysage",
+      os: "Windows",
+      message:
+        "Ключ активировался, но в FL Studio отображается старая версия 1.0. Как обновиться до 1.1 без потери пресетов?",
+      status: "closed",
+      createdAt: nowMinus(40),
+    },
+  ];
+}
+
 // ---------------------------------------------------------------------------
 // Local (demo) store
 // ---------------------------------------------------------------------------
@@ -173,6 +176,7 @@ interface DemoState {
   ratings: Record<string, Record<string, number>>;
   requests: LicenseRequest[];
   licenses: License[];
+  tickets: SupportTicket[];
 }
 
 function demoState(): DemoState {
@@ -183,19 +187,20 @@ function demoState(): DemoState {
       if (Array.isArray(parsed.releases) && parsed.releases.length > 0) {
         // Migration: the old bundled demo drumkit is no longer part of the
         // default catalog. Remove it (and its comments) for existing installs.
-        const releases = parsed.releases.filter(
-          (release) => release.id !== "rel_808_essentials",
-        );
+        const demoIds = new Set(["rel_808_essentials", "rel_vocal_chain"]);
+        const releases = parsed.releases.filter((release) => !demoIds.has(release.id));
         const comments = (parsed.comments ?? []).filter(
-          (comment) => comment.releaseId !== "rel_808_essentials",
+          (comment) => !demoIds.has(comment.releaseId),
         );
 
+        const tickets = parsed.tickets ?? seedSupportTickets();
         const migrated: DemoState = {
           releases,
           comments,
           ratings: parsed.ratings ?? {},
           requests: parsed.requests ?? [],
           licenses: parsed.licenses ?? [],
+          tickets,
         };
 
         if (releases.length !== parsed.releases.length || comments.length !== (parsed.comments ?? []).length) {
@@ -217,6 +222,7 @@ function demoState(): DemoState {
     ratings: {},
     requests: seedRequests(),
     licenses: [],
+    tickets: seedSupportTickets(),
   };
   saveDemo(state);
   return state;
@@ -324,6 +330,8 @@ export function mapRelease(row: Row): Release {
     title: row.title,
     version: row.version,
     description: row.description ?? "",
+    descriptionRu: row.description_ru ?? null,
+    descriptionEn: row.description_en ?? null,
     coverUrl: row.cover_url ?? null,
     files: normalisedFiles,
     ratingAvg: numeric(row.rating_avg),
@@ -626,6 +634,52 @@ export async function fetchMyLicenses(machineId: string): Promise<License[]> {
 }
 
 // ---------------------------------------------------------------------------
+// Support tickets
+// ---------------------------------------------------------------------------
+
+export async function fetchSupportTickets(): Promise<SupportTicket[]> {
+  if (cloudEnabled) {
+    return adminApi<SupportTicket[]>("tickets");
+  }
+
+  return [...demoState().tickets].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+export async function closeSupportTicket(id: string): Promise<void> {
+  if (cloudEnabled) {
+    await adminApi("ticket_status", { id, status: "closed" });
+    return;
+  }
+
+  const state = demoState();
+  const ticket = state.tickets.find((item) => item.id === id);
+  if (ticket) ticket.status = "closed";
+  saveDemo(state);
+}
+
+export async function deleteSupportTicket(id: string): Promise<void> {
+  if (cloudEnabled) {
+    await adminApi("delete_ticket", { id });
+    return;
+  }
+
+  const state = demoState();
+  state.tickets = state.tickets.filter((item) => item.id !== id);
+  saveDemo(state);
+}
+
+export async function clearClosedSupportTickets(): Promise<void> {
+  if (cloudEnabled) {
+    await adminApi("clear_closed_tickets");
+    return;
+  }
+
+  const state = demoState();
+  state.tickets = state.tickets.filter((item) => item.status !== "closed");
+  saveDemo(state);
+}
+
+// ---------------------------------------------------------------------------
 // Admin API (Edge Function via Rust, so uploads can stream from disk)
 // ---------------------------------------------------------------------------
 
@@ -763,6 +817,8 @@ export interface PublishPayload {
   title: string;
   version: string;
   description: string;
+  descriptionRu?: string | null;
+  descriptionEn?: string | null;
   coverUrl?: string | null;
   files: Release["files"];
   productTag?: string | null;
@@ -791,6 +847,8 @@ export async function saveRelease(payload: PublishPayload): Promise<Release> {
     title: payload.title,
     version: payload.version,
     description: payload.description,
+    descriptionRu: payload.descriptionRu ?? existing?.descriptionRu ?? null,
+    descriptionEn: payload.descriptionEn ?? existing?.descriptionEn ?? null,
     coverUrl: payload.coverUrl ?? existing?.coverUrl ?? null,
     files: payload.files,
     ratingAvg: existing?.ratingAvg ?? 5,
