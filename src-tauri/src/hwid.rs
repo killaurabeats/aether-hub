@@ -300,7 +300,7 @@ mod mac {
 mod windows_impl {
     use super::*;
     use std::ffi::OsString;
-    use std::os::windows::ffi::OsStringExt;
+    use std::os::windows::ffi::OsStrExt;
 
     #[link(name = "kernel32")]
     extern "system" {
