@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { Maximize2, Minimize2, X } from "lucide-react";
 import { isTauri, useStore } from "../lib/store";
@@ -11,9 +12,55 @@ function call(action: (win: ReturnType<typeof getCurrentWindow>) => Promise<unkn
   }
 }
 
+async function toggleFullscreen() {
+  if (!isTauri) return;
+  try {
+    const win = getCurrentWindow();
+    const fullscreen = await win.isFullscreen();
+    await win.setFullscreen(!fullscreen);
+  } catch {
+    // Ignore native window errors (preview / restricted session).
+  }
+}
+
 export function WindowChrome() {
   const { machine, t } = useStore();
   const isMac = (machine.os || "macos") !== "windows";
+
+  useEffect(() => {
+    if (!isTauri) return;
+    let unlisten: (() => void) | undefined;
+    const win = getCurrentWindow();
+
+    const syncFullscreenClass = () => {
+      win
+        .isFullscreen()
+        .then((fullscreen) => document.documentElement.classList.toggle("is-fullscreen", fullscreen))
+        .catch(() => undefined);
+    };
+
+    syncFullscreenClass();
+    win
+      .onResized(syncFullscreenClass)
+      .then((dispose) => {
+        unlisten = dispose;
+      })
+      .catch(() => undefined);
+
+    return () => unlisten?.();
+  }, []);
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      const macFullscreen = event.ctrlKey && event.metaKey && event.key.toLowerCase() === "f";
+      if (event.key === "F11" || macFullscreen) {
+        event.preventDefault();
+        void toggleFullscreen();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   return (
     <div className="window-chrome" data-tauri-drag-region>
@@ -35,8 +82,9 @@ export function WindowChrome() {
           </button>
           <button
             className="t-max"
-            aria-label={t("Развернуть")}
-            onClick={() => call((win) => win.toggleMaximize())}
+            aria-label={t("Полный экран")}
+            title={t("Полный экран")}
+            onClick={() => void toggleFullscreen()}
           >
             <span className="t-glyph">+</span>
           </button>

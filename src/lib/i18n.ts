@@ -451,6 +451,8 @@ const en: Record<string, string> = {
   "Русский": "Russian",
   "не задан": "not set",
   "Aether Hub · 1.1 · CINEMATIC INTRO": "AETHER HUB · 1.1 · CINEMATIC INTRO",
+  "Полный экран": "Fullscreen",
+  "Выйти из полноэкранного режима": "Exit fullscreen",
 
   "Telegram": "Telegram",
   "https://…/demo.mp3 — для мини-плеера в карточке драм-кита":

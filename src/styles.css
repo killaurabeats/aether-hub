@@ -42,6 +42,18 @@ body,
   background: transparent;
 }
 
+#root {
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+/* Edge-to-edge in native fullscreen. */
+html.is-fullscreen .app-shell {
+  border-radius: 0;
+  border-color: transparent;
+}
+
 body {
   font-family: var(--font);
   color: var(--text);
@@ -90,6 +102,11 @@ a {
 .app-shell {
   position: fixed;
   inset: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  max-width: 100vw;
+  max-height: 100vh;
   border-radius: 18px;
   overflow: hidden;
   background:
@@ -311,14 +328,19 @@ a {
   position: relative;
   z-index: 10;
   height: calc(100% - 38px);
+  min-height: 0;
   display: grid;
   grid-template-columns: 238px minmax(0, 1fr);
+  overflow: hidden;
 }
 
 .sidebar {
   position: relative;
   display: flex;
   flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
   padding: 18px 14px 16px;
   border-right: 1px solid rgba(196, 181, 253, 0.07);
   background: linear-gradient(180deg, rgba(13, 10, 24, 0.5), rgba(8, 6, 15, 0.15));
@@ -571,9 +593,12 @@ a {
 
 .main {
   min-width: 0;
+  min-height: 0;
+  height: 100%;
   display: flex;
   flex-direction: column;
   position: relative;
+  overflow: hidden;
 }
 
 .topbar {
@@ -721,28 +746,65 @@ a {
 }
 
 .content {
-  flex: 1;
+  flex: 1 1 0;
+  min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 4px 26px 46px;
+  padding: 4px 26px 48px;
   scroll-behavior: smooth;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(196, 181, 253, 0.42) rgba(20, 14, 38, 0.5);
 }
 
-.content::-webkit-scrollbar {
-  width: 10px;
+/* Thin, dark-violet scrollbars with a soft lavender thumb. */
+.content::-webkit-scrollbar,
+.modal-scroll::-webkit-scrollbar,
+.comments-list::-webkit-scrollbar,
+.key-box::-webkit-scrollbar,
+.sidebar::-webkit-scrollbar,
+.id-box::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
 }
 
-.content::-webkit-scrollbar-thumb {
-  background: rgba(196, 181, 253, 0.12);
-  border-radius: 8px;
-  border: 3px solid transparent;
-  background-clip: padding-box;
+.content::-webkit-scrollbar-track,
+.modal-scroll::-webkit-scrollbar-track,
+.comments-list::-webkit-scrollbar-track,
+.key-box::-webkit-scrollbar-track,
+.sidebar::-webkit-scrollbar-track,
+.id-box::-webkit-scrollbar-track {
+  background: rgba(20, 14, 38, 0.5);
+  border-radius: 6px;
 }
 
-.content::-webkit-scrollbar-thumb:hover {
-  background: rgba(196, 181, 253, 0.22);
-  background-clip: padding-box;
-  border: 3px solid transparent;
+.content::-webkit-scrollbar-thumb,
+.modal-scroll::-webkit-scrollbar-thumb,
+.comments-list::-webkit-scrollbar-thumb,
+.key-box::-webkit-scrollbar-thumb,
+.sidebar::-webkit-scrollbar-thumb,
+.id-box::-webkit-scrollbar-thumb {
+  background: rgba(196, 181, 253, 0.34);
+  border-radius: 6px;
+  border: none;
+  box-shadow: 0 0 6px rgba(139, 92, 246, 0.25);
+}
+
+.content::-webkit-scrollbar-thumb:hover,
+.modal-scroll::-webkit-scrollbar-thumb:hover,
+.comments-list::-webkit-scrollbar-thumb:hover,
+.key-box::-webkit-scrollbar-thumb:hover,
+.sidebar::-webkit-scrollbar-thumb:hover,
+.id-box::-webkit-scrollbar-thumb:hover {
+  background: rgba(196, 181, 253, 0.58);
+}
+
+.content::-webkit-scrollbar-corner,
+.modal-scroll::-webkit-scrollbar-corner,
+.comments-list::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 .page {
@@ -1814,7 +1876,8 @@ a {
 
 .modal {
   width: min(1040px, 100%);
-  max-height: 100%;
+  max-height: calc(100vh - 68px);
+  min-height: 0;
   border-radius: 24px;
   overflow: hidden;
   display: flex;
@@ -1877,18 +1940,14 @@ a {
 
 .modal-scroll {
   overflow-y: auto;
-  flex: 1;
-}
-
-.modal-scroll::-webkit-scrollbar {
-  width: 10px;
-}
-
-.modal-scroll::-webkit-scrollbar-thumb {
-  background: rgba(196, 181, 253, 0.14);
-  border-radius: 8px;
-  border: 3px solid transparent;
-  background-clip: padding-box;
+  overflow-x: hidden;
+  flex: 1 1 auto;
+  min-height: 0;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(196, 181, 253, 0.42) rgba(20, 14, 38, 0.5);
 }
 
 /* detail modal */
@@ -3392,6 +3451,18 @@ a {
   }
 }
 
+@media (max-width: 1080px) {
+  .search-box {
+    width: 190px;
+  }
+  .search-box:focus-within {
+    width: 220px;
+  }
+  .profile-chip .nick {
+    display: none;
+  }
+}
+
 @media (max-width: 1180px) {
   .app-body {
     grid-template-columns: 214px minmax(0, 1fr);
@@ -3413,6 +3484,52 @@ a {
     padding: 0 20px;
   }
   .content {
-    padding: 4px 20px 40px;
+    padding: 4px 20px 48px;
+  }
+}
+
+
+/* Narrow windows / split-screen. The launcher stays usable down to 900 px. */
+@media (max-width: 980px) {
+  .app-body {
+    grid-template-columns: 196px minmax(0, 1fr);
+  }
+  .topbar {
+    gap: 8px;
+    padding: 0 16px;
+  }
+  .page-heading h1 {
+    font-size: 17px;
+  }
+  .content {
+    padding: 4px 16px 48px;
+  }
+  .hero {
+    grid-template-columns: 1fr;
+    padding: 28px;
+  }
+  .hero-art {
+    display: none;
+  }
+  .featured {
+    grid-template-columns: 1fr;
+  }
+  .featured-cover {
+    height: 190px;
+  }
+  .detail-body {
+    grid-template-columns: 1fr;
+  }
+  .detail-side {
+    border-left: none;
+    border-top: 1px solid var(--line);
+  }
+  .sidebar {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+  .brand-row {
+    padding-left: 2px;
+    padding-right: 2px;
   }
 }

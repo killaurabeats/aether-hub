@@ -16,16 +16,18 @@
         "title": "Aether Hub",
         "width": 1280,
         "height": 830,
-        "minWidth": 1040,
-        "minHeight": 680,
+        "minWidth": 900,
+        "minHeight": 600,
         "resizable": true,
-        "fullscreen": false,
         "transparent": true,
         "decorations": false,
         "shadow": true,
         "center": true,
         "visible": true,
-        "dragDropEnabled": true
+        "dragDropEnabled": true,
+        "maximizable": true,
+        "minimizable": true,
+        "closable": true
       }
     ],
     "security": {
@@ -42,7 +44,9 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "resources": ["resources/releases/*"],
+    "resources": [
+      "resources/releases/*"
+    ],
     "copyright": "© 2026 Aether Plugins",
     "category": "Music",
     "shortDescription": "Aether Hub — plugins, drumkits, presets.",
@@ -51,16 +55,30 @@
       "minimumSystemVersion": "11.0",
       "dmg": {
         "background": "dmg/background.png",
-        "windowSize": { "width": 660, "height": 420 },
-        "appPosition": { "x": 180, "y": 190 },
-        "applicationFolderPosition": { "x": 480, "y": 190 }
+        "windowSize": {
+          "width": 660,
+          "height": 420
+        },
+        "appPosition": {
+          "x": 180,
+          "y": 190
+        },
+        "applicationFolderPosition": {
+          "x": 480,
+          "y": 190
+        }
       }
     },
     "windows": {
-      "webviewInstallMode": { "type": "downloadBootstrapper" },
+      "webviewInstallMode": {
+        "type": "downloadBootstrapper"
+      },
       "nsis": {
         "installMode": "perMachine",
-        "languages": ["English", "Russian"],
+        "languages": [
+          "English",
+          "Russian"
+        ],
         "displayLanguageSelector": true
       }
     }
