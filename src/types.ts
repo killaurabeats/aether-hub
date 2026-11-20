@@ -155,9 +155,20 @@ export interface SupportTicket {
   id: string;
   machineId: string;
   nickname: string;
+  avatarUrl?: string | null;
   os: string;
   message: string;
   status: "open" | "closed";
+  createdAt: string;
+}
+
+export interface TicketMessage {
+  id: string;
+  ticketId: string;
+  senderRole: "user" | "admin";
+  senderName: string;
+  senderAvatar?: string | null;
+  message: string;
   createdAt: string;
 }
 

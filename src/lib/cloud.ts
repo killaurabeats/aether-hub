@@ -22,6 +22,7 @@ import type {
   LicenseRequest,
   Profile,
   SupportTicket,
+  TicketMessage,
   Release,
   ReleaseFile,
 } from "../types";
@@ -147,6 +148,7 @@ function seedSupportTickets(): SupportTicket[] {
       id: "ticket_demo_1",
       machineId: "4F2A-91BC-77D0-3E15-8AC6-0B44-19EE-5D73",
       nickname: "novaafterdark",
+      avatarUrl: null,
       os: "macOS",
       message:
         "После установки плагин не появился в списке FL Studio. Папки VST3 и Components проверил — файлы на месте. Что ещё можно сделать?",
@@ -157,6 +159,7 @@ function seedSupportTickets(): SupportTicket[] {
       id: "ticket_demo_2",
       machineId: "B18D-02F4-6C11-9AE0-4D77-5C22-9011-3FE8",
       nickname: "prodbysage",
+      avatarUrl: null,
       os: "Windows",
       message:
         "Ключ активировался, но в FL Studio отображается старая версия 1.0. Как обновиться до 1.1 без потери пресетов?",
@@ -164,6 +167,64 @@ function seedSupportTickets(): SupportTicket[] {
       createdAt: nowMinus(40),
     },
   ];
+}
+
+function seedTicketMessages(): Record<string, TicketMessage[]> {
+  return {
+    ticket_demo_1: [
+      {
+        id: "tmsg_demo_1",
+        ticketId: "ticket_demo_1",
+        senderRole: "user",
+        senderName: "novaafterdark",
+        senderAvatar: null,
+        message:
+          "Привет! После установки AetherVocal Strip не вижу плагин в FL Studio. Папки VST3 и Components проверил — файлы там.",
+        createdAt: nowMinus(3),
+      },
+      {
+        id: "tmsg_demo_2",
+        ticketId: "ticket_demo_1",
+        senderRole: "admin",
+        senderName: "killaurabeats",
+        senderAvatar: "/logo.png",
+        message:
+          "Привет! Открой Options → Manage plugins → Find more plugins и нажми Start scan. Если не появится — пришли скрин списка плагинов.",
+        createdAt: nowMinus(2),
+      },
+      {
+        id: "tmsg_demo_3",
+        ticketId: "ticket_demo_1",
+        senderRole: "user",
+        senderName: "novaafterdark",
+        senderAvatar: null,
+        message: "Спасибо, после пересканирования появился. Работает отлично!",
+        createdAt: nowMinus(1),
+      },
+    ],
+    ticket_demo_2: [
+      {
+        id: "tmsg_demo_4",
+        ticketId: "ticket_demo_2",
+        senderRole: "user",
+        senderName: "prodbysage",
+        senderAvatar: null,
+        message:
+          "Ключ активировался, но в FL Studio отображается старая версия 1.0. Как обновиться до 1.1 без потери пресетов?",
+        createdAt: nowMinus(41),
+      },
+      {
+        id: "tmsg_demo_5",
+        ticketId: "ticket_demo_2",
+        senderRole: "admin",
+        senderName: "killaurabeats",
+        senderAvatar: "/logo.png",
+        message:
+          "Скачай новую версию из хаба и установи поверх — пресеты хранятся отдельно и не затронутся. После установки перезапусти FL Studio.",
+        createdAt: nowMinus(40),
+      },
+    ],
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -177,6 +238,7 @@ interface DemoState {
   requests: LicenseRequest[];
   licenses: License[];
   tickets: SupportTicket[];
+  ticketMessages: Record<string, TicketMessage[]>;
 }
 
 function demoState(): DemoState {
@@ -201,6 +263,7 @@ function demoState(): DemoState {
           requests: parsed.requests ?? [],
           licenses: parsed.licenses ?? [],
           tickets,
+          ticketMessages: parsed.ticketMessages ?? seedTicketMessages(),
         };
 
         if (releases.length !== parsed.releases.length || comments.length !== (parsed.comments ?? []).length) {
@@ -223,6 +286,7 @@ function demoState(): DemoState {
     requests: seedRequests(),
     licenses: [],
     tickets: seedSupportTickets(),
+    ticketMessages: seedTicketMessages(),
   };
   saveDemo(state);
   return state;
@@ -677,6 +741,46 @@ export async function clearClosedSupportTickets(): Promise<void> {
   const state = demoState();
   state.tickets = state.tickets.filter((item) => item.status !== "closed");
   saveDemo(state);
+}
+
+export async function fetchTicketMessages(ticketId: string): Promise<TicketMessage[]> {
+  if (cloudEnabled) {
+    return adminApi<TicketMessage[]>("ticket_messages", { ticketId });
+  }
+
+  return [...(demoState().ticketMessages[ticketId] ?? [])].sort((a, b) =>
+    a.createdAt.localeCompare(b.createdAt),
+  );
+}
+
+export async function sendTicketMessage(input: {
+  ticketId: string;
+  senderRole: "user" | "admin";
+  senderName: string;
+  senderAvatar?: string | null;
+  message: string;
+}): Promise<TicketMessage> {
+  if (cloudEnabled) {
+    return adminApi<TicketMessage>("send_ticket_message", input);
+  }
+
+  const state = demoState();
+  const ticketMessage: TicketMessage = {
+    id: uid("tmsg"),
+    ticketId: input.ticketId,
+    senderRole: input.senderRole,
+    senderName: input.senderName,
+    senderAvatar: input.senderAvatar ?? null,
+    message: input.message,
+    createdAt: new Date().toISOString(),
+  };
+
+  state.ticketMessages[input.ticketId] = [
+    ...(state.ticketMessages[input.ticketId] ?? []),
+    ticketMessage,
+  ];
+  saveDemo(state);
+  return ticketMessage;
 }
 
 // ---------------------------------------------------------------------------

@@ -4,6 +4,7 @@ import {
   Copy,
   Inbox,
   Loader2,
+  MessageCircle,
   RefreshCw,
   Trash2,
   X,
@@ -20,6 +21,7 @@ import {
 } from "../lib/cloud";
 import { copyText, timeAgo } from "../lib/format";
 import { Avatar } from "./Avatar";
+import { TicketChat } from "./TicketChat";
 
 type Filter = "all" | "open" | "closed";
 
@@ -30,6 +32,8 @@ export function SupportTickets() {
   const [filter, setFilter] = useState<Filter>("all");
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [confirmClear, setConfirmClear] = useState(false);
+  const [chatTicket, setChatTicket] = useState<SupportTicket | null>(null);
+  const [chatMinimized, setChatMinimized] = useState(false);
 
   const load = useCallback(
     async (silent = false) => {
@@ -89,6 +93,9 @@ export function SupportTickets() {
       setTickets((prev) =>
         prev.map((item) => (item.id === ticket.id ? { ...item, status: "closed" } : item)),
       );
+      setChatTicket((prev) =>
+        prev && prev.id === ticket.id ? { ...prev, status: "closed" } : prev,
+      );
       toast({ kind: "success", title: t("Тикет закрыт") });
     } catch (error) {
       toast({ kind: "error", title: t("Не удалось обновить тикет"), message: String(error) });
@@ -99,6 +106,7 @@ export function SupportTickets() {
     try {
       await deleteSupportTicket(ticket.id);
       setTickets((prev) => prev.filter((item) => item.id !== ticket.id));
+      if (chatTicket?.id === ticket.id) setChatTicket(null);
       setConfirmDelete(null);
       toast({ kind: "info", title: t("Тикет удалён") });
     } catch (error) {
@@ -110,6 +118,7 @@ export function SupportTickets() {
     try {
       await clearClosedSupportTickets();
       setTickets((prev) => prev.filter((item) => item.status !== "closed"));
+      setChatTicket((prev) => (prev?.status === "closed" ? null : prev));
       setConfirmClear(false);
       toast({ kind: "info", title: t("Закрытые тикеты очищены") });
     } catch (error) {
@@ -224,6 +233,16 @@ export function SupportTickets() {
                 </div>
 
                 <div className="ticket-actions">
+                  <button
+                    className="btn btn-soft btn-sm"
+                    onClick={() => {
+                      setChatTicket(ticket);
+                      setChatMinimized(false);
+                    }}
+                  >
+                    <MessageCircle size={12} /> {t("Открыть чат / Ответить")}
+                  </button>
+
                   {ticket.status === "open" ? (
                     <button className="btn btn-soft btn-sm" onClick={() => void closeTicket(ticket)}>
                       <Check size={12} /> {t("Закрыть тикет")}
@@ -261,6 +280,25 @@ export function SupportTickets() {
           </div>
         )}
       </div>
+
+      {chatTicket && !chatMinimized ? (
+        <TicketChat
+          ticket={chatTicket}
+          onClose={() => {
+            setChatTicket(null);
+            setChatMinimized(false);
+          }}
+          onMinimize={() => setChatMinimized(true)}
+        />
+      ) : null}
+
+      {chatTicket && chatMinimized ? (
+        <button className="chat-mini" onClick={() => setChatMinimized(false)}>
+          <MessageCircle size={15} />
+          <span>{chatTicket.nickname}</span>
+          <b>{t("Чат с создателем")}</b>
+        </button>
+      ) : null}
     </div>
   );
 }

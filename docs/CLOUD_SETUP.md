@@ -53,6 +53,7 @@ Aether Hub (React)                       Supabase
 | `license_requests` | заявки на ключи |
 | `licenses` | выданные ключи |
 | `support_tickets` | обращения пользователей для админки |
+| `ticket_messages` | сообщения живого чата по тикетам |
 | bucket `aether-assets` | обложки и ZIP-архивы, публичное чтение |
 
 RLS:
@@ -145,6 +146,9 @@ VITE_AETHER_ADMIN_TOKEN=<ADMIN_TOKEN>
 - **Admin Studio → Модерация** удаляет комментарии через service role.
 - **Support Tickets → Обращения пользователей** читает `support_tickets`,
   закрывает/удаляет тикеты и очищает закрытые. Обновление — каждые 8 секунд.
+- **Чат по тикету** читает/пишет `ticket_messages`; ответы создателя получают
+  роль `admin`, сохраняются с ником и аватаром `/logo.png`. Сообщения
+  обновляются каждые 5 секунд.
 - **Keygen & Requests → Одобрить**:
   1. Rust подписывает Machine ID приватным ключом;
   2. ключ отправляется в функцию (`approve_request`);

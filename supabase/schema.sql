@@ -88,11 +88,24 @@ create table if not exists public.support_tickets (
   id          uuid primary key default gen_random_uuid(),
   machine_id  text not null,
   nickname    text not null default 'aether user',
+  avatar_url  text,
   os          text not null default 'macOS',
   message     text not null,
   status      text not null default 'open' check (status in ('open', 'closed')),
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now()
+);
+
+alter table public.support_tickets add column if not exists avatar_url text;
+
+create table if not exists public.ticket_messages (
+  id            uuid primary key default gen_random_uuid(),
+  ticket_id     uuid not null references public.support_tickets(id) on delete cascade,
+  sender_role   text not null check (sender_role in ('user', 'admin')),
+  sender_name   text not null,
+  sender_avatar text,
+  message       text not null,
+  created_at    timestamptz not null default now()
 );
 
 create index if not exists comments_release_idx on public.comments (release_id, created_at desc);
@@ -101,6 +114,7 @@ create index if not exists license_requests_machine_idx on public.license_reques
 create index if not exists license_requests_status_idx on public.license_requests (status, created_at desc);
 create index if not exists licenses_machine_idx on public.licenses (machine_id);
 create index if not exists support_tickets_status_idx on public.support_tickets (status, created_at desc);
+create index if not exists ticket_messages_ticket_idx on public.ticket_messages (ticket_id, created_at);
 
 -- --------------------------------------------------------------- helpers ----
 create or replace function public.aether_norm_machine(p text)
@@ -325,6 +339,7 @@ alter table public.ratings enable row level security;
 alter table public.license_requests enable row level security;
 alter table public.licenses enable row level security;
 alter table public.support_tickets enable row level security;
+alter table public.ticket_messages enable row level security;
 
 drop policy if exists releases_public_read on public.releases;
 create policy releases_public_read on public.releases
@@ -357,6 +372,7 @@ revoke all on public.ratings from anon, authenticated;
 revoke all on public.license_requests from anon, authenticated;
 revoke all on public.licenses from anon, authenticated;
 revoke all on public.support_tickets from anon, authenticated;
+revoke all on public.ticket_messages from anon, authenticated;
 revoke all on public.comments from anon, authenticated;
 revoke all on public.releases from anon, authenticated;
 
@@ -390,6 +406,10 @@ begin
   end;
   begin
     alter publication supabase_realtime add table public.support_tickets;
+  exception when duplicate_object then null;
+  end;
+  begin
+    alter publication supabase_realtime add table public.ticket_messages;
   exception when duplicate_object then null;
   end;
 end;

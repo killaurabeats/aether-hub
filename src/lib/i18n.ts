@@ -451,6 +451,23 @@ const en: Record<string, string> = {
   "Русский": "Russian",
   "не задан": "not set",
   "Aether Hub · 1.1 · CINEMATIC INTRO": "AETHER HUB · 1.1 · CINEMATIC INTRO",
+  "Чат с создателем": "Creator chat",
+  "Скоро здесь появится встроенная поддержка.":
+    "Built-in support is coming soon.",
+  "Поддержка уже в разработке": "Support is in development",
+  "Совсем скоро здесь появится встроенная техподдержка Aether Hub: обращения, переписка с создателем и статусы тикетов — всё внутри хаба.":
+    "Built-in Aether Hub support is coming very soon: requests, conversations with the creator and ticket statuses — all inside the hub.",
+  "Следите за обновлениями": "Stay tuned",
+  "Открыть чат / Ответить": "Open chat / Reply",
+  "Чат по тикету": "Ticket chat",
+  "Сообщений пока нет.": "No messages yet.",
+  "Написать ответ…": "Write a reply…",
+  "Оригинальное обращение": "Original request",
+  "Не удалось загрузить чат": "Couldn't load the chat",
+  "Сообщение не отправлено": "Message not sent",
+  "Загрузка сообщений…": "Loading messages…",
+  "обновляется каждые 5 секунд": "refreshes every 5 seconds",
+  "локальный демо-чат": "local demo chat",
   "Обращения пользователей": "Support Tickets",
   "Обновление каждые 8 секунд · таблица support_tickets":
     "Refreshes every 8 seconds · support_tickets table",

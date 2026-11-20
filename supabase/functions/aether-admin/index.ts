@@ -63,9 +63,20 @@ const mapTicket = (row: Record<string, any>) => ({
   id: String(row.id),
   machineId: row.machine_id,
   nickname: row.nickname,
+  avatarUrl: row.avatar_url,
   os: row.os,
   message: row.message,
   status: row.status,
+  createdAt: row.created_at,
+});
+
+const mapTicketMessage = (row: Record<string, any>) => ({
+  id: String(row.id),
+  ticketId: row.ticket_id,
+  senderRole: row.sender_role,
+  senderName: row.sender_name,
+  senderAvatar: row.sender_avatar,
+  message: row.message,
   createdAt: row.created_at,
 });
 
@@ -291,6 +302,45 @@ Deno.serve(async (request) => {
           .limit(300);
         if (error) return json({ error: error.message }, 400);
         return json((data ?? []).map(mapTicket));
+      }
+
+      case "ticket_messages": {
+        const ticketId = String(payload.ticketId ?? "");
+        if (!ticketId) return json({ error: "ticketId required" }, 400);
+        const { data, error } = await supabase
+          .from("ticket_messages")
+          .select("*")
+          .eq("ticket_id", ticketId)
+          .order("created_at", { ascending: true })
+          .limit(500);
+        if (error) return json({ error: error.message }, 400);
+        return json((data ?? []).map(mapTicketMessage));
+      }
+
+      case "send_ticket_message": {
+        const ticketId = String(payload.ticketId ?? "");
+        const senderRole = payload.senderRole === "user" ? "user" : "admin";
+        const senderName = String(payload.senderName ?? "aether").slice(0, 80);
+        const message = String(payload.message ?? "").trim();
+        if (!ticketId || !message) {
+          return json({ error: "ticketId and message are required" }, 400);
+        }
+        if (message.length > 4000) {
+          return json({ error: "message is too long" }, 400);
+        }
+        const { data, error } = await supabase
+          .from("ticket_messages")
+          .insert({
+            ticket_id: ticketId,
+            sender_role: senderRole,
+            sender_name: senderName,
+            sender_avatar: payload.senderAvatar ?? null,
+            message,
+          })
+          .select("*")
+          .single();
+        if (error) return json({ error: error.message }, 400);
+        return json(mapTicketMessage(data));
       }
 
       case "ticket_status": {
