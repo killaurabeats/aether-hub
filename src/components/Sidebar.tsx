@@ -213,7 +213,7 @@ export function Sidebar({ view, onNavigate, onOpenSettings, onOpenSupport }: Pro
           </div>
         ) : null}
         <div className="hint" style={{ color: "var(--muted)" }}>
-          {installedCount ? `${t("{count} установлено", { count: installedCount })} · ` : ""}v1.2.1
+          {installedCount ? `${t("{count} установлено", { count: installedCount })} · ` : ""}v1.2.2
         </div>
       </div>
 

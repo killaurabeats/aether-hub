@@ -1,30 +1,40 @@
 import { useEffect } from "react";
 import { motion } from "framer-motion";
-import { Volume2, VolumeX } from "lucide-react";
 import { useStore } from "../lib/store";
-import { playIntro, setIntroVolume, stopIntro } from "../lib/sound";
+import { playIntro, stopIntro } from "../lib/sound";
 
-export function Splash() {
-  const { settings, updateSettings, t } = useStore();
+export function Splash({ onSkip }: { onSkip: () => void }) {
+  const { settings, ready, t } = useStore();
 
   useEffect(() => {
+    // Wait for localStorage settings so an OFF toggle really starts silent.
+    if (!ready) return;
     if (settings.soundEnabled) {
       playIntro(settings.soundVolume);
     }
     // The sting is intentionally allowed to finish after the splash fades:
     // its 1.6 s decay is part of the cinematic transition.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [ready]);
 
-  const toggleSound = () => {
-    const next = !settings.soundEnabled;
-    updateSettings({ soundEnabled: next });
-    if (next) {
-      playIntro(settings.soundVolume);
-    } else {
-      setIntroVolume(0);
+  useEffect(() => {
+    const skip = (event?: KeyboardEvent) => {
+      if (event) {
+        if (![" ", "Enter", "Escape"].includes(event.key)) return;
+        event.preventDefault();
+      }
       stopIntro(false);
-    }
+      onSkip();
+    };
+
+    const onKey = (event: KeyboardEvent) => skip(event);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onSkip]);
+
+  const skip = () => {
+    stopIntro(false);
+    onSkip();
   };
 
   return (
@@ -32,6 +42,9 @@ export function Splash() {
       className="splash"
       initial={{ opacity: 1 }}
       exit={{ opacity: 0, transition: { duration: 0.55, ease: [0.16, 1, 0.3, 1] } }}
+      onClick={skip}
+      role="presentation"
+      title={t("Нажмите, чтобы пропустить")}
     >
       <div className="splash-inner">
         <motion.div
@@ -58,7 +71,7 @@ export function Splash() {
             animate={{ opacity: 1, y: 0, letterSpacing: "0.015em" }}
             transition={{ delay: 0.48, duration: 1.05, ease: [0.16, 1, 0.3, 1] }}
           >
-            Aether Plugins
+            Aether Hub
           </motion.h1>
 
           <motion.div
@@ -73,8 +86,22 @@ export function Splash() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.98, duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
           >
-            by. @killaurabeats
+            Aether Plugins · by. @killaurabeats
           </motion.p>
+
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1.18, duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+            style={{
+              marginTop: 13,
+              fontSize: 12,
+              letterSpacing: "0.08em",
+              color: "rgba(226, 216, 255, 0.78)",
+            }}
+          >
+            {t("Ничего лишнего. Только звук.")}
+          </motion.div>
         </div>
 
         <motion.div
@@ -86,22 +113,10 @@ export function Splash() {
           <motion.span
             initial={{ width: "0%" }}
             animate={{ width: "100%" }}
-            transition={{ duration: 1.85, ease: [0.4, 0, 0.2, 1] }}
+            transition={{ duration: 2.6, ease: [0.4, 0, 0.2, 1] }}
           />
         </motion.div>
       </div>
-
-      <button
-        onClick={toggleSound}
-        className="icon-button"
-        style={{ position: "absolute", right: 22, bottom: 22, zIndex: 3 }}
-        title={settings.soundEnabled ? t("Выключить звук заставки") : t("Включить звук заставки")}
-        aria-label={t("Звук заставки")}
-      >
-        {settings.soundEnabled ? <Volume2 size={15} /> : <VolumeX size={15} />}
-      </button>
-
-      <div className="splash-foot">Aether Hub · 1.2.1 · cinematic intro</div>
     </motion.div>
   );
 }

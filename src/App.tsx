@@ -67,7 +67,7 @@ function Shell() {
   const selected = selectedId ? releases.find((release) => release.id === selectedId) ?? null : null;
 
   useEffect(() => {
-    const timer = window.setTimeout(() => setSplash(false), 1900);
+    const timer = window.setTimeout(() => setSplash(false), 3200);
     return () => window.clearTimeout(timer);
   }, []);
 
@@ -321,7 +321,7 @@ function Shell() {
       <Toasts />
 
       <AnimatePresence>
-        {splash ? <Splash key="splash" /> : null}
+        {splash ? <Splash key="splash" onSkip={() => setSplash(false)} /> : null}
       </AnimatePresence>
     </div>
   );

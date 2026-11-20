@@ -207,6 +207,11 @@ const en: Record<string, string> = {
   "Мгновенно переключает весь интерфейс лаунчера.":
     "Instantly switches the entire launcher interface.",
   "Звук заставки": "Startup sound",
+  "Звук запуска / Startup Sound": "Startup Sound",
+  "Тёплый аккорд Am9 при старте. Выключите, если хотите запускать лаунчер в тишине.":
+    "A warm Am9 chord on launch. Turn it off if you want a silent start.",
+  "Нажмите, чтобы пропустить": "Click to skip",
+  "Ничего лишнего. Только звук.": "Nothing extra. Just sound.",
   "Глубокий студийный саунд-дизайн при запуске: мягкий аккорд Am9, тёплый саб и бархатный хвост. Громкость — ровно −15 dBFS.":
     "A deep studio sting on launch: a soft Am9 chord, warm sub and a velvet tail. Level — exactly −15 dBFS.",
   "Громкость": "Volume",
@@ -552,7 +557,7 @@ const en: Record<string, string> = {
 
   // -------------------------------------------------------------------- misc
   "Aether Plugins · by. @killaurabeats": "Aether Plugins · by. @killaurabeats",
-  "AETHER HUB · 1.2.1 · CINEMATIC INTRO": "AETHER HUB · 1.2.1 · CINEMATIC INTRO",
+  "AETHER HUB · 1.2.2 · CINEMATIC INTRO": "AETHER HUB · 1.2.2 · CINEMATIC INTRO",
   "Эффекты стекла": "Glass effects",
   "Размытие": "Blur",
   "Включено": "On",
@@ -580,7 +585,7 @@ const en: Record<string, string> = {
   "Включить звук заставки": "Enable the startup sound",
   "Русский": "Russian",
   "не задан": "not set",
-  "Aether Hub · 1.2.1 · CINEMATIC INTRO": "AETHER HUB · 1.2.1 · CINEMATIC INTRO",
+  "Aether Hub · 1.2.2 · CINEMATIC INTRO": "AETHER HUB · 1.2.2 · CINEMATIC INTRO",
   "Чат с создателем": "Creator chat",
   "Скоро здесь появится встроенная поддержка.":
     "Built-in support is coming soon.",

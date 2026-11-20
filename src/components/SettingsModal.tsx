@@ -74,7 +74,7 @@ export function SettingsModal({
 
   const [section, setSection] = useState<SettingsSection>(initialSection);
   const [confirmReset, setConfirmReset] = useState(false);
-  const [version, setVersion] = useState("1.2.1");
+  const [version, setVersion] = useState("1.2.2");
   const [health, setHealth] = useState<CloudHealth | null>(null);
   const [checkingCloud, setCheckingCloud] = useState(false);
   const [secretOpen, setSecretOpen] = useState(false);
@@ -218,26 +218,6 @@ export function SettingsModal({
 
                 <div className="setting-row">
                   <div className="text">
-                    <b>{t("Звук заставки")}</b>
-                    <span>
-                      {t(
-                        "Глубокий студийный саунд-дизайн при запуске: мягкий аккорд Am9, тёплый саб и бархатный хвост. Громкость — ровно −15 dBFS.",
-                      )}
-                    </span>
-                  </div>
-                  <button
-                    className={`toggle ${settings.soundEnabled ? "on" : ""}`}
-                    onClick={() => {
-                      const next = !settings.soundEnabled;
-                      updateSettings({ soundEnabled: next });
-                      if (!next) stopIntro(false);
-                    }}
-                    aria-label={t("Звук заставки")}
-                  />
-                </div>
-
-                <div className="setting-row">
-                  <div className="text">
                     <b>{t("Громкость")}</b>
                     <span>{t("Применяется к заставке и превью драм-китов.")}</span>
                   </div>
@@ -281,6 +261,26 @@ export function SettingsModal({
                       aria-label={t("Эффекты стекла / Glass Blur")}
                     />
                   </div>
+                </div>
+
+                <div className="setting-row">
+                  <div className="text">
+                    <b>{t("Звук запуска / Startup Sound")}</b>
+                    <span>
+                      {t(
+                        "Тёплый аккорд Am9 при старте. Выключите, если хотите запускать лаунчер в тишине.",
+                      )}
+                    </span>
+                  </div>
+                  <button
+                    className={`toggle ${settings.soundEnabled ? "on" : ""}`}
+                    onClick={() => {
+                      const next = !settings.soundEnabled;
+                      updateSettings({ soundEnabled: next });
+                      if (!next) stopIntro(false);
+                    }}
+                    aria-label={t("Звук запуска / Startup Sound")}
+                  />
                 </div>
 
                 <div className="setting-row">

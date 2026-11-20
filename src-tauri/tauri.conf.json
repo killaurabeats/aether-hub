@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Aether Hub",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "identifier": "com.aetherhub.launcher",
   "build": {
     "beforeDevCommand": "npm run dev",
