@@ -1,0 +1,299 @@
+import { useRef, useState } from "react";
+import { motion } from "framer-motion";
+import {
+  Camera,
+  CheckCircle2,
+  Copy,
+  ExternalLink,
+  KeyRound,
+  Loader2,
+  Mail,
+  Pencil,
+  ShieldCheck,
+  X,
+} from "lucide-react";
+import { useStore } from "../lib/store";
+import { copyText, formatDate, timeAgo } from "../lib/format";
+import { processAvatar } from "../lib/image";
+import { openExternal, TELEGRAM_URL } from "../lib/desktop";
+import { Avatar } from "./Avatar";
+import { Stars } from "./Stars";
+
+export function ProfileModal({ onClose }: { onClose: () => void }) {
+  const {
+    profile,
+    machine,
+    licensingMachineId,
+    licenses,
+    requests,
+    admin,
+    saveProfile,
+    updateSettings,
+    refreshCloudUser,
+    toast,
+    catalogSource,
+  } = useStore();
+
+  const [nickname, setNickname] = useState(profile.nickname);
+  const [avatar, setAvatar] = useState<string | null>(profile.avatarUrl ?? null);
+  const [saving, setSaving] = useState(false);
+  const [idEditing, setIdEditing] = useState(false);
+  const [idDraft, setIdDraft] = useState(licensingMachineId);
+  const fileRef = useRef<HTMLInputElement | null>(null);
+
+  const pickAvatar = async (file?: File) => {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast({ kind: "error", title: "Нужен файл изображения" });
+      return;
+    }
+    try {
+      const processed = await processAvatar(file, 256);
+      setAvatar(processed);
+    } catch (error) {
+      toast({ kind: "error", title: "Не удалось обработать аватар", message: String(error) });
+    }
+  };
+
+  const save = async () => {
+    setSaving(true);
+    await saveProfile({ nickname: nickname.trim() || "aether user", avatarUrl: avatar });
+    setSaving(false);
+  };
+
+  const copy = async (value: string, title: string) => {
+    const ok = await copyText(value);
+    toast({ kind: ok ? "success" : "error", title: ok ? title : "Не удалось скопировать" });
+  };
+
+  return (
+    <motion.div
+      className="modal-backdrop"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <motion.div
+        className="modal medium"
+        initial={{ opacity: 0, y: 18, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 10, scale: 0.99 }}
+        transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
+      >
+        <div className="modal-head">
+          <div>
+            <h2>Профиль</h2>
+            <div className="sub">Ник, аватар и лицензии Aether</div>
+          </div>
+          <button className="modal-close" onClick={onClose} aria-label="Закрыть">
+            <X size={15} />
+          </button>
+        </div>
+
+        <div className="modal-scroll">
+          <div className="profile-body">
+            <div className="profile-top">
+              <div className="avatar-edit" onClick={() => fileRef.current?.click()}>
+                <Avatar name={nickname || "aether"} src={avatar} size={96} />
+                <div className="overlay">
+                  <Camera size={20} />
+                </div>
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={(event) => void pickAvatar(event.target.files?.[0])}
+                />
+              </div>
+
+              <div className="profile-fields">
+                <div className="field">
+                  <label>Никнейм</label>
+                  <input
+                    value={nickname}
+                    onChange={(event) => setNickname(event.target.value)}
+                    maxLength={32}
+                    placeholder="aether user"
+                  />
+                  <span className="hint">
+                    Аватар обрезается в квадрат и сжимается до 256 px — файл остаётся на
+                    устройстве.
+                  </span>
+                </div>
+              </div>
+              <button className="btn btn-primary" onClick={() => void save()} disabled={saving}>
+                {saving ? <Loader2 size={14} className="spin" /> : <CheckCircle2 size={14} />}
+                Сохранить
+              </button>
+            </div>
+
+            <div className="profile-section">
+              <div className="profile-section-head">
+                <h3>
+                  <ShieldCheck size={13} /> Machine ID
+                </h3>
+                {admin.enabled ? <span className="chip gold">ADMIN</span> : null}
+              </div>
+              {idEditing ? (
+                <div className="field">
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <input
+                      value={idDraft}
+                      onChange={(event) => setIdDraft(event.target.value)}
+                      placeholder="XXXX-XXXX-… из окна плагина"
+                      spellCheck={false}
+                      style={{ fontFamily: "var(--mono)" }}
+                    />
+                    <button
+                      className="btn btn-primary btn-sm"
+                      onClick={async () => {
+                        updateSettings({ licenseMachineId: idDraft.trim() || null });
+                        await refreshCloudUser();
+                        setIdEditing(false);
+                        toast({ kind: "success", title: "Machine ID для лицензий обновлён" });
+                      }}
+                    >
+                      Сохранить
+                    </button>
+                    <button className="btn btn-ghost btn-sm" onClick={() => setIdEditing(false)}>
+                      Отмена
+                    </button>
+                  </div>
+                  <span className="hint">
+                    Вставьте Machine ID, который показывает плагин в окне активации. Пустое
+                    значение — автоматический HWID этого компьютера.
+                  </span>
+                </div>
+              ) : (
+                <div className="id-box">
+                  <span>{licensingMachineId}</span>
+                  <button onClick={() => void copy(licensingMachineId, "Machine ID скопирован")}>
+                    <Copy size={13} />
+                  </button>
+                  <button onClick={() => { setIdDraft(licensingMachineId); setIdEditing(true); }} title="Указать ID из плагина">
+                    <Pencil size={12} />
+                  </button>
+                </div>
+              )}
+              {licensingMachineId !== machine.formatted ? (
+                <span className="hint" style={{ display: "block", marginTop: 6 }}>
+                  Используется ID из плагина. Автоматический HWID: {machine.formatted}
+                </span>
+              ) : null}
+              <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+                <button className="btn btn-ghost btn-sm" onClick={() => void openExternal(TELEGRAM_URL)}>
+                  <ExternalLink size={11} /> @whofriends1
+                </button>
+                <button
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => void copy(licensingMachineId, "Machine ID скопирован")}
+                >
+                  <Copy size={11} /> Скопировать ID
+                </button>
+              </div>
+            </div>
+
+            <div className="profile-section">
+              <div className="profile-section-head">
+                <h3>
+                  <KeyRound size={13} /> Мои лицензии
+                </h3>
+                <span>
+                  {catalogSource === "cloud" ? "синхронизировано с облаком" : "локальный демо-режим"}
+                </span>
+              </div>
+
+              {licenses.length ? (
+                licenses.map((license) => (
+                  <div className="license-item" key={license.id}>
+                    <div className="top">
+                      <b>{license.pluginTitle || license.productTag}</b>
+                      <span>{formatDate(license.issuedAt)}</span>
+                    </div>
+                    <div className="keyline">
+                      <code>{license.key}</code>
+                      <button
+                        className="row-icon"
+                        onClick={() => void copy(license.key, "Ключ скопирован")}
+                        title="Скопировать ключ"
+                      >
+                        <Copy size={12} />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="notice violet" style={{ marginBottom: 0 }}>
+                  <KeyRound size={14} />
+                  <div>
+                    Пока нет выданных ключей. Откройте плагин и нажмите «Запросить ключ
+                    активации» — после одобрения ключ появится здесь автоматически.
+                  </div>
+                </div>
+              )}
+
+              {requests.length ? (
+                <div style={{ marginTop: 12 }}>
+                  <div className="profile-section-head">
+                    <h3 style={{ fontSize: 11, color: "var(--muted)" }}>Заявки</h3>
+                  </div>
+                  {requests.map((request) => (
+                    <div className="req-item" key={request.id}>
+                      <div className="info">
+                        <b>{request.pluginTitle}</b>
+                        <span>
+                          {timeAgo(request.createdAt)} · {request.machineId}
+                        </span>
+                      </div>
+                      <span className={`req-status ${request.status}`}>
+                        {request.status === "pending"
+                          ? "ожидает"
+                          : request.status === "approved"
+                            ? "одобрено"
+                            : "отклонено"}
+                      </span>
+                      {request.key ? (
+                        <button
+                          className="row-icon"
+                          onClick={() => void copy(request.key!, "Ключ скопирован")}
+                          title="Скопировать ключ"
+                        >
+                          <Copy size={12} />
+                        </button>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+
+            <div className="profile-section">
+              <div className="profile-section-head">
+                <h3>
+                  <Mail size={13} /> Связь
+                </h3>
+              </div>
+              <p style={{ margin: 0, fontSize: 11, color: "var(--dim)", lineHeight: 1.6 }}>
+                Вопросы по лицензии, приватные дропы и поддержка — Telegram{" "}
+                <button className="ghost-link" onClick={() => void openExternal(TELEGRAM_URL)}>
+                  @whofriends1
+                </button>
+                .
+              </p>
+              <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+                <span className="chip">
+                  <Stars value={5} size={9} /> AETHER
+                </span>
+                <span className="chip violet">v1.1</span>
+                <span className="chip green">HWID ver.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}

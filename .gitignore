@@ -1,0 +1,35 @@
+# dependencies
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# env & secrets — never commit
+.env
+.env.*
+!.env.example
+PRIVATE_KEYGEN_DO_NOT_SHARE/
+*.secret
+private_key
+private_key.txt
+admin.secret
+admin.secret.json
+
+# tauri / rust
+src-tauri/target/
+src-tauri/gen/
+src-tauri/.cargo/
+
+# editor / os
+.DS_Store
+.vscode/
+.idea/
+*.log
+
+# local release artifacts
+release/
+*.dmg
+
+# assets that are generated from assets_raw
+src-tauri/icons/android/
+src-tauri/icons/ios/

@@ -1,0 +1,829 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { listen } from "@tauri-apps/api/event";
+import { open as openDialog } from "@tauri-apps/plugin-dialog";
+import {
+  AlertTriangle,
+  Check,
+  CloudUpload,
+  FileArchive,
+  Image as ImageIcon,
+  Loader2,
+  MessageSquare,
+  Pencil,
+  Plus,
+  RefreshCw,
+  ShieldCheck,
+  Sparkles,
+  Trash2,
+  UploadCloud,
+  X,
+} from "lucide-react";
+import type { Category, Comment, Release } from "../types";
+import { CATEGORY_META } from "../types";
+import { useStore } from "../lib/store";
+import { cloudAdminReady, cloudEnabled, deleteRelease, saveRelease } from "../lib/cloud";
+import { fileStat, readImageDataUrl } from "../lib/desktop";
+import { formatBytes, formatDate, slugify, timeAgo } from "../lib/format";
+import { Avatar } from "./Avatar";
+
+type Tab = "publish" | "releases" | "moderation";
+type OS = "macos" | "windows";
+
+interface Picked {
+  path?: string;
+  url?: string;
+  name: string;
+  size: number;
+}
+
+interface FormState {
+  title: string;
+  slug: string;
+  version: string;
+  category: Category;
+  description: string;
+  productTag: string;
+  badge: string;
+  preview: string;
+  featured: boolean;
+}
+
+const emptyForm: FormState = {
+  title: "",
+  slug: "",
+  version: "1.1",
+  category: "plugins",
+  description: "",
+  productTag: "AETHER-VOCAL-STRIP",
+  badge: "NEW",
+  preview: "",
+  featured: false,
+};
+
+export function AdminStudio() {
+  const {
+    admin,
+    releases,
+    refreshCatalog,
+    refreshAdminData,
+    adminOverview: overview,
+    toast,
+    removeComment,
+  } = useStore();
+
+  const [tab, setTab] = useState<Tab>("publish");
+  const [form, setForm] = useState<FormState>(emptyForm);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [files, setFiles] = useState<Partial<Record<OS, Picked>>>({});
+  const [cover, setCover] = useState<(Picked & { preview?: string }) | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [step, setStep] = useState("");
+  const [dragActive, setDragActive] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [localComments, setLocalComments] = useState<
+    Array<Comment & { releaseTitle?: string }> | null
+  >(null);
+  const slugTouched = useRef(false);
+
+  useEffect(() => {
+    void refreshAdminData();
+  }, [refreshAdminData]);
+
+  const comments = overview?.comments ?? [];
+
+  const loadPicked = async (path: string, withPreview = false): Promise<Picked & { preview?: string }> => {
+    const stat = await fileStat(path);
+    const picked: Picked & { preview?: string } = {
+      path,
+      name: stat?.name ?? path.split(/[\\/]/).pop() ?? "file",
+      size: stat?.size ?? 0,
+    };
+    if (withPreview) {
+      const preview = await readImageDataUrl(path);
+      if (preview) picked.preview = preview;
+    }
+    return picked;
+  };
+
+  const handlePaths = useCallback(
+    async (paths: string[]) => {
+      for (const path of paths) {
+        const lower = path.toLowerCase();
+        const name = path.split(/[\\/]/).pop() ?? path;
+
+        if (/\.(png|jpe?g|webp|gif)$/.test(lower)) {
+          const picked = await loadPicked(path, true);
+          setCover(picked);
+          continue;
+        }
+
+        if (!lower.endsWith(".zip") && !lower.endsWith(".rar")) {
+          toast({
+            kind: "info",
+            title: "Неподдерживаемый файл",
+            message: `${name}: нужен ZIP-архив или изображение обложки.`,
+          });
+          continue;
+        }
+
+        const target: OS = /win|windows/.test(lower)
+          ? "windows"
+          : /mac|osx|darwin|universal/.test(lower)
+            ? "macos"
+            : !files.macos
+              ? "macos"
+              : "windows";
+
+        const picked = await loadPicked(path);
+        setFiles((prev) => ({
+          ...prev,
+          [target]: picked,
+        }));
+        toast({
+          kind: "success",
+          title: `ZIP добавлен: ${target === "macos" ? "macOS" : "Windows"}`,
+          message: name,
+        });
+      }
+    },
+    [files.macos, toast],
+  );
+
+  useEffect(() => {
+    const disposers: Array<() => void> = [];
+
+    (async () => {
+      try {
+        disposers.push(
+          await listen("tauri://drag-enter", () => setDragActive(true)),
+          await listen("tauri://drag-leave", () => setDragActive(false)),
+          await listen<{ paths: string[] }>("tauri://drag-drop", (event) => {
+            setDragActive(false);
+            void handlePaths(event.payload.paths ?? []);
+          }),
+        );
+      } catch {
+        // Drag & drop is only available in the desktop runtime.
+      }
+    })();
+
+    return () => disposers.forEach((dispose) => dispose());
+  }, [handlePaths]);
+
+  useEffect(() => {
+    if (overview) setLocalComments(overview.comments);
+  }, [overview]);
+
+  const browseZip = async (target: OS) => {
+    const selected = await openDialog({
+      multiple: false,
+      filters: [{ name: "ZIP archive", extensions: ["zip"] }],
+    });
+    if (typeof selected === "string") {
+      const picked = await loadPicked(selected);
+      setFiles((prev) => ({ ...prev, [target]: picked }));
+    }
+  };
+
+  const browseCover = async () => {
+    const selected = await openDialog({
+      multiple: false,
+      filters: [{ name: "Cover image", extensions: ["png", "jpg", "jpeg", "webp"] }],
+    });
+    if (typeof selected === "string") {
+      setCover(await loadPicked(selected, true));
+    }
+  };
+
+  const resetForm = () => {
+    setForm(emptyForm);
+    setEditingId(null);
+    setFiles({});
+    setCover(null);
+    slugTouched.current = false;
+  };
+
+  const startEdit = (release: Release) => {
+    setEditingId(release.id);
+    setForm({
+      title: release.title,
+      slug: release.slug,
+      version: release.version,
+      category: release.category,
+      description: release.description,
+      productTag: release.productTag || "AETHER-VOCAL-STRIP",
+      badge: release.badge || "",
+      preview: release.previews?.[0]?.url || "",
+      featured: Boolean(release.featured),
+    });
+    setFiles({
+      macos: release.files.macos
+        ? {
+            url: release.files.macos.url,
+            name: release.files.macos.filename ?? `${release.slug}-macos.zip`,
+            size: release.files.macos.sizeBytes,
+          }
+        : undefined,
+      windows: release.files.windows
+        ? {
+            url: release.files.windows.url,
+            name: release.files.windows.filename ?? `${release.slug}-windows.zip`,
+            size: release.files.windows.sizeBytes,
+          }
+        : undefined,
+    });
+    setCover(
+      release.coverUrl
+        ? { url: release.coverUrl, name: "cover", size: 0, preview: release.coverUrl }
+        : null,
+    );
+    slugTouched.current = true;
+    setTab("publish");
+    document.querySelector(".content")?.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const onTitle = (value: string) => {
+    setForm((prev) => ({
+      ...prev,
+      title: value,
+      slug: !editingId && !slugTouched.current ? slugify(value) : prev.slug,
+    }));
+  };
+
+  const publish = async () => {
+    if (!form.title.trim()) {
+      toast({ kind: "error", title: "Нужно название релиза" });
+      return;
+    }
+    if (!form.slug.trim()) {
+      toast({ kind: "error", title: "Нужен slug" });
+      return;
+    }
+    if (!files.macos && !files.windows) {
+      toast({ kind: "error", title: "Добавьте хотя бы один ZIP", message: "macOS или Windows сборку." });
+      return;
+    }
+
+    const editingRelease = editingId ? releases.find((r) => r.id === editingId) : undefined;
+    const useCloud = cloudEnabled && cloudAdminReady;
+
+    setBusy(true);
+    setStep(useCloud ? "Подготовка облака…" : "Сохранение локального каталога…");
+
+    try {
+      const nextFiles: Release["files"] = {};
+
+      for (const os of ["macos", "windows"] as OS[]) {
+        const picked = files[os];
+        if (!picked) continue;
+
+        if (useCloud && picked.path) {
+          setStep(`Загрузка ${os === "macos" ? "macOS" : "Windows"} сборки…`);
+          const filename = `${form.slug}-${os}-${Date.now()}.zip`;
+          const result = await import("../lib/cloud").then(({ adminUpload }) =>
+            adminUpload({
+              localPath: picked.path!,
+              storagePath: `releases/${form.slug}/${filename}`,
+              contentType: "application/zip",
+            }),
+          );
+          nextFiles[os] = {
+            url: result.publicUrl,
+            sizeBytes: picked.size,
+            filename: picked.name,
+          };
+        } else if (picked.path) {
+          nextFiles[os] = {
+            url: `local:${picked.path}`,
+            sizeBytes: picked.size,
+            filename: picked.name,
+          };
+        } else if (picked.url) {
+          nextFiles[os] = {
+            url: picked.url,
+            sizeBytes: picked.size,
+            filename: picked.name,
+          };
+        }
+      }
+
+      let coverUrl = editingRelease?.coverUrl ?? null;
+
+      if (cover?.path) {
+        if (useCloud) {
+          setStep("Загрузка обложки…");
+          const filename = `${form.slug}-cover-${Date.now()}.jpg`;
+          const { adminUpload } = await import("../lib/cloud");
+          const result = await adminUpload({
+            localPath: cover.path,
+            storagePath: `covers/${form.slug}/${filename}`,
+            contentType: /\.png$/i.test(cover.name) ? "image/png" : "image/jpeg",
+          });
+          coverUrl = result.publicUrl;
+        } else {
+          coverUrl = cover.preview || null;
+        }
+      } else if (cover?.url) {
+        coverUrl = cover.url;
+      }
+
+      setStep("Публикация в каталог…");
+
+      const saved = await saveRelease({
+        id: editingId ?? undefined,
+        slug: form.slug.trim(),
+        category: form.category,
+        title: form.title.trim(),
+        version: form.version.trim() || "1.0",
+        description: form.description.trim(),
+        coverUrl,
+        files: nextFiles,
+        productTag: form.category === "plugins" ? form.productTag : null,
+        featured: form.featured,
+        badge: form.badge.trim() || null,
+        previews: form.preview.trim()
+          ? [{ name: "Demo", url: form.preview.trim() }]
+          : [],
+      });
+
+      await refreshCatalog();
+      await refreshAdminData();
+      toast({
+        kind: "success",
+        title: editingId ? "Релиз обновлён" : "Релиз опубликован",
+        message: useCloud
+          ? `${saved.title} уже доступен всем пользователям.`
+          : `${saved.title} сохранён в локальном каталоге (облако не подключено).`,
+      });
+      resetForm();
+      setTab("releases");
+      document.querySelector(".content")?.scrollTo({ top: 0, behavior: "smooth" });
+    } catch (error) {
+      toast({ kind: "error", title: "Публикация не удалась", message: String(error) });
+    } finally {
+      setBusy(false);
+      setStep("");
+    }
+  };
+
+  const remove = async (release: Release) => {
+    try {
+      await deleteRelease(release.id);
+      await refreshCatalog();
+      await refreshAdminData();
+      setConfirmDelete(null);
+      toast({ kind: "success", title: `${release.title} удалён` });
+      if (editingId === release.id) resetForm();
+    } catch (error) {
+      toast({ kind: "error", title: "Удаление не удалось", message: String(error) });
+    }
+  };
+
+  const pendingRequests = (overview?.requests ?? []).filter((r) => r.status === "pending").length;
+
+  return (
+    <div className="page">
+      <div className="admin-hero">
+        <div className="seal">
+          <ShieldCheck size={19} />
+        </div>
+        <div className="copy">
+          <h2>Creator mode · только это устройство</h2>
+          <p>
+            Приватный ключ: <code>{admin.privateKeyPath?.split(/[\\/]/).slice(-2).join("/")}</code>{" "}
+            · <code>{cloudAdminReady ? "cloud write enabled" : cloudEnabled ? "cloud read-only" : "local mode"}</code>
+          </p>
+        </div>
+        <span className={`chip ${cloudAdminReady ? "green" : "gold"}`}>
+          {cloudAdminReady ? "LIVE CLOUD" : cloudEnabled ? "CLOUD RO" : "LOCAL"}
+        </span>
+        <button
+          className="btn btn-ghost btn-sm"
+          onClick={() => {
+            void refreshAdminData();
+            void refreshCatalog();
+          }}
+        >
+          <RefreshCw size={12} /> Обновить
+        </button>
+      </div>
+
+      {!cloudAdminReady ? (
+        <div className="notice">
+          <AlertTriangle size={15} />
+          <div>
+            <b>Публикация только локально.</b> Чтобы релизы видели все пользователи, добавьте
+            Supabase URL, anon key и <code>VITE_AETHER_ADMIN_TOKEN</code> в <code>.env</code>,
+            задеплойте Edge Function и пересоберите приложение. Сейчас изменения сохраняются в
+            локальный каталог этого Mac.
+          </div>
+        </div>
+      ) : null}
+
+      <div className="segmented">
+        <button className={tab === "publish" ? "active" : ""} onClick={() => setTab("publish")}>
+          <Plus size={12} /> {editingId ? "Редактирование" : "Новый релиз"}
+        </button>
+        <button className={tab === "releases" ? "active" : ""} onClick={() => setTab("releases")}>
+          <Sparkles size={12} /> Релизы <span style={{ opacity: 0.55 }}>{releases.length}</span>
+        </button>
+        <button className={tab === "moderation" ? "active" : ""} onClick={() => setTab("moderation")}>
+          <MessageSquare size={12} /> Модерация{" "}
+          <span style={{ opacity: 0.55 }}>{comments.length}</span>
+        </button>
+      </div>
+
+      {tab === "publish" ? (
+        <>
+          <div
+            className="admin-card glass"
+            style={
+              dragActive
+                ? { borderColor: "rgba(196,181,253,.55)", boxShadow: "0 0 0 1px rgba(139,92,246,.25), 0 0 70px -20px rgba(139,92,246,.7)" }
+                : undefined
+            }
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+              <h3 style={{ margin: 0 }}>{editingId ? "Живое редактирование" : "Публикация релиза"}</h3>
+              {editingId ? <span className="chip violet">EDIT</span> : null}
+              {dragActive ? (
+                <span className="chip green" style={{ marginLeft: "auto" }}>
+                  <UploadCloud size={9} /> Отпустите файлы
+                </span>
+              ) : null}
+            </div>
+            <p className="sub">
+              Перетащите ZIP-архивы и обложку прямо в это окно (или выберите файлы). Для macOS
+              положите в архив <code>.vst3</code> / <code>.component</code>, для Windows —{" "}
+              <code>.vst3</code>.
+            </p>
+
+            <div className="drop-zones">
+              <button className="drop-zone" onClick={() => void browseZip("macos")} type="button">
+                {files.macos ? (
+                  <>
+                    <span className="dz-label">
+                      <Check size={9} /> macOS
+                    </span>
+                    <span className="dz-title">{files.macos.name}</span>
+                    <span className="dz-hint">
+                      {files.macos.path ? formatBytes(files.macos.size) : "уже в облаке"} · ZIP
+                    </span>
+                    <span
+                      className="dz-clear"
+                      role="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setFiles((prev) => ({ ...prev, macos: undefined }));
+                      }}
+                    >
+                      <X size={11} />
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span className="dz-label">
+                      <FileArchive size={9} /> macOS
+                    </span>
+                    <span className="dz-title">Перетащите ZIP</span>
+                    <span className="dz-hint">VST3 + AU, universal</span>
+                  </>
+                )}
+              </button>
+
+              <button className="drop-zone" onClick={() => void browseZip("windows")} type="button">
+                {files.windows ? (
+                  <>
+                    <span className="dz-label">
+                      <Check size={9} /> Windows
+                    </span>
+                    <span className="dz-title">{files.windows.name}</span>
+                    <span className="dz-hint">
+                      {files.windows.path ? formatBytes(files.windows.size) : "уже в облаке"} · ZIP
+                    </span>
+                    <span
+                      className="dz-clear"
+                      role="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setFiles((prev) => ({ ...prev, windows: undefined }));
+                      }}
+                    >
+                      <X size={11} />
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span className="dz-label">
+                      <FileArchive size={9} /> Windows
+                    </span>
+                    <span className="dz-title">Перетащите ZIP</span>
+                    <span className="dz-hint">VST3 x64</span>
+                  </>
+                )}
+              </button>
+
+              <button
+                className="drop-zone cover"
+                onClick={() => void browseCover()}
+                type="button"
+              >
+                {cover?.preview ? (
+                  <img src={cover.preview} alt="" />
+                ) : null}
+                <div className="cover-copy" style={{ position: "relative" }}>
+                  <span className="dz-label">
+                    <ImageIcon size={9} /> Обложка
+                  </span>
+                  <span className="dz-title" style={{ display: "block" }}>
+                    {cover?.name === "cover" ? "Текущая обложка" : cover?.name || "Перетащите JPG"}
+                  </span>
+                  <span className="dz-hint">1200×750 · JPG / PNG</span>
+                </div>
+                {cover ? (
+                  <span
+                    className="dz-clear"
+                    role="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setCover(null);
+                    }}
+                  >
+                    <X size={11} />
+                  </span>
+                ) : null}
+              </button>
+            </div>
+
+            <div className="form-grid">
+              <div className="field">
+                <label>Название</label>
+                <input value={form.title} onChange={(event) => onTitle(event.target.value)} placeholder="AetherVocal Strip" />
+              </div>
+              <div className="field">
+                <label>Slug</label>
+                <input
+                  value={form.slug}
+                  onChange={(event) => {
+                    slugTouched.current = true;
+                    setForm((prev) => ({ ...prev, slug: slugify(event.target.value) }));
+                  }}
+                  placeholder="aether-vocal-strip"
+                />
+              </div>
+              <div className="field">
+                <label>Версия</label>
+                <input
+                  value={form.version}
+                  onChange={(event) => setForm((prev) => ({ ...prev, version: event.target.value }))}
+                  placeholder="1.1"
+                />
+              </div>
+              <div className="field">
+                <label>Категория</label>
+                <select
+                  value={form.category}
+                  onChange={(event) =>
+                    setForm((prev) => ({ ...prev, category: event.target.value as Category }))
+                  }
+                >
+                  <option value="plugins">Plugins</option>
+                  <option value="drumkits">Drumkits</option>
+                  <option value="presets">Presets</option>
+                </select>
+              </div>
+              <div className="field">
+                <label>Product tag (лицензия)</label>
+                <input
+                  value={form.productTag}
+                  onChange={(event) =>
+                    setForm((prev) => ({ ...prev, productTag: event.target.value.toUpperCase() }))
+                  }
+                  placeholder="AETHER-VOCAL-STRIP"
+                  disabled={form.category !== "plugins"}
+                />
+              </div>
+              <div className="field">
+                <label>Бейдж</label>
+                <input
+                  value={form.badge}
+                  onChange={(event) => setForm((prev) => ({ ...prev, badge: event.target.value }))}
+                  placeholder="NEW / FREE / PACK"
+                />
+              </div>
+              <div className="field span2">
+                <label>Preview URL (MP3 / WAV)</label>
+                <input
+                  value={form.preview}
+                  onChange={(event) => setForm((prev) => ({ ...prev, preview: event.target.value }))}
+                  placeholder="https://…/demo.mp3 — для мини-плеера в карточке драм-кита"
+                />
+              </div>
+              <div className="field span2">
+                <label>Описание</label>
+                <textarea
+                  value={form.description}
+                  onChange={(event) =>
+                    setForm((prev) => ({ ...prev, description: event.target.value }))
+                  }
+                  placeholder="Что внутри, для кого, чем отличается версия…"
+                  rows={4}
+                />
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 14,
+                marginTop: 18,
+                flexWrap: "wrap",
+              }}
+            >
+              <button
+                className={`toggle ${form.featured ? "on" : ""}`}
+                onClick={() => setForm((prev) => ({ ...prev, featured: !prev.featured }))}
+                aria-label="Featured"
+              />
+              <span style={{ fontSize: 11, color: "var(--muted)" }}>Featured на главной</span>
+
+              <div style={{ flex: 1 }} />
+
+              {busy ? (
+                <span style={{ fontSize: 10.5, color: "var(--lav)", display: "flex", alignItems: "center", gap: 7 }}>
+                  <Loader2 size={13} className="spin" /> {step}
+                </span>
+              ) : null}
+
+              {editingId ? (
+                <button className="btn btn-ghost" onClick={resetForm} disabled={busy}>
+                  Отмена
+                </button>
+              ) : null}
+
+              <button className="btn btn-primary" onClick={() => void publish()} disabled={busy}>
+                {busy ? <Loader2 size={14} className="spin" /> : <CloudUpload size={14} />}
+                {editingId ? "Сохранить в облако" : "Опубликовать"}
+              </button>
+            </div>
+          </div>
+
+          <div className="admin-card glass">
+            <h3>Быстрые факты</h3>
+            <p className="sub">Так релиз увидят пользователи прямо сейчас.</p>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
+              <div className="glass-soft" style={{ padding: 14 }}>
+                <div className="label" style={{ fontSize: 9, color: "var(--dim)", letterSpacing: ".16em", textTransform: "uppercase" }}>
+                  Apple Silicon / Intel
+                </div>
+                <div style={{ marginTop: 6, fontSize: 12 }}>
+                  {files.macos ? formatBytes(files.macos.size) : "не задано"}
+                </div>
+              </div>
+              <div className="glass-soft" style={{ padding: 14 }}>
+                <div style={{ fontSize: 9, color: "var(--dim)", letterSpacing: ".16em", textTransform: "uppercase" }}>
+                  Windows x64
+                </div>
+                <div style={{ marginTop: 6, fontSize: 12 }}>
+                  {files.windows ? formatBytes(files.windows.size) : "не задано"}
+                </div>
+              </div>
+              <div className="glass-soft" style={{ padding: 14 }}>
+                <div style={{ fontSize: 9, color: "var(--dim)", letterSpacing: ".16em", textTransform: "uppercase" }}>
+                  Аудитория
+                </div>
+                <div style={{ marginTop: 6, fontSize: 12 }}>
+                  {pendingRequests ? `${pendingRequests} заявок ждут` : "нет новых заявок"}
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      ) : null}
+
+      {tab === "releases" ? (
+        <div className="admin-card glass">
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+            <div>
+              <h3>Живой каталог</h3>
+              <p className="sub" style={{ marginBottom: 10 }}>
+                Карандаш открывает live-редактирование. Изменения уходят в облако сразу после
+                сохранения.
+              </p>
+            </div>
+            <button className="btn btn-soft btn-sm" onClick={() => setTab("publish")}>
+              <Plus size={12} /> Новый
+            </button>
+          </div>
+
+          <div className="release-list">
+            {releases.map((release) => {
+              const mac = release.files.macos?.sizeBytes ?? 0;
+              const win = release.files.windows?.sizeBytes ?? 0;
+              return (
+                <div className="release-row" key={release.id}>
+                  {release.coverUrl ? (
+                    <img src={release.coverUrl} alt="" />
+                  ) : (
+                    <div style={{ width: 62, height: 42, borderRadius: 8, background: "#151024", flex: "0 0 auto" }} />
+                  )}
+                  <div className="info">
+                    <b>{release.title}</b>
+                    <span>
+                      {CATEGORY_META[release.category].singular} · v{release.version} · macOS{" "}
+                      {mac ? formatBytes(mac) : "—"} · Win {win ? formatBytes(win) : "—"}
+                    </span>
+                  </div>
+                  {release.featured ? <span className="chip gold">FEATURED</span> : null}
+                  <span className="chip violet">{release.ratingAvg.toFixed(1)} ★</span>
+                  <div className="row-actions">
+                    <button className="row-icon" onClick={() => startEdit(release)} title="Редактировать">
+                      <Pencil size={13} />
+                    </button>
+                    {confirmDelete === release.id ? (
+                      <>
+                        <button className="row-icon danger" onClick={() => void remove(release)} title="Подтвердить">
+                          <Check size={13} />
+                        </button>
+                        <button className="row-icon" onClick={() => setConfirmDelete(null)} title="Отмена">
+                          <X size={13} />
+                        </button>
+                      </>
+                    ) : (
+                      <button className="row-icon danger" onClick={() => setConfirmDelete(release.id)} title="Удалить">
+                        <Trash2 size={13} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {!releases.length ? (
+            <div className="empty-state" style={{ marginTop: 14 }}>
+              <div className="icon">
+                <Sparkles size={20} />
+              </div>
+              <h3>Каталог пуст</h3>
+              <p>Опубликуйте первый релиз — он сразу появится у всех пользователей.</p>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      {tab === "moderation" ? (
+        <div className="admin-card glass">
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div>
+              <h3>Модерация комментариев</h3>
+              <p className="sub" style={{ marginBottom: 12 }}>
+                Удаление мгновенно убирает комментарий из облака у всех пользователей.
+              </p>
+            </div>
+            <button className="btn btn-ghost btn-sm" onClick={() => void refreshAdminData()}>
+              <RefreshCw size={12} /> Обновить
+            </button>
+          </div>
+
+          {(localComments ?? comments).map((comment) => (
+            <div className="mod-row" key={comment.id}>
+              <Avatar name={comment.nickname} src={comment.avatarUrl} size={30} />
+              <div className="body">
+                <div style={{ display: "flex", gap: 7, alignItems: "baseline" }}>
+                  <b style={{ fontSize: 11.5 }}>{comment.nickname}</b>
+                  <span style={{ fontSize: 9, color: "var(--dim)" }}>
+                    {timeAgo(comment.createdAt)}
+                  </span>
+                </div>
+                <p>{comment.body}</p>
+                <div className="meta">{comment.releaseTitle ?? "release"}</div>
+              </div>
+              <button
+                className="row-icon danger"
+                onClick={() => {
+                  setLocalComments((prev) => (prev ?? comments).filter((c) => c.id !== comment.id));
+                  void removeComment(comment.releaseId, comment.id);
+                }}
+                title="Удалить комментарий"
+              >
+                <Trash2 size={13} />
+              </button>
+            </div>
+          ))}
+
+          {!(localComments ?? comments).length ? (
+            <div className="empty-state" style={{ marginTop: 8 }}>
+              <div className="icon">
+                <MessageSquare size={20} />
+              </div>
+              <h3>Комментариев нет</h3>
+              <p>Здесь появятся все сообщения пользователей для модерации.</p>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}

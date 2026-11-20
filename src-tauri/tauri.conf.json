@@ -1,0 +1,68 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Aether Hub",
+  "version": "1.1.0",
+  "identifier": "com.aetherhub.launcher",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "Aether Hub",
+        "width": 1280,
+        "height": 830,
+        "minWidth": 1040,
+        "minHeight": 680,
+        "resizable": true,
+        "fullscreen": false,
+        "transparent": true,
+        "decorations": false,
+        "shadow": true,
+        "center": true,
+        "visible": true,
+        "dragDropEnabled": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "resources": ["resources/releases/*"],
+    "copyright": "© 2026 Aether Plugins",
+    "category": "Music",
+    "shortDescription": "Aether Hub — plugins, drumkits, presets.",
+    "longDescription": "Aether Hub is a premium launcher for Aether plugins, drumkits and presets with one-click installation, live ratings, comments and licence activation.",
+    "macOS": {
+      "minimumSystemVersion": "11.0",
+      "dmg": {
+        "background": "dmg/background.png",
+        "windowSize": { "width": 660, "height": 420 },
+        "appPosition": { "x": 180, "y": 190 },
+        "applicationFolderPosition": { "x": 480, "y": 190 }
+      }
+    },
+    "windows": {
+      "webviewInstallMode": { "type": "downloadBootstrapper" },
+      "nsis": {
+        "installMode": "perMachine",
+        "languages": ["English", "Russian"],
+        "displayLanguageSelector": true
+      }
+    }
+  }
+}

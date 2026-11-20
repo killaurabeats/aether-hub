@@ -1,0 +1,351 @@
+# Aether Hub v1.1
+
+Премиальный десктопный лаунчер для плагинов, драм-китов и пресетов Aether.
+Tauri 2 (Rust) + React 18 + TypeScript + Framer Motion, с полностью рабочим
+офлайн-режимом и опциональным облаком Supabase.
+
+![Aether Hub](docs/home.jpg)
+
+## Скриншоты
+
+| Главное меню | Релиз и лицензия |
+|---|---|
+| ![Home](docs/home.jpg) | ![Release](docs/detail.jpg) |
+
+| Admin Studio | Keygen & Requests |
+|---|---|
+| ![Admin](docs/admin.jpg) | ![Keygen](docs/keygen.jpg) |
+
+| Заставка | Профиль |
+|---|---|
+| ![Splash](docs/splash.jpg) | ![Profile](docs/profile.jpg) |
+
+## Что внутри
+
+- **Кинематографичная заставка** (~1.8 с): логотип с мягким свечением, строки
+  `Aether Plugins` / `by. @killaurabeats` и синтезированный WAV-саунд-дизайн
+  (пэд, саб, FM-колокольчик, свёрточный реверб). Звук отключается в настройках.
+- **Библиотека**: `Plugins`, `Drumkits`, `Presets` с поиском, фильтрами,
+  рейтингами, обложками, точным весом файла и статусом установки.
+- **Умная установка в 1 клик**: ZIP под macOS/Windows, распаковка и раскладка
+  `.vst3` / `.component` по системным папкам, пресетов — в FL Studio,
+  драм-китов — в выбранную папку. Обновление и удаление из карточки релиза.
+- **Оценки 1–5 ★ и живые комментарии** с аватарками и удалением спама админом.
+- **Профиль**: ник, круглая аватарка с авто-обрезкой и сжатием, Machine ID,
+  выданные лицензии и статусы заявок.
+- **Лицензии**: точный HWID-алгоритм AetherVocal Strip, заявка из хаба,
+  одобрение в админке, автоматическая выдача `AETHER-...` ключа и копирование
+  в один клик. Если плагин показывает другой Machine ID (некоторые сборки
+  macOS маскируют MAC для фоновых процессов), его можно вставить карандашом
+  в карточке лицензии или в профиле — заявка и ключ привяжутся к нему.
+- **Creator mode** (только на MacBook владельца): публикация, live-редактирование,
+  удаление релизов, модерация комментариев, генератор ключей.
+- **Облако без переустановки**: каталог, релизы, рейтинги, комментарии и заявки
+  подтягиваются при каждом запуске и по кнопке обновления.
+
+## Стек и структура
+
+```
+Aether Hub v1.1/
+├─ src/                    React + TypeScript UI
+│  ├─ components/          Splash, Sidebar, ReleaseCard, Admin Studio, модалки
+│  ├─ lib/
+│  │  ├─ cloud.ts          Supabase REST/RPC + локальный fallback
+│  │  ├─ store.tsx         состояние приложения
+│  │  ├─ sound.ts          интро-звук
+│  │  └─ format.ts
+│  └─ styles.css           фирменная тема, glassmorphism
+├─ src-tauri/
+│  ├─ src/
+│  │  ├─ hwid.rs           Machine ID, совместимый с плагином
+│  │  ├─ keygen.rs         Ed25519 (Monocypher/BLAKE2b) ключи
+│  │  ├─ admin.rs          поиск приватного ключа
+│  │  ├─ install.rs        загрузка, ZIP, установка
+│  │  └─ lib.rs            Tauri-команды
+│  ├─ resources/releases/  демо-архивы (macOS + Windows + kits)
+│  ├─ vendor/monocypher/   криптография, совместимая с плагином
+│  └─ dmg/background.png   фон установщика macOS
+├─ supabase/
+│  ├─ schema.sql           таблицы, RLS, RPC, storage
+│  └─ functions/aether-admin/index.ts
+├─ tools/                  генераторы ассетов, звука и скриншотов
+├─ assets_raw/             исходники иконок и логотипа
+└─ .github/workflows/build.yml
+```
+
+## Требования
+
+- macOS 11+ (Apple Silicon или Intel) или Windows 10/11 x64
+- Node.js 20+ (проверено на 22)
+- Rust stable + Cargo
+- macOS: Xcode Command Line Tools
+- Windows: Microsoft C++ Build Tools, WebView2 (ставится Tauri/NSIS), WiX/NSIS
+  скачиваются автоматически при сборке
+
+## Быстрый старт
+
+```bash
+npm ci
+npm run tauri:dev       # дев-режим с горячей перезагрузкой
+npm run tauri:build     # релизная сборка под текущую ОС
+```
+
+Только фронтенд в браузере (без нативных функций):
+
+```bash
+npm run dev             # http://localhost:1420
+# ?previewAdmin=1 — посмотреть админ-интерфейс (только в браузере)
+```
+
+## Сборка macOS
+
+```bash
+npm run tauri:build -- --bundles app,dmg
+```
+
+Результат:
+
+```
+src-tauri/target/release/bundle/macos/Aether Hub.app
+src-tauri/target/release/bundle/dmg/Aether Hub_1.1.0_aarch64.dmg
+```
+
+Универсальная сборка (arm64 + x86_64):
+
+```bash
+rustup target add aarch64-apple-darwin x86_64-apple-darwin
+npm run tauri:build -- --target universal-apple-darwin --bundles app,dmg
+```
+
+Готовые размеры этой сборки: **~19 МБ `.app`** и **~17 МБ `.dmg`** (без
+искусственного раздувания; при добавлении контента растут только ресурсы).
+
+> Если Tauri не может собрать DMG из-за запроса доступа к Finder
+> (Privacy → Automation), используйте headless-скрипт:
+>
+> ```bash
+> python3 -m pip install --user dmgbuild   # один раз, опционально
+> npm run build:mac
+> ```
+>
+> Он собирает `.app` и стилизованный `.dmg` без управления Finder.
+
+Приложение не подписано. При первом запуске: правый клик → **Открыть**, либо
+
+```bash
+xattr -dr com.apple.quarantine "/Applications/Aether Hub.app"
+```
+
+## Сборка Windows
+
+На Windows:
+
+```powershell
+npm ci
+npm run tauri build -- --bundles nsis,msi
+```
+
+Результат: `src-tauri/target/release/bundle/nsis/*.exe` и
+`src-tauri/target/release/bundle/msi/*.msi`.
+
+## Облако Supabase (общее для всех пользователей)
+
+Лаунчер работает и без облака: включается встроенный демо-каталог и
+localStorage. Чтобы рейтинги, комментарии и заявки были общими:
+
+1. Создайте бесплатный проект на [supabase.com](https://supabase.com).
+2. **SQL Editor** → вставьте `supabase/schema.sql` → **Run**.
+   Скрипт создаст таблицы, RLS-политики, RPC-функции и публичный bucket
+   `aether-assets`. Повторный запуск безопасен.
+3. Задеплойте админ-функцию:
+
+   ```bash
+   npm i -g supabase
+   supabase login
+   supabase link --project-ref <project-ref>
+   supabase functions deploy aether-admin --no-verify-jwt
+   supabase secrets set ADMIN_TOKEN=$(openssl rand -hex 32)
+   ```
+
+4. Скопируйте `.env.example` → `.env`:
+
+   ```env
+   VITE_SUPABASE_URL=https://xxxx.supabase.co
+   VITE_SUPABASE_ANON_KEY=eyJhbGciOi...
+   VITE_AETHER_ADMIN_TOKEN=<тот же ADMIN_TOKEN>
+   ```
+
+5. Пересоберите приложение (`npm run tauri:dev` / `npm run tauri:build`).
+   Ключи Vite вшиваются в бандл при сборке; каталог после этого обновляется
+   из облака при каждом запуске.
+
+> **Важно:** `VITE_AETHER_ADMIN_TOKEN` добавляйте только в свою локальную
+> сборку. Публичные сборки (GitHub Actions) собираются без него — у них нет
+> прав на публикацию, модерацию и выдачу ключей.
+
+Подробная инструкция, схема таблиц и ротация токена: [`docs/CLOUD_SETUP.md`](docs/CLOUD_SETUP.md).
+
+### Демо-режим
+
+Если `.env` отсутствует:
+
+- каталог берётся из встроенного набора (реальный AetherVocal Strip для macOS
+  и Windows, демо-кит и пресет-пак);
+- оценки/комментарии/заявки хранятся в `localStorage`;
+- установка, HWID, лицензии, Admin Studio и keygen продолжают работать локально.
+
+## Creator mode (только на вашем Mac)
+
+При старте лаунчер ищет локальный секретный файл:
+
+```
+~/PRIVATE_KEYGEN_DO_NOT_SHARE/private_key
+~/PRIVATE_KEYGEN_DO_NOT_SHARE/private_key.txt
+~/admin.secret
+~/Library/Application Support/com.aetherhub.launcher/admin.secret
+```
+
+Формат — 128 hex-символов (64 байта `seed || public`, как в
+`PRIVATE_KEYGEN_DO_NOT_SHARE/private_key.txt`), 64 hex (seed) или JSON
+`{"privateKey":"..."}`. `admin.secret` также может содержать путь к файлу.
+
+Если файла нет — вкладки `Admin Studio` и `Keygen & Requests` **полностью
+скрыты**; у пользователя нет ни кнопки, ни маршрута к ним.
+
+На этом Mac ключ уже установлен:
+
+```bash
+mkdir -p ~/PRIVATE_KEYGEN_DO_NOT_SHARE
+cp "/path/to/private_key.txt" ~/PRIVATE_KEYGEN_DO_NOT_SHARE/private_key
+chmod 600 ~/PRIVATE_KEYGEN_DO_NOT_SHARE/private_key
+```
+
+### Admin Studio
+
+- публикация ZIP для macOS/Windows и обложки (drag & drop или выбор файла);
+- название, slug, версия, описание, категория, product tag, бейдж, featured;
+- загрузка файлов напрямую в Supabase Storage через signed upload URL;
+- live-редактирование (карандаш) и удаление релиза — изменения сразу в облаке;
+- модерация комментариев.
+
+Без облака публикация пишется в локальный демо-каталог, а файлы ставятся по
+пути `local:/...` — удобно для теста.
+
+### Keygen & Requests
+
+- входящие заявки: аватар, ник, плагин, Machine ID, время;
+- **Одобрить и выдать ключ** → Rust подписывает HWID приватным ключом,
+  ключ уходит в облако, автоматически копируется в буфер и попадает в журнал;
+- журнал последних 200 ключей хранится в
+  `~/Library/Application Support/com.aetherhub.launcher/issued_licenses.jsonl`;
+- публичный ключ и путь к приватному отображаются в панели.
+
+### Совместимость ключей и HWID
+
+Реализация побайтово совпадает с `AetherVocal Strip`:
+
+- Machine ID = `SHA-256("AetherVocalStrip.HWID.v1|uuid=…|mac=…|device=…")`,
+  первые 16 байт, 32 uppercase hex;
+- подпись — Monocypher EdDSA (Ed25519 с BLAKE2b), сообщение
+  `AETHER-VOCAL-STRIP|v1|<32 hex>`;
+- ключ — `AETHER-` + base32(версия 1 + 64-байтовая подпись), группы по 4.
+
+Проверка на этом Mac:
+
+```bash
+cd src-tauri
+cargo test --lib -- --nocapture
+# MACHINE ID: XXXX-XXXX-…  (совпадает с --print-machine-id плагина)
+# LICENCE KEY: AETHER-…    (побайтово совпадает с ./aether-keygen)
+```
+
+Подробности: [`docs/KEYGEN.md`](docs/KEYGEN.md).
+
+## Куда ставятся файлы
+
+| Категория | macOS | Windows |
+|---|---|---|
+| Плагины | `~/Library/Audio/Plug-Ins/VST3`, `.../Components` | `%COMMONPROGRAMFILES%\VST3` (fallback `%LOCALAPPDATA%\Programs\Common\VST3`) |
+| Пресеты | `~/Documents/Image-Line/FL Studio/Presets/Aether Plugins` | `%USERPROFILE%\Documents\Image-Line\FL Studio\Presets\Aether Plugins` |
+| Драм-киты | `~/Documents/Aether Hub/Drumkits` (можно изменить) | `%USERPROFILE%\Documents\Aether Hub\Drumkits` |
+
+Пути пресетов и китов меняются в **Настройки → Установка**. Плагины
+устанавливаются без прав администратора: на Windows при ошибке записи в
+`Program Files` автоматически используется пользовательская папка VST3.
+
+## GitHub Actions
+
+Workflow `.github/workflows/build.yml` собирает macOS (universal `.app` + `.dmg`)
+и Windows (`.exe` NSIS + `.msi`) на каждый push/tag/PR и вручную.
+
+1. Залейте проект в GitHub.
+2. **Settings → Secrets and variables → Actions** добавьте (опционально):
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_ANON_KEY`
+3. Запустите **Actions → Build desktop apps → Run workflow**.
+4. Готовые файлы — в артефактах `aether-hub-macos` / `aether-hub-windows`.
+
+Токен админа в CI не передаётся намеренно. Для релизов можно добавить
+подпись Apple/Windows — см. документацию Tauri.
+
+## Производительность
+
+- анимации только `transform`/`opacity`, GPU-композитинг, 60–120 FPS;
+- фон — радиальные градиенты и медленный дрейф, без покадрового JS;
+- `backdrop-filter` только на карточках/модалках; режим «Плавность и эффекты»
+  отключает размытие и анимации фона;
+- Rust-установщик работает асинхронно, прогресс приходит событиями;
+- RAM в простое — WebView + небольшой Rust-процесс; телеметрии нет.
+
+## Скрипты
+
+| Команда | Назначение |
+|---|---|
+| `npm run dev` | Vite-фронтенд |
+| `npm run tauri:dev` | приложение с нативными командами |
+| `npm run tauri:build` | релизная сборка |
+| `npm run icons` | перегенерировать `.icns`/`.ico` из `assets_raw/icon-master.png` |
+| `python3 tools/make_assets.py` | иконка, логотип, обложки, фон DMG |
+| `python3 tools/make_audio.py` | интро-WAV и демо-сэмплы |
+| `node tools/shoot.mjs <url> <out>` | скриншот 1280×830 для QA |
+
+## Решение проблем
+
+**Админ-вкладок нет.** Проверьте путь ключа и права (`chmod 600`), перезапустите
+приложение. Файл должен содержать 128 hex-символов.
+
+**Звук заставки не играет.** macOS/Windows могут блокировать автоплей до первого
+клика; кликните по окну или включите звук в настройках.
+
+**Gatekeeper / SmartScreen.** Сборки не подписаны: правый клик → Open,
+либо подпишите сертификатом.
+
+**Плагин не появился в FL Studio.** Options → Manage plugins → Find more plugins.
+Проверьте папки из таблицы выше.
+
+**Комментарии/заявки не синхронизируются.** Убедитесь, что `schema.sql` выполнен,
+`.env` заполнен и приложение пересобрано. Проверьте логи Edge Function в Supabase.
+
+**Ключ не появился в профиле.** Профиль опрашивает облако каждые 45 секунд
+(и при фокусе окна). Убедитесь, что заявка одобрена и `ADMIN_TOKEN` совпадает.
+
+**Machine ID в терминале отличается от приложения.** На некоторых сборках
+macOS сетевые MAC-адреса маскируются для процессов, запущенных из терминала.
+Берите Machine ID из окна плагина или лаунчера. Если ID всё равно отличается,
+нажмите карандаш рядом с Machine ID в карточке плагина и вставьте значение из
+окна активации — заявка, ключ и профиль будут привязаны к нему.
+
+## Безопасность
+
+- приватный ключ лицензий никогда не входит в сборку и не передаётся в CI;
+- админ-операции идут через Edge Function с секретным токеном и service role;
+- RLS: публично читаются только `releases` и `comments`; Machine ID, рейтинги,
+  заявки и ключи доступны только через SECURITY DEFINER RPC по своему HWID;
+- загрузки в Storage — только по signed URL, выданным админ-функцией;
+- телеметрии нет; аватар сжимается локально до 256 px.
+
+## Лицензии
+
+Код лаунчера — ваш. Monocypher — BSD-2-Clause / CC0. Шрифты — системные.
+Демо-аудио и обложки сгенерированы скриптами в `tools/`. AetherVocal Strip
+и его сборки принадлежат автору проекта.

@@ -1,0 +1,4 @@
+project_id = "aether-hub"
+
+[functions.aether-admin]
+verify_jwt = false
