@@ -251,6 +251,35 @@ localStorage. Чтобы рейтинги, комментарии и заявк�
 - оценки/комментарии/заявки хранятся в `localStorage`;
 - установка, HWID, лицензии, Admin Studio и keygen продолжают работать локально.
 
+## Auto-update (v1.2+)
+
+Лаунчер проверяет обновления через `tauri-plugin-updater`:
+
+```
+https://github.com/killaurabeats/aether-hub-releases/releases/latest/download/latest.json
+```
+
+Релизные сборки подписываются ключом Tauri. В GitHub Actions должны быть
+добавлены секреты:
+
+- `TAURI_SIGNING_PRIVATE_KEY` — содержимое
+  `~/PRIVATE_KEYGEN_DO_NOT_SHARE/tauri_updater.key`;
+- `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` — пароль из
+  `~/PRIVATE_KEYGEN_DO_NOT_SHARE/tauri_updater.password`.
+
+Для автоматической публикации в публичный репозиторий релизов добавьте
+`RELEASES_TOKEN` (fine-grained PAT с правом Contents: Read and write только
+на `killaurabeats/aether-hub-releases`). Без него workflow всё равно собирает
+подписанные бандлы и `latest.json`, но публикацию нужно сделать вручную.
+
+## FREE / PRO и Beta Tester
+
+- `releases.tier` = `free` / `pro`; FREE-плагины получают лицензию
+  автоматически при установке и не показывают запрос ключа.
+- `beta_invites` — одноразовые коды `AETHER-BETA-XXXX`; активация
+  привязывает код к HWID и включает бейдж BETA TESTER в профиле.
+- Управление обоими разделами находится в **Admin Studio**.
+
 ## Creator mode (только на вашем Mac)
 
 При старте лаунчер ищет локальный секретный файл:

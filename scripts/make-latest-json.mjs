@@ -49,7 +49,9 @@ function signatureFor(file) {
 }
 
 function urlFor(file) {
-  return `${baseUrl}/${encodeURIComponent(path.basename(file))}`;
+  // GitHub Releases normalises spaces in uploaded asset names to dots.
+  const assetName = path.basename(file).replace(/\s+/g, ".");
+  return `${baseUrl}/${encodeURIComponent(assetName)}`;
 }
 
 const mac = files.find((file) => file.endsWith(".app.tar.gz"));
