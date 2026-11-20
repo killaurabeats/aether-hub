@@ -22,6 +22,20 @@ if (typeof window !== "undefined" && "__TAURI_INTERNALS__" in window) {
   window.addEventListener("unhandledrejection", (event) => {
     write("error", event.reason instanceof Error ? event.reason : String(event.reason));
   });
+
+  // Verify that every table from supabase/schema.sql is reachable at startup.
+  void import("./lib/cloudHealth")
+    .then(async ({ checkCloudHealth, summarizeHealth }) => {
+      const health = await checkCloudHealth();
+      const broken = [
+        ...health.tables.filter((table) => table.status === "missing" || table.status === "error"),
+        ...(health.bucket.status === "missing" || health.bucket.status === "error"
+          ? [health.bucket]
+          : []),
+      ];
+      write(broken.length ? "warn" : "info", summarizeHealth(health));
+    })
+    .catch(() => undefined);
 }
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(

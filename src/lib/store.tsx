@@ -238,7 +238,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setReleases(result.releases);
       setCatalogSource(result.source);
       setCatalogError(result.error ?? null);
-      if (result.source === "demo" && cloudEnabled && result.error) {
+      if (result.source === "demo" && cloudEnabled && result.empty) {
+        toast({
+          kind: "info",
+          title: t("Облако пока пустое"),
+          message: t("В Supabase нет опубликованных релизов — показан демо-каталог."),
+        });
+      } else if (result.source === "demo" && cloudEnabled && result.error) {
         toast({
           kind: "error",
           title: t("Облако недоступно"),

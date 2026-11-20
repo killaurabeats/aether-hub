@@ -221,13 +221,20 @@ localStorage. Чтобы рейтинги, комментарии и заявк�
 
    ```env
    VITE_SUPABASE_URL=https://xxxx.supabase.co
-   VITE_SUPABASE_ANON_KEY=eyJhbGciOi...
+   VITE_SUPABASE_ANON_KEY=sb_publishable_...   # или anon JWT
    VITE_AETHER_ADMIN_TOKEN=<тот же ADMIN_TOKEN>
    ```
 
 5. Пересоберите приложение (`npm run tauri:dev` / `npm run tauri:build`).
    Ключи Vite вшиваются в бандл при сборке; каталог после этого обновляется
-   из облака при каждом запуске.
+   из облака при каждом запуске. Новый `sb_publishable_…` ключ поддерживается
+   наравне со старым `anon` JWT.
+
+6. Проверьте подключение: **Настройки → Облако → Таблицы и Storage →
+   Проверить**. Публичные таблицы — `доступна`, закрытые — `защищена · RPC`;
+   строка `aether-assets | не найдена` означает, что `schema.sql` не выполнен.
+   Пока в облаке нет опубликованных релизов, хаб показывает демо-каталог и
+   подсказывает опубликовать первый релиз в Admin Studio.
 
 > **Важно:** `VITE_AETHER_ADMIN_TOKEN` добавляйте только в свою локальную
 > сборку. Публичные сборки (GitHub Actions) собираются без него — у них нет
@@ -343,6 +350,10 @@ Workflow `.github/workflows/build.yml` собирает macOS (universal `.app` 
 2. **Settings → Secrets and variables → Actions** добавьте (опционально):
    - `VITE_SUPABASE_URL`
    - `VITE_SUPABASE_ANON_KEY`
+
+   Если секреты не заданы, workflow подставляет публичный URL и publishable
+   ключ проекта Aether Hub, поэтому Windows-установщик сразу собирается
+   подключённым к облаку.
 3. Запустите **Actions → Build desktop apps → Run workflow**.
 4. Готовые файлы — в артефактах `aether-hub-macos` / `aether-hub-windows`.
 

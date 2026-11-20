@@ -64,10 +64,12 @@ jobs:
       - name: Build Tauri app
         run: npm run tauri build -- ${{ matrix.args }}
         env:
-          # Public cloud configuration. The admin token is intentionally NOT
-          # provided to CI so published builds cannot write to the cloud.
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          # Public cloud configuration. The publishable key is safe to embed;
+          # repository secrets override these defaults when present. The admin
+          # token is intentionally NOT provided to CI so published builds
+          # cannot write to the cloud.
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || 'https://tniqfffgpisajjprjgmi.supabase.co' }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || 'sb_publishable_e7J0bhqynbEsMOD4FR_nXg_Iup0q0lH' }}
           VITE_AETHER_ADMIN_TOKEN: ""
 
       - name: Upload macOS bundles

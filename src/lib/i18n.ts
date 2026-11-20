@@ -251,6 +251,15 @@ const en: Record<string, string> = {
   "Supabase": "Supabase",
   "локальный кэш": "local cache",
   "демо-каталог": "demo catalog",
+  "Таблицы и Storage": "Tables & storage",
+  "Проверить": "Check",
+  "Проверьте, что схема supabase/schema.sql применена к проекту.":
+    "Verify that supabase/schema.sql has been applied to the project.",
+  "Проверено: {time}": "Checked: {time}",
+  "доступна": "reachable",
+  "защищена · RPC": "secured · RPC",
+  "не найдена": "missing",
+  "ошибка": "error",
   "Подключение Supabase": "Connecting Supabase",
   "Создайте проект на supabase.com, выполните": "Create a project on supabase.com, run",
   "задеплойте функцию": "deploy the",
@@ -388,6 +397,11 @@ const en: Record<string, string> = {
   // ------------------------------------------------------------- toasts/store
   "Не удалось загрузить каталог": "Couldn't load the catalog",
   "Облако недоступно": "Cloud unavailable",
+  "Облако пока пустое": "Cloud is still empty",
+  "В Supabase нет опубликованных релизов — показан демо-каталог.":
+    "No published releases in Supabase yet — showing the demo catalogue.",
+  "Облако подключено, но каталог пуст — показан демо-набор.":
+    "Cloud is linked but the catalogue is empty — showing the demo shelf.",
   "Показан резервный каталог. Проверьте интернет и ключи Supabase.":
     "Showing the fallback catalog. Check your connection and Supabase keys.",
   "Не удалось обновить панель": "Couldn't refresh the panel",

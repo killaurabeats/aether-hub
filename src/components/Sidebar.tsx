@@ -17,6 +17,7 @@ import {
 import type { Category, View } from "../types";
 import { useStore } from "../lib/store";
 import { openExternal, TELEGRAM_CHANNEL_URL } from "../lib/desktop";
+import { cloudEnabled } from "../lib/cloud";
 
 interface Props {
   view: View;
@@ -148,7 +149,7 @@ export function Sidebar({ view, onNavigate, onOpenSettings, onOpenSupport }: Pro
                 ? adminView === "admin"
                   ? "admin"
                   : "user"
-                : catalogSource === "cloud"
+                : catalogSource === "cloud" || cloudEnabled
                   ? ""
                   : "offline"
             }`}
@@ -159,7 +160,9 @@ export function Sidebar({ view, onNavigate, onOpenSettings, onOpenSupport }: Pro
               : t("Режим пользователя")
             : catalogSource === "cloud"
               ? "Cloud linked"
-              : "Local demo"}
+              : cloudEnabled
+                ? "Cloud ready"
+                : "Local demo"}
           <span style={{ marginLeft: "auto", color: "var(--dim)", letterSpacing: "0.05em" }}>
             {profile.nickname.split(" ")[0]}
           </span>
@@ -171,7 +174,9 @@ export function Sidebar({ view, onNavigate, onOpenSettings, onOpenSupport }: Pro
               : t("Интерфейс как у пользователя. Вернуть админ-режим можно здесь.")
             : catalogSource === "cloud"
               ? t("Каталог синхронизирован с облаком.")
-              : t("Облако не подключено — каталог работает локально.")}
+              : cloudEnabled
+                ? t("Облако подключено, но каталог пуст — показан демо-набор.")
+                : t("Облако не подключено — каталог работает локально.")}
         </div>
         {admin.enabled ? (
           <div className="view-mode">

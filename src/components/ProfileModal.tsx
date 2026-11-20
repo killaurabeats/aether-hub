@@ -14,6 +14,7 @@ import {
 import { useStore } from "../lib/store";
 import { copyText, formatDate, timeAgo } from "../lib/format";
 import { openExternal, TELEGRAM_URL } from "../lib/desktop";
+import { cloudEnabled } from "../lib/cloud";
 import { Avatar } from "./Avatar";
 import { Stars } from "./Stars";
 import { AvatarCropper } from "./AvatarCropper";
@@ -30,7 +31,6 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
     updateSettings,
     refreshCloudUser,
     toast,
-    catalogSource,
     t,
   } = useStore();
 
@@ -221,9 +221,7 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
                   <KeyRound size={13} /> {t("Мои лицензии")}
                 </h3>
                 <span>
-                  {catalogSource === "cloud"
-                    ? t("синхронизировано с облаком")
-                    : t("локальный демо-режим")}
+                  {cloudEnabled ? t("синхронизировано с облаком") : t("локальный демо-режим")}
                 </span>
               </div>
 

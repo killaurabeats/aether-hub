@@ -24,6 +24,7 @@ import { useStore } from "../lib/store";
 import { copyText, formatBytes } from "../lib/format";
 import { openExternal, openFolder } from "../lib/desktop";
 import { cloudConfig, cloudEnabled, cloudAdminReady } from "../lib/cloud";
+import { checkCloudHealth, type CloudHealth } from "../lib/cloudHealth";
 import { playIntro, setIntroVolume, stopIntro } from "../lib/sound";
 
 export type SettingsSection = "general" | "appearance" | "install" | "cloud" | "about";
@@ -64,6 +65,17 @@ export function SettingsModal({
   const [section, setSection] = useState<SettingsSection>(initialSection);
   const [confirmReset, setConfirmReset] = useState(false);
   const [version, setVersion] = useState("1.1.0");
+  const [health, setHealth] = useState<CloudHealth | null>(null);
+  const [checkingCloud, setCheckingCloud] = useState(false);
+
+  const runHealthCheck = async () => {
+    setCheckingCloud(true);
+    try {
+      setHealth(await checkCloudHealth());
+    } finally {
+      setCheckingCloud(false);
+    }
+  };
 
   useEffect(() => {
     import("@tauri-apps/api/core")
@@ -514,6 +526,76 @@ export function SettingsModal({
                     {t("Обновить")}
                   </button>
                 </div>
+
+                <div className="setting-row">
+                  <div className="text">
+                    <b>{t("Таблицы и Storage")}</b>
+                    <span>
+                      {health
+                        ? t("Проверено: {time}", {
+                            time: new Date(health.checkedAt).toLocaleTimeString(),
+                          })
+                        : t("Проверьте, что схема supabase/schema.sql применена к проекту.")}
+                    </span>
+                  </div>
+                  <button
+                    className="btn btn-soft btn-sm"
+                    onClick={() => void runHealthCheck()}
+                    disabled={checkingCloud || !cloudEnabled}
+                  >
+                    {checkingCloud ? (
+                      <Loader2 size={12} className="spin" />
+                    ) : (
+                      <Database size={12} />
+                    )}
+                    {t("Проверить")}
+                  </button>
+                </div>
+
+                {health ? (
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 6,
+                      marginBottom: 18,
+                      padding: "12px 14px",
+                      borderRadius: 12,
+                      border: "1px solid var(--line)",
+                      background: "rgba(5,4,10,.35)",
+                    }}
+                  >
+                    {[...health.tables, health.bucket].map((item) => (
+                      <div
+                        key={item.key}
+                        style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 10.5 }}
+                      >
+                        <span
+                          style={{
+                            width: 6,
+                            height: 6,
+                            borderRadius: 99,
+                            flexShrink: 0,
+                            background:
+                              item.status === "ok" || item.status === "secured"
+                                ? "var(--green, #4ade80)"
+                                : "var(--gold, #f0b429)",
+                          }}
+                        />
+                        <code style={{ fontFamily: "var(--mono)", fontSize: 10 }}>{item.key}</code>
+                        <span style={{ marginLeft: "auto", color: "var(--dim)" }}>
+                          {item.status === "ok"
+                            ? t("доступна")
+                            : item.status === "secured"
+                              ? t("защищена · RPC")
+                              : item.status === "missing"
+                                ? t("не найдена")
+                                : item.detail ?? t("ошибка")}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
 
                 <div
                   style={{

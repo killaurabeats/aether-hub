@@ -19,6 +19,7 @@ import type { Release, View } from "../types";
 import { useStore } from "../lib/store";
 import { copyText, descriptionFor, formatBytes } from "../lib/format";
 import { openExternal, TELEGRAM_CHANNEL_URL, TELEGRAM_URL } from "../lib/desktop";
+import { cloudEnabled } from "../lib/cloud";
 import { ReleaseCard } from "./ReleaseCard";
 import { InstallButton } from "./InstallButton";
 
@@ -37,7 +38,6 @@ export function HomeView({
     machine,
     licensingMachineId,
     settings,
-    catalogSource,
     profile,
     licenses,
     toast,
@@ -67,7 +67,7 @@ export function HomeView({
 
   return (
     <div className="page">
-      {catalogSource !== "cloud" ? (
+      {!cloudEnabled || catalogError ? (
         <div className="notice violet">
           <Unplug size={15} />
           <div style={{ flex: 1 }}>

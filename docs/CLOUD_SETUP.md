@@ -118,14 +118,21 @@ cp .env.example .env
 
 ```env
 VITE_SUPABASE_URL=https://<project>.supabase.co
-VITE_SUPABASE_ANON_KEY=<anon public key>
+VITE_SUPABASE_ANON_KEY=<publishable key or anon public JWT>
 VITE_AETHER_ADMIN_TOKEN=<ADMIN_TOKEN>
 ```
 
+- Подходит и новый ключ `sb_publishable_…`, и старый `anon` JWT. Новый ключ
+  отправляется только в заголовке `apikey`; JWT дополнительно идёт в
+  `Authorization: Bearer`.
 - `VITE_AETHER_ADMIN_TOKEN` — **только на Mac создателя**. Публичные сборки
   должны иметь пустое значение; GitHub Actions его не получает.
 - Значения Vite вшиваются в JS-бандл на этапе сборки. После изменения `.env`
   перезапустите `npm run tauri:dev` или пересоберите приложение.
+- Проверка подключения: **Настройки → Облако → Таблицы и Storage → Проверить**.
+  Публичные таблицы показываются как `доступна`, закрытые — `защищена · RPC`.
+  Статус `не найдена` у bucket означает, что `schema.sql` не выполнялся после
+  создания проекта.
 
 ## Шаг 5 — первая публикация
 
@@ -192,6 +199,7 @@ VITE_AETHER_ADMIN_TOKEN=<ADMIN_TOKEN>
 | 404 при загрузке файла | bucket `aether-assets` не создан или path с `..` |
 | `Could not sign upload` | функция не задеплоена / нет service role |
 | Каталог пуст, но релизы есть | `published = false` |
+| Показан демо-каталог | в облаке ещё нет опубликованных релизов — опубликуйте первый |
 | Комментарии не видны | релиз не опубликован (RLS) |
 
 Логи: **Supabase → Edge Functions → aether-admin → Logs**, **Storage → Logs**.

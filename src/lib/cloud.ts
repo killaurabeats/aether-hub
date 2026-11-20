@@ -38,6 +38,10 @@ export const cloudConfig: CloudConfig = {
 export const cloudEnabled = Boolean(cloudConfig.url && cloudConfig.anonKey);
 export const cloudAdminReady = Boolean(cloudEnabled && cloudConfig.adminToken);
 
+/** Supabase's new publishable/secret keys are not JWTs and must go in `apikey`
+ *  only. Legacy anon JWT keys also need the Authorization header. */
+export const usesPublishableKey = cloudConfig.anonKey.startsWith("sb_publishable_");
+
 export const DEMO_STORAGE_KEY = "aether.demo.v1";
 
 const nowMinus = (hours: number) =>
@@ -305,17 +309,32 @@ export function uid(prefix: string) {
   return `${prefix}_${Math.random().toString(36).slice(2, 10)}${Date.now().toString(36).slice(-4)}`;
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Seed releases (and their comments/ratings) live only in localStorage. When
+ * the cloud is linked but still empty we show that demo shelf, so interactions
+ * with it must stay local instead of hitting Postgres with non-UUID ids.
+ */
+export function isCloudReleaseId(id: string) {
+  return UUID_RE.test(id);
+}
+
 // ---------------------------------------------------------------------------
 // REST helpers
 // ---------------------------------------------------------------------------
 
 function headers(extra?: Record<string, string>): Record<string, string> {
-  return {
+  const base: Record<string, string> = {
     apikey: cloudConfig.anonKey,
-    Authorization: `Bearer ${cloudConfig.anonKey}`,
     "Content-Type": "application/json",
-    ...extra,
   };
+
+  if (!usesPublishableKey) {
+    base.Authorization = `Bearer ${cloudConfig.anonKey}`;
+  }
+
+  return { ...base, ...extra };
 }
 
 async function rest<T>(path: string, init?: RequestInit): Promise<T> {
@@ -456,6 +475,8 @@ export interface CatalogResult {
   releases: Release[];
   source: "cloud" | "cache" | "demo";
   error?: string;
+  /** Cloud is reachable but has no published releases yet. */
+  empty?: boolean;
 }
 
 export async function loadCatalog(): Promise<CatalogResult> {
@@ -465,6 +486,13 @@ export async function loadCatalog(): Promise<CatalogResult> {
         "releases?select=*&published=eq.true&order=featured.desc,created_at.desc",
       );
       const releases = rows.map(mapRelease);
+
+      // A freshly provisioned project has an empty catalogue. Keep the demo
+      // shelf so the hub is never blank, without writing anything to the cloud.
+      if (!releases.length) {
+        return { releases: demoState().releases, source: "demo", empty: true };
+      }
+
       localStorage.setItem("aether.catalog.cache", JSON.stringify(releases));
       return { releases, source: "cloud" };
     } catch (error) {
@@ -488,7 +516,7 @@ export async function loadCatalog(): Promise<CatalogResult> {
 }
 
 export async function fetchComments(releaseId: string): Promise<Comment[]> {
-  if (cloudEnabled) {
+  if (cloudEnabled && isCloudReleaseId(releaseId)) {
     const rows = await rest<Row[]>(
       `comments?release_id=eq.${encodeURIComponent(releaseId)}&select=*&order=created_at.desc&limit=100`,
     );
@@ -507,7 +535,7 @@ export async function addComment(input: {
   body: string;
   machineId?: string | null;
 }): Promise<Comment> {
-  if (cloudEnabled) {
+  if (cloudEnabled && isCloudReleaseId(input.releaseId)) {
     const rows = await rest<Row[]>("comments", {
       method: "POST",
       headers: { Prefer: "return=representation" },
@@ -542,7 +570,7 @@ export async function rateRelease(
   machineId: string,
   value: number,
 ): Promise<{ avg: number; count: number; mine: number }> {
-  if (cloudEnabled) {
+  if (cloudEnabled && isCloudReleaseId(releaseId)) {
     const result = await rpc<{ avg: number; count: number; mine: number }>(
       "aether_rate_release",
       { p_release_id: releaseId, p_machine_id: machineId, p_value: value },
@@ -581,7 +609,7 @@ export async function fetchMyRating(
   releaseId: string,
   machineId: string,
 ): Promise<number | null> {
-  if (cloudEnabled) {
+  if (cloudEnabled && isCloudReleaseId(releaseId)) {
     const value = await rpc<number | null>("aether_my_rating", {
       p_release_id: releaseId,
       p_machine_id: machineId,
@@ -892,7 +920,7 @@ export async function rejectRequest(request: LicenseRequest): Promise<void> {
 }
 
 export async function deleteComment(commentId: string): Promise<void> {
-  if (cloudEnabled) {
+  if (cloudEnabled && isCloudReleaseId(commentId)) {
     await adminApi("delete_comment", { id: commentId });
     return;
   }
@@ -903,7 +931,7 @@ export async function deleteComment(commentId: string): Promise<void> {
 }
 
 export async function deleteRelease(releaseId: string): Promise<void> {
-  if (cloudEnabled) {
+  if (cloudEnabled && isCloudReleaseId(releaseId)) {
     await adminApi("delete_release", { id: releaseId });
     return;
   }

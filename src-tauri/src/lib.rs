@@ -221,6 +221,10 @@ fn open_url(url: String) -> Result<(), String> {
     Ok(())
 }
 
+fn is_publishable_key(key: &str) -> bool {
+    key.starts_with("sb_publishable_")
+}
+
 #[tauri::command]
 async fn cloud_admin_api(
     config: CloudConfig,
@@ -238,10 +242,15 @@ async fn cloud_admin_api(
     }
 
     let client = reqwest::Client::new();
-    let response = client
+    let mut request = client
         .post(format!("{url}/functions/v1/aether-admin"))
-        .header("apikey", &config.anon_key)
-        .bearer_auth(&config.anon_key)
+        .header("apikey", &config.anon_key);
+
+    if !is_publishable_key(&config.anon_key) {
+        request = request.bearer_auth(&config.anon_key);
+    }
+
+    let response = request
         .json(&serde_json::json!({
             "token": config.admin_token,
             "action": action,
@@ -292,10 +301,15 @@ async fn cloud_upload(
 
     let client = reqwest::Client::new();
 
-    let sign_response = client
+    let mut sign_request = client
         .post(format!("{url}/functions/v1/aether-admin"))
-        .header("apikey", &config.anon_key)
-        .bearer_auth(&config.anon_key)
+        .header("apikey", &config.anon_key);
+
+    if !is_publishable_key(&config.anon_key) {
+        sign_request = sign_request.bearer_auth(&config.anon_key);
+    }
+
+    let sign_response = sign_request
         .json(&serde_json::json!({
             "token": config.admin_token,
             "action": "sign_upload",
