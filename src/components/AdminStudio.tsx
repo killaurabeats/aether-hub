@@ -461,6 +461,7 @@ export function AdminStudio() {
   };
 
   const pendingRequests = (overview?.requests ?? []).filter((r) => r.status === "pending").length;
+  const pendingTotal = Math.max(autoPending, pendingRequests);
 
   return (
     <div className="page">
@@ -483,6 +484,7 @@ export function AdminStudio() {
           onClick={() => {
             void refreshAdminData();
             void refreshCatalog();
+            void loadAutomation();
           }}
         >
           <RefreshCw size={12} /> {t("Обновить")}
@@ -524,9 +526,9 @@ export function AdminStudio() {
             <span className={`chip ${autoApprove ? "green" : ""}`}>
               {autoApprove === null ? "…" : autoApprove ? "ON" : "OFF"}
             </span>
-            {autoPending > 0 ? (
+            {pendingTotal > 0 ? (
               <span className="chip gold">
-                {t("{count} ждут", { count: autoPending })}
+                {t("{count} ждут", { count: pendingTotal })}
               </span>
             ) : null}
           </div>
@@ -557,7 +559,7 @@ export function AdminStudio() {
         <button
           className="btn btn-soft btn-sm"
           onClick={() => void approveAll()}
-          disabled={!cloudEnabled || !adminTokenReady || approveAllBusy || autoPending === 0}
+          disabled={!cloudEnabled || !adminTokenReady || approveAllBusy || pendingTotal === 0}
         >
           {approveAllBusy ? (
             <Loader2 size={12} className="spin" />
@@ -565,7 +567,7 @@ export function AdminStudio() {
             <ListChecks size={12} />
           )}
           {t("Одобрить все ожидающие")}
-          {autoPending > 0 ? ` · ${autoPending}` : ""}
+          {pendingTotal > 0 ? ` · ${pendingTotal}` : ""}
         </button>
       </div>
 
