@@ -14,7 +14,7 @@ import {
 import { useStore } from "../lib/store";
 import { copyText, formatDate, timeAgo } from "../lib/format";
 import { openExternal, TELEGRAM_URL } from "../lib/desktop";
-import { cloudEnabled } from "../lib/cloud";
+import { cloudEnabled, fetchBetaStatus, redeemBetaInvite } from "../lib/cloud";
 import { Avatar } from "./Avatar";
 import { Stars } from "./Stars";
 import { AvatarCropper } from "./AvatarCropper";
@@ -40,6 +40,10 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
   const [idEditing, setIdEditing] = useState(false);
   const [idDraft, setIdDraft] = useState(licensingMachineId);
   const [cropperSrc, setCropperSrc] = useState<string | null>(null);
+  const [betaTester, setBetaTester] = useState(false);
+  const [betaLoading, setBetaLoading] = useState(true);
+  const [inviteCode, setInviteCode] = useState("");
+  const [activating, setActivating] = useState(false);
   const fileRef = useRef<HTMLInputElement | null>(null);
   const cropUrlRef = useRef<string | null>(null);
 
@@ -48,6 +52,40 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
       if (cropUrlRef.current) URL.revokeObjectURL(cropUrlRef.current);
     };
   }, []);
+
+  useEffect(() => {
+    let alive = true;
+    setBetaLoading(true);
+    void fetchBetaStatus(licensingMachineId).then((value) => {
+      if (alive) setBetaTester(value);
+    }).finally(() => {
+      if (alive) setBetaLoading(false);
+    });
+    return () => { alive = false; };
+  }, [licensingMachineId]);
+
+  const activateBeta = async () => {
+    if (!inviteCode.trim() || activating) return;
+    setActivating(true);
+    const result = await redeemBetaInvite(inviteCode, licensingMachineId);
+    setActivating(false);
+    if (result.ok) {
+      setBetaTester(true);
+      setInviteCode("");
+      toast({ kind: "success", title: t("BETA TESTER активирован") });
+    } else {
+      toast({
+        kind: "error",
+        title: t("Не удалось активировать инвайт"),
+        message:
+          result.error === "already_used"
+            ? t("Этот код уже использован на другом устройстве.")
+            : result.error === "not_found"
+              ? t("Код не найден.")
+              : result.error || "",
+      });
+    }
+  };
 
   const closeCropper = () => {
     if (cropUrlRef.current) {
@@ -129,7 +167,17 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
 
               <div className="profile-fields">
                 <div className="field">
-                  <label>{t("Никнейм")}</label>
+                  <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    {t("Никнейм")}
+                    {betaTester ? (
+                      <span
+                        className="chip violet"
+                        style={{ letterSpacing: "0.12em", fontWeight: 700 }}
+                      >
+                        <ShieldCheck size={9} /> BETA TESTER
+                      </span>
+                    ) : null}
+                  </label>
                   <input
                     value={nickname}
                     onChange={(event) => setNickname(event.target.value)}
@@ -142,6 +190,36 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
                     )}
                   </span>
                 </div>
+
+                {!betaTester && cloudEnabled && !betaLoading ? (
+                  <div className="field" style={{ marginTop: 10 }}>
+                    <label>{t("Инвайт-код Beta Tester")}</label>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <input
+                        value={inviteCode}
+                        onChange={(event) => setInviteCode(event.target.value.toUpperCase())}
+                        placeholder="AETHER-BETA-XXXX"
+                        spellCheck={false}
+                        style={{ fontFamily: "var(--mono)" }}
+                      />
+                      <button
+                        className="btn btn-primary btn-sm"
+                        onClick={() => void activateBeta()}
+                        disabled={activating || !inviteCode.trim()}
+                      >
+                        {activating ? (
+                          <Loader2 size={12} className="spin" />
+                        ) : (
+                          <ShieldCheck size={12} />
+                        )}
+                        {t("Активировать")}
+                      </button>
+                    </div>
+                    <span className="hint">
+                      {t("Одноразовый код привязывается к вашему Machine ID.")}
+                    </span>
+                  </div>
+                ) : null}
               </div>
               <button className="btn btn-primary" onClick={() => void save()} disabled={saving}>
                 {saving ? <Loader2 size={14} className="spin" /> : <CheckCircle2 size={14} />}
@@ -307,7 +385,7 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
                 <span className="chip">
                   <Stars value={5} size={9} /> AETHER
                 </span>
-                <span className="chip violet">v1.1</span>
+                <span className="chip violet">v1.2</span>
                 <span className="chip green">HWID ver.</span>
               </div>
             </div>

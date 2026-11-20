@@ -41,10 +41,14 @@ export function SettingsModal({
   onClose,
   initialSection = "general",
   onAdminUnlocked,
+  onCheckUpdates,
+  checkingUpdate,
 }: {
   onClose: () => void;
   initialSection?: SettingsSection;
   onAdminUnlocked: () => void;
+  onCheckUpdates: () => void;
+  checkingUpdate: boolean;
 }) {
   const {
     settings,
@@ -70,7 +74,7 @@ export function SettingsModal({
 
   const [section, setSection] = useState<SettingsSection>(initialSection);
   const [confirmReset, setConfirmReset] = useState(false);
-  const [version, setVersion] = useState("1.1.0");
+  const [version, setVersion] = useState("1.2.0");
   const [health, setHealth] = useState<CloudHealth | null>(null);
   const [checkingCloud, setCheckingCloud] = useState(false);
   const [secretOpen, setSecretOpen] = useState(false);
@@ -818,10 +822,10 @@ VITE_AETHER_ADMIN_TOKEN=...   # only on your Mac`}
                 <div className="settings-actions" style={{ justifyContent: "flex-start" }}>
                   <button
                     className="btn btn-primary"
-                    onClick={() => void refreshCatalog()}
-                    disabled={catalogLoading}
+                    onClick={onCheckUpdates}
+                    disabled={checkingUpdate}
                   >
-                    <RefreshCw size={13} className={catalogLoading ? "spin" : ""} />{" "}
+                    <RefreshCw size={13} className={checkingUpdate ? "spin" : ""} />{" "}
                     {t("Проверить обновления")}
                   </button>
                 </div>

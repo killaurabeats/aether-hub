@@ -126,6 +126,11 @@ export function ReleaseCard({
 
         <div className="cover-top">
           <span className="chip violet">{meta.singular}</span>
+          {release.category === "plugins" ? (
+            <span className={`chip ${release.tier === "pro" ? "gold" : "green"}`}>
+              {release.tier === "pro" ? "PRO" : "FREE"}
+            </span>
+          ) : null}
           {release.badge ? <span className="chip gold">{release.badge}</span> : null}
           <span className="spacer" />
           <span className="rating-pill" title={t("{count} оценок", { count: release.ratingCount })}>

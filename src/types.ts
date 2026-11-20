@@ -47,6 +47,7 @@ export interface Release {
   ratingAvg: number;
   ratingCount: number;
   productTag?: string | null;
+  tier?: "free" | "pro";
   featured?: boolean;
   badge?: string | null;
   previews?: PreviewSound[];

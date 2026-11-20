@@ -23,6 +23,7 @@ create table if not exists public.releases (
   rating_avg    numeric(3, 2) not null default 5.00,
   rating_count  integer not null default 0,
   product_tag   text,
+  tier          text not null default 'free' check (tier in ('free', 'pro')),
   featured      boolean not null default false,
   badge         text,
   previews      jsonb not null default '[]'::jsonb,
@@ -33,6 +34,10 @@ create table if not exists public.releases (
 
 alter table public.releases add column if not exists description_ru text;
 alter table public.releases add column if not exists description_en text;
+alter table public.releases add column if not exists tier text not null default 'free';
+alter table public.releases drop constraint if exists releases_tier_check;
+alter table public.releases add constraint releases_tier_check check (tier in ('free', 'pro'));
+update public.releases set tier = 'free' where tier is null;
 
 create table if not exists public.profiles (
   id          text primary key,
@@ -110,11 +115,28 @@ create table if not exists public.ticket_messages (
   created_at    timestamptz not null default now()
 );
 
+create table if not exists public.beta_invites (
+  code          text primary key,
+  note          text,
+  used_by_hwid  text,
+  used_at       timestamptz,
+  created_at    timestamptz not null default now()
+);
+
+create index if not exists beta_invites_used_idx on public.beta_invites (used_by_hwid);
+
 create table if not exists public.app_config (
   id                    boolean primary key default true check (id),
   auto_approve_licenses boolean not null default false,
+  latest_launcher_version text,
+  update_notice         text,
+  update_url            text,
   updated_at            timestamptz not null default now()
 );
+
+alter table public.app_config add column if not exists latest_launcher_version text;
+alter table public.app_config add column if not exists update_notice text;
+alter table public.app_config add column if not exists update_url text;
 
 insert into public.app_config (id, auto_approve_licenses)
 values (true, false)
@@ -333,8 +355,81 @@ revoke all on function public.aether_rate_release(uuid, text, integer) from publ
 revoke all on function public.aether_my_rating(uuid, text) from public;
 revoke all on function public.aether_upsert_profile(text, text, text, text) from public;
 revoke all on function public.aether_request_license(text, text, text, text, text, text) from public;
+create or replace function public.aether_beta_status(p_machine_id text)
+returns boolean
+language sql
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1 from public.beta_invites
+     where used_by_hwid = public.aether_norm_machine(p_machine_id)
+  );
+$$;
+
+create or replace function public.aether_redeem_beta_invite(
+  p_code text,
+  p_machine_id text
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_code text := upper(trim(coalesce(p_code, '')));
+  v_machine text := public.aether_norm_machine(p_machine_id);
+  v_row public.beta_invites;
+begin
+  if v_code = '' or v_machine = '' then
+    return jsonb_build_object('ok', false, 'error', 'invalid');
+  end if;
+
+  select * into v_row from public.beta_invites where code = v_code;
+  if not found then
+    return jsonb_build_object('ok', false, 'error', 'not_found');
+  end if;
+
+  if v_row.used_by_hwid is not null then
+    return jsonb_build_object(
+      'ok', v_row.used_by_hwid = v_machine,
+      'error', case when v_row.used_by_hwid = v_machine then null else 'already_used' end
+    );
+  end if;
+
+  update public.beta_invites
+     set used_by_hwid = v_machine, used_at = now()
+   where code = v_code and used_by_hwid is null
+   returning * into v_row;
+
+  if not found then
+    return jsonb_build_object('ok', false, 'error', 'already_used');
+  end if;
+
+  return jsonb_build_object('ok', true);
+end;
+$$;
+
 revoke all on function public.aether_my_requests(text) from public;
 revoke all on function public.aether_my_licenses(text) from public;
+revoke all on function public.aether_beta_status(text) from public;
+revoke all on function public.aether_redeem_beta_invite(text, text) from public;
+create or replace function public.aether_launcher_notice()
+returns jsonb
+language sql
+security definer
+set search_path = public
+as $$
+  select jsonb_build_object(
+    'latestVersion', latest_launcher_version,
+    'notice', update_notice,
+    'url', update_url
+  )
+  from public.app_config
+  where id = true;
+$$;
+revoke all on function public.aether_launcher_notice() from public;
+grant execute on function public.aether_launcher_notice() to anon, authenticated;
 
 grant execute on function public.aether_rate_release(uuid, text, integer) to anon, authenticated;
 grant execute on function public.aether_my_rating(uuid, text) to anon, authenticated;
@@ -342,6 +437,8 @@ grant execute on function public.aether_upsert_profile(text, text, text, text) t
 grant execute on function public.aether_request_license(text, text, text, text, text, text) to anon, authenticated;
 grant execute on function public.aether_my_requests(text) to anon, authenticated;
 grant execute on function public.aether_my_licenses(text) to anon, authenticated;
+grant execute on function public.aether_beta_status(text) to anon, authenticated;
+grant execute on function public.aether_redeem_beta_invite(text, text) to anon, authenticated;
 
 -- ------------------------------------------------------- auto-approve hook ----
 -- A new license request pings the Edge Function when the admin toggle is on.
@@ -425,6 +522,7 @@ alter table public.licenses enable row level security;
 alter table public.support_tickets enable row level security;
 alter table public.ticket_messages enable row level security;
 alter table public.app_config enable row level security;
+alter table public.beta_invites enable row level security;
 
 drop policy if exists releases_public_read on public.releases;
 create policy releases_public_read on public.releases
@@ -461,6 +559,7 @@ revoke all on public.ticket_messages from anon, authenticated;
 revoke all on public.comments from anon, authenticated;
 revoke all on public.releases from anon, authenticated;
 revoke all on public.app_config from anon, authenticated;
+revoke all on public.beta_invites from anon, authenticated;
 
 grant select on public.releases to anon, authenticated;
 grant select, insert on public.comments to anon, authenticated;

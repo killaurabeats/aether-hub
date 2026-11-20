@@ -63,6 +63,28 @@ fn generate_license(
 }
 
 #[tauri::command]
+fn write_license_file(key: String, product_tag: String) -> Result<(), String> {
+    let tag = product_tag.to_uppercase();
+    let folder = if tag == "AETHER-VOCAL-STRIP" {
+        "AetherVocalStrip".to_string()
+    } else {
+        tag.chars()
+            .filter(|c| c.is_ascii_alphanumeric())
+            .collect::<String>()
+    };
+    if folder.is_empty() {
+        return Err("Invalid product tag".into());
+    }
+
+    let base = dirs::data_dir().ok_or_else(|| "Cannot locate Application Support".to_string())?;
+    let dir = base.join(folder);
+    fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    let path = dir.join("license.aether");
+    fs::write(&path, key.trim()).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
 fn verify_license(
     key: String,
     machine_id: String,
@@ -400,10 +422,13 @@ pub fn machine_id_string() -> String {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .invoke_handler(tauri::generate_handler![
             machine_id,
             admin_status,
             generate_license,
+            write_license_file,
             verify_license,
             list_issued_licenses,
             app_version,

@@ -5,6 +5,7 @@ import {
   AlertTriangle,
   Check,
   CloudUpload,
+  Copy,
   FileArchive,
   Image as ImageIcon,
   ListChecks,
@@ -15,6 +16,7 @@ import {
   RefreshCw,
   ShieldCheck,
   Sparkles,
+  Ticket,
   Trash2,
   UploadCloud,
   X,
@@ -26,16 +28,19 @@ import { useStore } from "../lib/store";
 import {
   approveAllPending,
   cloudEnabled,
+  createBetaInvites,
   deleteRelease,
   fetchAppConfig,
+  listBetaInvites,
   saveRelease,
   setAutoApproveLicenses,
+  type BetaInvite,
 } from "../lib/cloud";
 import { fileStat, readImageDataUrl } from "../lib/desktop";
-import { formatBytes, formatDate, slugify, timeAgo } from "../lib/format";
+import { copyText, formatBytes, formatDate, slugify, timeAgo } from "../lib/format";
 import { Avatar } from "./Avatar";
 
-type Tab = "publish" | "releases" | "moderation";
+type Tab = "publish" | "releases" | "moderation" | "beta";
 type OS = "macos" | "windows";
 
 interface Picked {
@@ -53,6 +58,7 @@ interface FormState {
   descriptionRu: string;
   descriptionEn: string;
   productTag: string;
+  tier: "free" | "pro";
   badge: string;
   preview: string;
   featured: boolean;
@@ -61,11 +67,12 @@ interface FormState {
 const emptyForm: FormState = {
   title: "",
   slug: "",
-  version: "1.1",
+  version: "1.2",
   category: "plugins",
   descriptionRu: "",
   descriptionEn: "",
   productTag: "AETHER-VOCAL-STRIP",
+  tier: "free",
   badge: "NEW",
   preview: "",
   featured: false,
@@ -102,6 +109,53 @@ export function AdminStudio() {
   const [autoBusy, setAutoBusy] = useState(false);
   const [approveAllBusy, setApproveAllBusy] = useState(false);
   const [autoError, setAutoError] = useState<string | null>(null);
+  const [betaInvites, setBetaInvites] = useState<BetaInvite[]>([]);
+  const [betaNote, setBetaNote] = useState("");
+  const [betaCount, setBetaCount] = useState(5);
+  const [betaBusy, setBetaBusy] = useState(false);
+  const [betaLoading, setBetaLoading] = useState(false);
+
+  const loadBeta = useCallback(async () => {
+    if (!cloudEnabled || !adminTokenReady) return;
+    setBetaLoading(true);
+    try {
+      setBetaInvites(await listBetaInvites());
+    } catch (error) {
+      toast({ kind: "error", title: t("Не удалось загрузить бета-инвайты"), message: String(error) });
+    } finally {
+      setBetaLoading(false);
+    }
+  }, [adminTokenReady, t, toast]);
+
+  useEffect(() => {
+    if (tab === "beta") void loadBeta();
+  }, [loadBeta, tab]);
+
+  const generateBeta = async () => {
+    setBetaBusy(true);
+    try {
+      const created = await createBetaInvites(betaNote.trim(), betaCount);
+      setBetaNote("");
+      await loadBeta();
+      toast({
+        kind: "success",
+        title: t("Создано инвайтов: {count}", { count: created.length }),
+        message: created.length ? created.slice(0, 3).join(" · ") : undefined,
+      });
+    } catch (error) {
+      toast({ kind: "error", title: t("Не удалось создать инвайты"), message: String(error) });
+    } finally {
+      setBetaBusy(false);
+    }
+  };
+
+  const copyBeta = async (value: string) => {
+    const ok = await copyText(value);
+    toast({
+      kind: ok ? "success" : "error",
+      title: ok ? t("Инвайт скопирован") : t("Не удалось скопировать"),
+    });
+  };
 
   const loadAutomation = useCallback(async () => {
     if (!cloudEnabled || !adminTokenReady) {
@@ -291,6 +345,7 @@ export function AdminStudio() {
       descriptionRu: release.descriptionRu || release.description,
       descriptionEn: release.descriptionEn || release.description,
       productTag: release.productTag || "AETHER-VOCAL-STRIP",
+      tier: release.tier ?? "free",
       badge: release.badge || "",
       preview: release.previews?.[0]?.url || "",
       featured: Boolean(release.featured),
@@ -420,6 +475,7 @@ export function AdminStudio() {
         coverUrl,
         files: nextFiles,
         productTag: form.category === "plugins" ? form.productTag : null,
+        tier: form.category === "plugins" ? form.tier : "free",
         featured: form.featured,
         badge: form.badge.trim() || null,
         previews: form.preview.trim()
@@ -583,6 +639,12 @@ export function AdminStudio() {
           <MessageSquare size={12} /> {t("Модерация")}{" "}
           <span style={{ opacity: 0.55 }}>{comments.length}</span>
         </button>
+        <button className={tab === "beta" ? "active" : ""} onClick={() => setTab("beta")}>
+          <Ticket size={12} /> {t("Beta-инвайты")}
+          {betaInvites.length ? (
+            <span style={{ opacity: 0.55 }}>{betaInvites.length}</span>
+          ) : null}
+        </button>
       </div>
 
       {tab === "publish" ? (
@@ -732,7 +794,7 @@ export function AdminStudio() {
                 <input
                   value={form.version}
                   onChange={(event) => setForm((prev) => ({ ...prev, version: event.target.value }))}
-                  placeholder="1.1"
+                  placeholder="1.2"
                 />
               </div>
               <div className="field">
@@ -748,6 +810,32 @@ export function AdminStudio() {
                   <option value="presets">Presets</option>
                 </select>
               </div>
+              {form.category === "plugins" ? (
+                <div className="field">
+                  <label>{t("Тип доступа")}</label>
+                  <div className="segmented" style={{ margin: 0 }}>
+                    <button
+                      type="button"
+                      className={form.tier === "free" ? "active" : ""}
+                      onClick={() => setForm((prev) => ({ ...prev, tier: "free" }))}
+                    >
+                      FREE
+                    </button>
+                    <button
+                      type="button"
+                      className={form.tier === "pro" ? "active" : ""}
+                      onClick={() => setForm((prev) => ({ ...prev, tier: "pro" }))}
+                    >
+                      PRO
+                    </button>
+                  </div>
+                  <span className="hint">
+                    {form.tier === "free"
+                      ? t("Без лицензии: ключ создаётся автоматически при установке.")
+                      : t("С лицензией: пользователь запрашивает ключ по Machine ID.")}
+                  </span>
+                </div>
+              ) : null}
               <div className="field">
                 <label>{t("Product tag (лицензия)")}</label>
                 <input
@@ -905,6 +993,11 @@ export function AdminStudio() {
                       {mac ? formatBytes(mac) : "—"} · Win {win ? formatBytes(win) : "—"}
                     </span>
                   </div>
+                  {release.category === "plugins" ? (
+                    <span className={`chip ${release.tier === "pro" ? "gold" : "green"}`}>
+                      {(release.tier ?? "free").toUpperCase()}
+                    </span>
+                  ) : null}
                   {release.featured ? <span className="chip gold">FEATURED</span> : null}
                   <span className="chip violet">{release.ratingAvg.toFixed(1)} ★</span>
                   <div className="row-actions">
@@ -992,6 +1085,119 @@ export function AdminStudio() {
               <p>{t("Здесь появятся все сообщения пользователей для модерации.")}</p>
             </div>
           ) : null}
+        </div>
+      ) : null}
+
+      {tab === "beta" ? (
+        <div className="admin-card glass">
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+            <div>
+              <h3>
+                <Ticket size={14} style={{ verticalAlign: -2, marginRight: 5 }} />
+                {t("Beta-инвайты")}
+              </h3>
+              <p className="sub" style={{ marginBottom: 10 }}>
+                {t(
+                  "Одноразовые коды AETHER-BETA-XXXX. Активированный код закрепляется за HWID и даёт бейдж BETA TESTER в профиле.",
+                )}
+              </p>
+            </div>
+            <button className="btn btn-ghost btn-sm" onClick={() => void loadBeta()} disabled={betaLoading}>
+              <RefreshCw size={12} className={betaLoading ? "spin" : ""} /> {t("Обновить")}
+            </button>
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              gap: 10,
+              alignItems: "flex-end",
+              flexWrap: "wrap",
+              marginBottom: 16,
+            }}
+          >
+            <div className="field" style={{ flex: 1, minWidth: 220 }}>
+              <label>{t("Заметка (например, имя тестера)")}</label>
+              <input
+                value={betaNote}
+                onChange={(event) => setBetaNote(event.target.value)}
+                placeholder="vip tester · telegram @…"
+                maxLength={160}
+              />
+            </div>
+            <div className="field" style={{ width: 110 }}>
+              <label>{t("Сколько")}</label>
+              <select
+                value={betaCount}
+                onChange={(event) => setBetaCount(Number(event.target.value))}
+              >
+                {[1, 5, 10, 25].map((value) => (
+                  <option key={value} value={value}>
+                    {value}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <button
+              className="btn btn-primary"
+              onClick={() => void generateBeta()}
+              disabled={betaBusy}
+            >
+              {betaBusy ? <Loader2 size={13} className="spin" /> : <Plus size={13} />}
+              {t("Сгенерировать")}
+            </button>
+          </div>
+
+          {betaInvites.length ? (
+            <div className="release-list">
+              {betaInvites.map((invite) => (
+                <div className="release-row" key={invite.code}>
+                  <div
+                    style={{
+                      width: 38,
+                      height: 38,
+                      borderRadius: 12,
+                      display: "grid",
+                      placeItems: "center",
+                      background: invite.usedByHwid
+                        ? "rgba(255,210,122,.08)"
+                        : "rgba(94,234,212,.08)",
+                      border: `1px solid ${invite.usedByHwid ? "rgba(255,210,122,.22)" : "rgba(94,234,212,.22)"}`,
+                      color: invite.usedByHwid ? "var(--gold)" : "var(--green)",
+                      flex: "0 0 auto",
+                    }}
+                  >
+                    <Ticket size={16} />
+                  </div>
+                  <div className="info" style={{ flex: 1, minWidth: 0 }}>
+                    <b className="mono" style={{ fontSize: 11 }}>{invite.code}</b>
+                    <span>
+                      {invite.note || t("без заметки")} · {formatDate(invite.createdAt)}
+                      {invite.usedByHwid ? ` · ${invite.usedByHwid}` : ""}
+                    </span>
+                  </div>
+                  <span className={`chip ${invite.usedByHwid ? "gold" : "green"}`}>
+                    {invite.usedByHwid ? t("АКТИВИРОВАН") : t("СВОБОДЕН")}
+                  </span>
+                  <button
+                    className="row-icon"
+                    onClick={() => void copyBeta(invite.code)}
+                    title={t("Скопировать код")}
+                  >
+                    <Copy size={13} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="empty-state" style={{ marginTop: 8 }}>
+              <div className="icon">
+                <Ticket size={20} />
+              </div>
+              <h3>{t("Инвайтов пока нет")}</h3>
+              <p>{t("Сгенерируйте первую партию кодов для закрытого теста.")}</p>
+            </div>
+          )}
         </div>
       ) : null}
     </div>

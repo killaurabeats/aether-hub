@@ -296,6 +296,21 @@ const en: Record<string, string> = {
     "Not found — the admin panel is hidden. A regular user only sees the library.",
   "Хранилище приложения": "App storage",
   "Проверить обновления": "Check for updates",
+  "Обновление Aether Hub": "Aether Hub update",
+  "сейчас v{version}": "currently v{version}",
+  "Новая версия уже готова. Скачайте её и приложение перезапустится само.":
+    "The new version is ready. Download it and the app will restart automatically.",
+  "Скачивание…": "Downloading…",
+  "Установлено — перезапускаем…": "Installed — restarting…",
+  "Скачать и установить": "Download and install",
+  "Перезапуск…": "Restarting…",
+  "Позже": "Later",
+  "Обновлений нет": "No updates",
+  "Установлена последняя версия Aether Hub.": "You are on the latest Aether Hub version.",
+  "Не удалось проверить обновления": "Could not check for updates",
+  "Автообновление доступно в приложении": "Auto-update is available in the app",
+  "Запустите установленную версию Aether Hub для проверки обновлений.":
+    "Run the installed Aether Hub app to check for updates.",
   "Каталог и релизы обновляются из облака — переустановка лаунчера не требуется. Приложение не собирает телеметрию. Аватар хранится локально и в вашем профиле Supabase.":
     "Catalog and releases update from the cloud — the launcher never needs reinstalling. No telemetry is collected. The avatar is stored locally and in your Supabase profile.",
   "Проигрываем интро": "Playing the startup sting",
@@ -321,6 +336,46 @@ const en: Record<string, string> = {
   "Не удалось подписать: {count}": "Failed to sign: {count}",
   "Очередь обработана.": "Queue processed.",
   "Не удалось одобрить заявки": "Could not approve requests",
+  "Тип доступа": "Access type",
+  "Без лицензии: ключ создаётся автоматически при установке.":
+    "No licence: the key is created automatically during install.",
+  "С лицензией: пользователь запрашивает ключ по Machine ID.":
+    "Licensed: the user requests a key for their Machine ID.",
+  "FREE · лицензия не требуется": "FREE · no licence required",
+  "Этот плагин бесплатный. Лицензия создаётся автоматически при установке и записывается в папку плагина — никаких заявок и ожиданий.":
+    "This plugin is free. A licence is created automatically during install and written into the plugin folder — no requests or waiting.",
+  "FREE ACCESS": "FREE ACCESS",
+  "FREE-лицензия активирована": "FREE licence activated",
+  "Ключ записан локально — плагин готов к работе.":
+    "The key is written locally — the plugin is ready.",
+  "Не удалось активировать FREE-лицензию": "Could not activate the FREE licence",
+  "Beta-инвайты": "Beta invites",
+  "Одноразовые коды AETHER-BETA-XXXX. Активированный код закрепляется за HWID и даёт бейдж BETA TESTER в профиле.":
+    "One-time AETHER-BETA-XXXX codes. An activated code is bound to the HWID and grants the BETA TESTER badge in the profile.",
+  "Заметка (например, имя тестера)": "Note (e.g. tester name)",
+  "Сколько": "How many",
+  "Сгенерировать": "Generate",
+  "без заметки": "no note",
+  "АКТИВИРОВАН": "ACTIVATED",
+  "СВОБОДЕН": "AVAILABLE",
+  "Скопировать код": "Copy code",
+  "Инвайтов пока нет": "No invites yet",
+  "Сгенерируйте первую партию кодов для закрытого теста.":
+    "Generate the first batch of codes for a closed test.",
+  "Не удалось загрузить бета-инвайты": "Could not load beta invites",
+  "Создано инвайтов: {count}": "Invites created: {count}",
+  "Не удалось создать инвайты": "Could not create invites",
+  "Инвайт скопирован": "Invite copied",
+  "BETA TESTER активирован": "BETA TESTER activated",
+  "Не удалось активировать инвайт": "Could not activate the invite",
+  "Этот код уже использован на другом устройстве.":
+    "This code has already been used on another device.",
+  "Код не найден.": "Code not found.",
+  "Инвайт-код Beta Tester": "Beta Tester invite code",
+  "Активировать": "Activate",
+  "Одноразовый код привязывается к вашему Machine ID.":
+    "The one-time code is bound to your Machine ID.",
+  "Доступно обновление v{version}": "Update v{version} available",
   "Новый релиз": "New release",
   "Редактирование": "Editing",
   "Релизы": "Releases",
@@ -467,7 +522,7 @@ const en: Record<string, string> = {
 
   // -------------------------------------------------------------------- misc
   "Aether Plugins · by. @killaurabeats": "Aether Plugins · by. @killaurabeats",
-  "AETHER HUB · 1.1 · CINEMATIC INTRO": "AETHER HUB · 1.1 · CINEMATIC INTRO",
+  "AETHER HUB · 1.2 · CINEMATIC INTRO": "AETHER HUB · 1.2 · CINEMATIC INTRO",
   "Эффекты стекла": "Glass effects",
   "Размытие": "Blur",
   "Включено": "On",
@@ -495,7 +550,7 @@ const en: Record<string, string> = {
   "Включить звук заставки": "Enable the startup sound",
   "Русский": "Russian",
   "не задан": "not set",
-  "Aether Hub · 1.1 · CINEMATIC INTRO": "AETHER HUB · 1.1 · CINEMATIC INTRO",
+  "Aether Hub · 1.2 · CINEMATIC INTRO": "AETHER HUB · 1.2 · CINEMATIC INTRO",
   "Чат с создателем": "Creator chat",
   "Скоро здесь появится встроенная поддержка.":
     "Built-in support is coming soon.",
@@ -560,7 +615,6 @@ const en: Record<string, string> = {
   "Рекомендуется для вашей ОС": "Recommended for your OS",
   "Для другой ОС": "For another OS",
   "Нет сборки": "No build",
-  "Скачивание…": "Downloading…",
   "Скачано": "Downloaded",
   "Файл сохранён в {path}": "File saved to {path}",
   "Скачать не удалось": "Download failed",

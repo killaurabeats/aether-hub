@@ -1,4 +1,4 @@
-# Aether Hub v1.1
+# Aether Hub v1.2
 
 Премиальный десктопный лаунчер для плагинов, драм-китов и пресетов Aether.
 Tauri 2 (Rust) + React 18 + TypeScript + Framer Motion, с полностью рабочим
@@ -95,7 +95,7 @@ Tauri 2 (Rust) + React 18 + TypeScript + Framer Motion, с полностью р
 ## Стек и структура
 
 ```
-Aether Hub v1.1/
+Aether Hub v1.2/
 ├─ src/                    React + TypeScript UI
 │  ├─ components/          Splash, Sidebar, ReleaseCard, Admin Studio, модалки
 │  ├─ lib/
@@ -157,7 +157,7 @@ npm run tauri:build -- --bundles app,dmg
 
 ```
 src-tauri/target/release/bundle/macos/Aether Hub.app
-src-tauri/target/release/bundle/dmg/Aether Hub_1.1.0_aarch64.dmg
+src-tauri/target/release/bundle/dmg/Aether Hub_1.2.0_aarch64.dmg
 ```
 
 Универсальная сборка (arm64 + x86_64):
@@ -275,7 +275,7 @@ localStorage. Чтобы рейтинги, комментарии и заявк�
 доверенном ПК админку можно открыть без пересборки:
 
 1. **Настройки → О приложении**.
-2. Пять быстрых кликов по номеру версии `v1.1.0` (интервал меньше секунды).
+2. Пять быстрых кликов по номеру версии `v1.2.0` (интервал меньше секунды).
 3. В скрытом поле **«Ключ создателя (Admin Token)»** вставить свой
    `ADMIN_TOKEN` и нажать **«Включить админ-режим»**.
 

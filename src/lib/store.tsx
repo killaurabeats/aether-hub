@@ -36,6 +36,7 @@ import {
   deleteComment as cloudDeleteComment,
   fetchComments,
   fetchMyLicenses,
+  fetchFreeLicenseKey,
   fetchMyRequests,
   hasAdminToken,
   loadCatalog,
@@ -519,6 +520,32 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             return next;
           });
         }, 1600);
+
+        // FREE plugins are licensed automatically: issue a machine-bound key
+        // on the server and drop it into the plugin's Application Support
+        // folder, so the user never has to request/activate anything manually.
+        if (release.category === "plugins" && (release.tier ?? "free") === "free") {
+          void (async () => {
+            const productTag = release.productTag || "AETHER-VOCAL-STRIP";
+            const key = await fetchFreeLicenseKey(
+              licensingMachineId,
+              productTag,
+              profile.nickname,
+            );
+            await invoke("write_license_file", { key, productTag });
+            toast({
+              kind: "success",
+              title: t("FREE-лицензия активирована"),
+              message: t("Ключ записан локально — плагин готов к работе."),
+            });
+          })().catch((error) => {
+            toast({
+              kind: "error",
+              title: t("Не удалось активировать FREE-лицензию"),
+              message: String(error),
+            });
+          });
+        }
       } catch (error) {
         setProgress((prev) => {
           const next = { ...prev };
@@ -532,7 +559,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         });
       }
     },
-    [getFileForOS, machine.platformLabel, settings.drumkitDir, settings.presetDir, toast, t],
+    [
+      getFileForOS,
+      licensingMachineId,
+      machine.platformLabel,
+      profile.nickname,
+      settings.drumkitDir,
+      settings.presetDir,
+      toast,
+      t,
+    ],
   );
 
   const uninstall = useCallback(

@@ -101,7 +101,7 @@ export function Splash() {
         {settings.soundEnabled ? <Volume2 size={15} /> : <VolumeX size={15} />}
       </button>
 
-      <div className="splash-foot">Aether Hub · 1.1 · cinematic intro</div>
+      <div className="splash-foot">Aether Hub · 1.2 · cinematic intro</div>
     </motion.div>
   );
 }

@@ -125,6 +125,7 @@ const mapRelease = (row: Record<string, any>) => ({
   ratingAvg: Number(row.rating_avg ?? 0),
   ratingCount: Number(row.rating_count ?? 0),
   productTag: row.product_tag,
+  tier: row.tier === "pro" ? "pro" : "free",
   featured: Boolean(row.featured),
   badge: row.badge,
   previews: row.previews ?? [],
@@ -255,21 +256,69 @@ Deno.serve(async (request) => {
 
   const { token, action, payload = {} } = body ?? {};
 
-  if (!token || token !== adminToken) {
-    return json({ error: "Invalid admin token" }, 401);
-  }
-
   const supabase = createClient(supabaseUrl, serviceKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
+
+  // FREE products may be activated without the admin token. The server still
+  // checks that the product is actually marked as free in the catalogue.
+  if (action === "free_license") {
+    const productTag = sanitiseTag(payload.productTag);
+    const machine = normaliseMachineId(payload.machineId);
+    if (machine.length !== 32) return json({ error: "Invalid Machine ID" }, 400);
+
+    const { data: releaseRow, error: releaseError } = await supabase
+      .from("releases")
+      .select("tier, title")
+      .eq("product_tag", productTag)
+      .eq("published", true)
+      .limit(1)
+      .maybeSingle();
+    if (releaseError) return json({ error: releaseError.message }, 400);
+    if (!releaseRow || releaseRow.tier !== "free") {
+      return json({ error: "This product requires a licence" }, 403);
+    }
+
+    try {
+      const key = issueLicenseKey(machine, productTag);
+      const now = new Date().toISOString();
+      const { error: licenseError } = await supabase.from("licenses").upsert(
+        {
+          machine_id: machine,
+          product_tag: productTag,
+          plugin_title: releaseRow.title,
+          key,
+          nickname: String(payload.nickname ?? "aether user").slice(0, 40),
+          issued_at: now,
+        },
+        { onConflict: "machine_id,product_tag" },
+      );
+      if (licenseError) return json({ error: licenseError.message }, 400);
+      return json({ key, productTag });
+    } catch (error) {
+      return json({ error: String(error) }, 500);
+    }
+  }
+
+  if (!token || token !== adminToken) {
+    return json({ error: "Invalid admin token" }, 401);
+  }
 
   try {
     switch (action) {
       // ----------------------------------------------------- auto-approve ----
       case "config": {
+        const { data: cfg } = await supabase
+          .from("app_config")
+          .select("latest_launcher_version, update_notice, update_url")
+          .eq("id", true)
+          .maybeSingle();
         return json({
           autoApproveLicenses: await readAutoApprove(supabase),
           pending: await pendingCount(supabase),
+          latestVersion: cfg?.latest_launcher_version ?? null,
+          updateNotice: cfg?.update_notice ?? null,
+          updateUrl: cfg?.update_url ?? null,
         });
       }
 
@@ -339,6 +388,50 @@ Deno.serve(async (request) => {
         });
       }
 
+      // ---------------------------------------------------------- beta ------
+      case "beta_list": {
+        const { data, error } = await supabase
+          .from("beta_invites")
+          .select("*")
+          .order("created_at", { ascending: false })
+          .limit(500);
+        if (error) return json({ error: error.message }, 400);
+        return json({
+          invites: (data ?? []).map((row: any) => ({
+            code: row.code,
+            note: row.note,
+            usedByHwid: row.used_by_hwid,
+            usedAt: row.used_at,
+            createdAt: row.created_at,
+          })),
+        });
+      }
+
+      case "beta_create": {
+        const note = String(payload.note ?? "").trim().slice(0, 160) || null;
+        const count = Math.max(1, Math.min(25, Number(payload.count ?? 1) || 1));
+        const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+        const created: string[] = [];
+
+        for (let i = 0; i < count; i += 1) {
+          let inserted = false;
+          for (let attempt = 0; attempt < 6 && !inserted; attempt += 1) {
+            const random = crypto.getRandomValues(new Uint8Array(6));
+            const suffix = Array.from(random, (byte) => alphabet[byte % alphabet.length]).join("");
+            const code = `AETHER-BETA-${suffix}`;
+            const { error } = await supabase.from("beta_invites").insert({ code, note });
+            if (!error) {
+              created.push(code);
+              inserted = true;
+            } else if (!String(error.message).toLowerCase().includes("duplicate")) {
+              return json({ error: error.message }, 400);
+            }
+          }
+        }
+
+        return json({ created });
+      }
+
       // ---------------------------------------------------------- uploads ----
       case "sign_upload": {
         const bucket = String(payload.bucket ?? "aether-assets");
@@ -393,6 +486,7 @@ Deno.serve(async (request) => {
           cover_url: release.coverUrl ?? null,
           files,
           product_tag: release.productTag ? String(release.productTag).slice(0, 64) : null,
+          tier: release.tier === "pro" ? "pro" : "free",
           featured: Boolean(release.featured),
           badge: release.badge ? String(release.badge).slice(0, 16) : null,
           previews: Array.isArray(release.previews) ? release.previews.slice(0, 12) : [],

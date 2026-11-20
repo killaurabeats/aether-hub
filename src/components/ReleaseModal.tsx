@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import {
   Apple,
   Check,
+  CheckCircle2,
   Copy,
   Download,
   FolderOpen,
@@ -425,7 +426,7 @@ export function ReleaseModal({
                 </div>
               </div>
 
-              {release.category === "plugins" ? (
+              {release.category === "plugins" && (release.tier ?? "free") === "pro" ? (
                 <div className="license-card">
                   <h3>
                     <KeyRound size={14} /> {t("Лицензия Aether")}
@@ -529,6 +530,38 @@ export function ReleaseModal({
                       ) : null}
                     </>
                   )}
+                </div>
+              ) : null}
+
+              {release.category === "plugins" && (release.tier ?? "free") === "free" ? (
+                <div className="license-card">
+                  <h3>
+                    <ShieldCheck size={14} /> {t("FREE · лицензия не требуется")}
+                  </h3>
+                  <p className="hint">
+                    {t(
+                      "Этот плагин бесплатный. Лицензия создаётся автоматически при установке и записывается в папку плагина — никаких заявок и ожиданий.",
+                    )}
+                  </p>
+                  <div
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 8,
+                      marginTop: 8,
+                      padding: "9px 12px",
+                      borderRadius: 10,
+                      border: "1px solid rgba(94,234,212,.22)",
+                      background: "rgba(94,234,212,.07)",
+                      color: "var(--green)",
+                      fontSize: 10,
+                      letterSpacing: "0.12em",
+                      textTransform: "uppercase",
+                      fontWeight: 700,
+                    }}
+                  >
+                    <CheckCircle2 size={12} /> {t("FREE ACCESS")}
+                  </div>
                 </div>
               ) : null}
             </div>

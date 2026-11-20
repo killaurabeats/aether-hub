@@ -145,6 +145,7 @@ export function seedReleases(): Release[] {
       ratingAvg: 4.9,
       ratingCount: 128,
       productTag: "AETHER-VOCAL-STRIP",
+      tier: "free",
       featured: true,
       badge: "NEW",
       createdAt: nowMinus(20),
@@ -484,6 +485,7 @@ export function mapRelease(row: Row): Release {
     ratingAvg: numeric(row.rating_avg),
     ratingCount: numeric(row.rating_count),
     productTag: row.product_tag ?? null,
+    tier: row.tier === "pro" ? "pro" : "free",
     featured: Boolean(row.featured),
     badge: row.badge ?? null,
     previews: parseJson(row.previews, []),
@@ -936,6 +938,22 @@ export interface ApproveAllResult {
   pending: number;
 }
 
+export interface LauncherNotice {
+  latestVersion: string | null;
+  notice: string | null;
+  url: string | null;
+}
+
+export async function fetchLauncherNotice(): Promise<LauncherNotice | null> {
+  if (!cloudEnabled) return null;
+  try {
+    const data = await rpc<LauncherNotice>("aether_launcher_notice", {});
+    return data ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export async function fetchAppConfig(): Promise<AppConfig> {
   if (!cloudEnabled) return { autoApproveLicenses: false, pending: 0 };
   return adminApi<AppConfig>("config");
@@ -949,6 +967,79 @@ export async function setAutoApproveLicenses(enabled: boolean): Promise<AppConfi
 export async function approveAllPending(): Promise<ApproveAllResult> {
   if (!cloudEnabled) throw new Error("Cloud is not configured.");
   return adminApi<ApproveAllResult>("approve_all_pending");
+}
+
+export interface BetaInvite {
+  code: string;
+  note: string | null;
+  usedByHwid: string | null;
+  usedAt: string | null;
+  createdAt: string;
+}
+
+export async function listBetaInvites(): Promise<BetaInvite[]> {
+  if (!cloudEnabled) return [];
+  const data = await adminApi<{ invites: BetaInvite[] }>("beta_list");
+  return data.invites ?? [];
+}
+
+export async function createBetaInvites(note: string, count = 1): Promise<string[]> {
+  if (!cloudEnabled) throw new Error("Cloud is not configured.");
+  const data = await adminApi<{ created: string[] }>("beta_create", { note, count });
+  return data.created ?? [];
+}
+
+export async function fetchBetaStatus(machineId: string): Promise<boolean> {
+  if (!cloudEnabled) return false;
+  try {
+    return Boolean(await rpc<boolean>("aether_beta_status", { p_machine_id: machineId }));
+  } catch {
+    return false;
+  }
+}
+
+export async function redeemBetaInvite(
+  code: string,
+  machineId: string,
+): Promise<{ ok: boolean; error?: string }> {
+  if (!cloudEnabled) return { ok: false, error: "Cloud is not configured." };
+  try {
+    const data = await rpc<{ ok: boolean; error?: string }>("aether_redeem_beta_invite", {
+      p_code: code,
+      p_machine_id: machineId,
+    });
+    return { ok: Boolean(data?.ok), error: data?.error };
+  } catch (error) {
+    return { ok: false, error: String(error) };
+  }
+}
+
+/** Issues a machine-bound licence for a FREE plugin (no admin token). */
+export async function fetchFreeLicenseKey(
+  machineId: string,
+  productTag: string,
+  nickname?: string,
+): Promise<string> {
+  if (!cloudEnabled) throw new Error("Cloud is not configured.");
+  const headers: Record<string, string> = {
+    apikey: cloudConfig.anonKey,
+    "Content-Type": "application/json",
+  };
+  if (!usesPublishableKey) headers.Authorization = `Bearer ${cloudConfig.anonKey}`;
+
+  const response = await fetch(`${cloudConfig.url}/functions/v1/aether-admin`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      action: "free_license",
+      payload: { machineId, productTag, nickname },
+    }),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || !data.key) {
+    throw new Error(data.error || `Free licence failed (${response.status})`);
+  }
+  return String(data.key);
 }
 
 export async function adminOverview(): Promise<AdminOverview> {
@@ -1045,6 +1136,7 @@ export interface PublishPayload {
   coverUrl?: string | null;
   files: Release["files"];
   productTag?: string | null;
+  tier?: "free" | "pro";
   featured?: boolean;
   badge?: string | null;
   previews?: Release["previews"];
@@ -1077,6 +1169,7 @@ export async function saveRelease(payload: PublishPayload): Promise<Release> {
     ratingAvg: existing?.ratingAvg ?? 5,
     ratingCount: existing?.ratingCount ?? 1,
     productTag: payload.productTag ?? null,
+    tier: payload.tier ?? "free",
     featured: payload.featured ?? false,
     badge: payload.badge ?? null,
     previews: payload.previews ?? existing?.previews ?? [],

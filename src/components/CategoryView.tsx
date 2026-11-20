@@ -6,6 +6,7 @@ import { useStore } from "../lib/store";
 import { ReleaseCard } from "./ReleaseCard";
 
 type Filter = "all" | "installed";
+type TierFilter = "all" | "free" | "pro";
 type Sort = "new" | "rating";
 
 export function CategoryView({
@@ -17,6 +18,7 @@ export function CategoryView({
 }) {
   const { releases, installs, catalogLoading, t } = useStore();
   const [filter, setFilter] = useState<Filter>("all");
+  const [tierFilter, setTierFilter] = useState<TierFilter>("all");
   const [sort, setSort] = useState<Sort>("new");
 
   const meta = CATEGORY_META[category];
@@ -25,13 +27,16 @@ export function CategoryView({
   const items = useMemo(() => {
     let list = releases.filter((release) => release.category === category);
     if (filter === "installed") list = list.filter((release) => installs[release.slug]);
+    if (category === "plugins" && tierFilter !== "all") {
+      list = list.filter((release) => (release.tier ?? "free") === tierFilter);
+    }
     if (sort === "rating") list = [...list].sort((a, b) => b.ratingAvg - a.ratingAvg);
     else
       list = [...list].sort((a, b) =>
         String(b.createdAt ?? "").localeCompare(String(a.createdAt ?? "")),
       );
     return list;
-  }, [releases, category, filter, sort, installs]);
+  }, [releases, category, filter, tierFilter, sort, installs]);
 
   return (
     <div className="page">
@@ -59,6 +64,28 @@ export function CategoryView({
               {t("Установленные")}
             </button>
           </div>
+          {category === "plugins" ? (
+            <div className="filter-row">
+              <button
+                className={`filter-pill ${tierFilter === "all" ? "active" : ""}`}
+                onClick={() => setTierFilter("all")}
+              >
+                {t("Все")}
+              </button>
+              <button
+                className={`filter-pill ${tierFilter === "free" ? "active" : ""}`}
+                onClick={() => setTierFilter("free")}
+              >
+                FREE
+              </button>
+              <button
+                className={`filter-pill ${tierFilter === "pro" ? "active" : ""}`}
+                onClick={() => setTierFilter("pro")}
+              >
+                PRO
+              </button>
+            </div>
+          ) : null}
           <div className="filter-row">
             <button
               className={`filter-pill ${sort === "new" ? "active" : ""}`}

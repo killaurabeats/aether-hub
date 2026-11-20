@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { invoke } from "@tauri-apps/api/core";
 import type { Release, View } from "./types";
 import { StoreProvider, useStore } from "./lib/store";
 import { Background } from "./components/Background";
@@ -20,6 +21,9 @@ import { KeygenRequests } from "./components/KeygenRequests";
 import { SupportTickets } from "./components/SupportTickets";
 import { Toasts } from "./components/Toasts";
 import { SupportModal } from "./components/SupportModal";
+import { UpdateModal } from "./components/UpdateModal";
+import { checkForUpdate, isUpdaterAvailable, type Update } from "./lib/updater";
+import { fetchLauncherNotice } from "./lib/cloud";
 
 function initialView(): View {
   const hash = window.location.hash.replace("#", "").toLowerCase();
@@ -43,6 +47,7 @@ function Shell() {
     refreshAdminData,
     catalogLoading,
     toast,
+    t,
   } = useStore();
 
   const [view, setView] = useState<View>(initialView);
@@ -54,6 +59,9 @@ function Shell() {
   const [supportOpen, setSupportOpen] = useState(false);
   const [settingsSection, setSettingsSection] = useState<SettingsSection>("general");
   const [refreshing, setRefreshing] = useState(false);
+  const [update, setUpdate] = useState<Update | null>(null);
+  const [updateOpen, setUpdateOpen] = useState(false);
+  const [checkingUpdate, setCheckingUpdate] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const selected = selectedId ? releases.find((release) => release.id === selectedId) ?? null : null;
@@ -119,6 +127,70 @@ function Shell() {
     setSettingsOpen(false);
     setView({ name: "admin" });
   };
+
+  const checkUpdates = useCallback(
+    async (silent = false) => {
+      if (!isUpdaterAvailable()) {
+        if (!silent) {
+          toast({
+            kind: "info",
+            title: t("Автообновление доступно в приложении"),
+            message: t("Запустите установленную версию Aether Hub для проверки обновлений."),
+          });
+        }
+        return;
+      }
+
+      setCheckingUpdate(true);
+      try {
+        const next = await checkForUpdate();
+        if (next) {
+          setUpdate(next);
+          setUpdateOpen(true);
+        } else {
+          const notice = await fetchLauncherNotice();
+          const current = await invoke<string>("app_version").catch(() => "");
+          if (
+            notice?.latestVersion &&
+            current &&
+            notice.latestVersion !== current &&
+            localStorage.getItem("aether.update.notice") !== notice.latestVersion
+          ) {
+            localStorage.setItem("aether.update.notice", notice.latestVersion);
+            toast({
+              kind: "info",
+              title: t("Доступно обновление v{version}", { version: notice.latestVersion }),
+              message: notice.notice || notice.url || "",
+            });
+          }
+          if (!silent) {
+            toast({
+              kind: "success",
+              title: t("Обновлений нет"),
+              message: t("Установлена последняя версия Aether Hub."),
+            });
+          }
+        }
+      } catch (error) {
+        if (!silent) {
+          toast({
+            kind: "error",
+            title: t("Не удалось проверить обновления"),
+            message: String(error),
+          });
+        }
+      } finally {
+        setCheckingUpdate(false);
+      }
+    },
+    [t, toast],
+  );
+
+  useEffect(() => {
+    if (!isUpdaterAvailable()) return;
+    const timer = window.setTimeout(() => void checkUpdates(true), 2600);
+    return () => window.clearTimeout(timer);
+  }, [checkUpdates]);
 
   const refresh = async () => {
     setRefreshing(true);
@@ -230,6 +302,18 @@ function Shell() {
             initialSection={settingsSection}
             onClose={() => setSettingsOpen(false)}
             onAdminUnlocked={handleAdminUnlocked}
+            onCheckUpdates={() => void checkUpdates(false)}
+            checkingUpdate={checkingUpdate}
+          />
+        ) : null}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {updateOpen && update ? (
+          <UpdateModal
+            key="update"
+            update={update}
+            onClose={() => setUpdateOpen(false)}
           />
         ) : null}
       </AnimatePresence>
