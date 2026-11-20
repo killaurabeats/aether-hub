@@ -5,6 +5,8 @@
 -- ============================================================================
 
 create extension if not exists pgcrypto;
+-- Used by the auto-approve trigger to call the aether-admin Edge Function.
+create extension if not exists pg_net;
 
 -- ---------------------------------------------------------------- tables ----
 create table if not exists public.releases (
@@ -107,6 +109,16 @@ create table if not exists public.ticket_messages (
   message       text not null,
   created_at    timestamptz not null default now()
 );
+
+create table if not exists public.app_config (
+  id                    boolean primary key default true check (id),
+  auto_approve_licenses boolean not null default false,
+  updated_at            timestamptz not null default now()
+);
+
+insert into public.app_config (id, auto_approve_licenses)
+values (true, false)
+on conflict (id) do nothing;
 
 create index if not exists comments_release_idx on public.comments (release_id, created_at desc);
 create index if not exists ratings_release_idx on public.ratings (release_id);
@@ -331,6 +343,78 @@ grant execute on function public.aether_request_license(text, text, text, text, 
 grant execute on function public.aether_my_requests(text) to anon, authenticated;
 grant execute on function public.aether_my_licenses(text) to anon, authenticated;
 
+-- ------------------------------------------------------- auto-approve hook ----
+-- A new license request pings the Edge Function when the admin toggle is on.
+-- The admin token lives in Supabase Vault (secret name: aether_admin_token),
+-- the function URL optionally in aether_functions_url. The insert never fails
+-- if the hook itself is unavailable: the request simply stays pending.
+create or replace function public.aether_notify_auto_approve()
+returns trigger
+language plpgsql
+security definer
+set search_path = public, net, vault
+as $$
+declare
+  enabled boolean;
+  admin_token text;
+  functions_url text;
+begin
+  if new.status <> 'pending' then
+    return new;
+  end if;
+
+  select auto_approve_licenses into enabled
+    from public.app_config
+   where id = true;
+
+  if not coalesce(enabled, false) then
+    return new;
+  end if;
+
+  select decrypted_secret into admin_token
+    from vault.decrypted_secrets
+   where name = 'aether_admin_token'
+   limit 1;
+
+  select decrypted_secret into functions_url
+    from vault.decrypted_secrets
+   where name = 'aether_functions_url'
+   limit 1;
+
+  if admin_token is null then
+    raise warning 'aether auto-approve: vault secret aether_admin_token is missing';
+    return new;
+  end if;
+
+  perform net.http_post(
+    url := coalesce(
+      functions_url,
+      'https://tniqfffgpisajjprjgmi.supabase.co/functions/v1/aether-admin'
+    ),
+    body := jsonb_build_object(
+      'token', admin_token,
+      'action', 'auto_approve_request',
+      'payload', jsonb_build_object('id', new.id)
+    ),
+    headers := jsonb_build_object('Content-Type', 'application/json'),
+    timeout_milliseconds := 5000
+  );
+
+  return new;
+exception when others then
+  raise warning 'aether auto-approve trigger failed: %', sqlerrm;
+  return new;
+end;
+$$;
+
+revoke all on function public.aether_notify_auto_approve() from public;
+
+drop trigger if exists aether_auto_approve_on_request on public.license_requests;
+create trigger aether_auto_approve_on_request
+after insert on public.license_requests
+for each row
+execute function public.aether_notify_auto_approve();
+
 -- ------------------------------------------------------------------- RLS ----
 alter table public.releases enable row level security;
 alter table public.profiles enable row level security;
@@ -340,6 +424,7 @@ alter table public.license_requests enable row level security;
 alter table public.licenses enable row level security;
 alter table public.support_tickets enable row level security;
 alter table public.ticket_messages enable row level security;
+alter table public.app_config enable row level security;
 
 drop policy if exists releases_public_read on public.releases;
 create policy releases_public_read on public.releases
@@ -375,6 +460,7 @@ revoke all on public.support_tickets from anon, authenticated;
 revoke all on public.ticket_messages from anon, authenticated;
 revoke all on public.comments from anon, authenticated;
 revoke all on public.releases from anon, authenticated;
+revoke all on public.app_config from anon, authenticated;
 
 grant select on public.releases to anon, authenticated;
 grant select, insert on public.comments to anon, authenticated;

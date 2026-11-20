@@ -924,6 +924,33 @@ export interface AdminOverview {
   comments: Array<Comment & { releaseTitle?: string }>;
 }
 
+export interface AppConfig {
+  autoApproveLicenses: boolean;
+  pending: number;
+}
+
+export interface ApproveAllResult {
+  approved: number;
+  failed: number;
+  errors?: string[];
+  pending: number;
+}
+
+export async function fetchAppConfig(): Promise<AppConfig> {
+  if (!cloudEnabled) return { autoApproveLicenses: false, pending: 0 };
+  return adminApi<AppConfig>("config");
+}
+
+export async function setAutoApproveLicenses(enabled: boolean): Promise<AppConfig> {
+  if (!cloudEnabled) throw new Error("Cloud is not configured.");
+  return adminApi<AppConfig>("set_auto_approve", { enabled });
+}
+
+export async function approveAllPending(): Promise<ApproveAllResult> {
+  if (!cloudEnabled) throw new Error("Cloud is not configured.");
+  return adminApi<ApproveAllResult>("approve_all_pending");
+}
+
 export async function adminOverview(): Promise<AdminOverview> {
   if (cloudEnabled) {
     return adminApi<AdminOverview>("overview");

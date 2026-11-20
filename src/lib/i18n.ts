@@ -308,6 +308,19 @@ const en: Record<string, string> = {
     "To make releases visible to everyone, add the Supabase URL, anon key and",
   "задеплойте Edge Function и пересоберите приложение. Сейчас изменения сохраняются в локальный каталог этого Mac.":
     "deploy the Edge Function and rebuild the app. For now changes are saved to this Mac's local catalog.",
+  "Автовыдача лицензий (Auto-Approve)": "Auto-approve licenses",
+  "Новые заявки подписываются на сервере автоматически и сразу попадают в профиль пользователя.":
+    "New requests are signed on the server automatically and land in the user's profile immediately.",
+  "Для автовыдачи нужен Cloud admin token.":
+    "Auto-approve requires a Cloud admin token.",
+  "Одобрить все ожидающие": "Approve all pending",
+  "Автовыдача лицензий включена": "Auto-approve enabled",
+  "Автовыдача лицензий выключена": "Auto-approve disabled",
+  "Не удалось изменить автовыдачу": "Could not change auto-approve",
+  "Одобрено заявок: {count}": "Approved requests: {count}",
+  "Не удалось подписать: {count}": "Failed to sign: {count}",
+  "Очередь обработана.": "Queue processed.",
+  "Не удалось одобрить заявки": "Could not approve requests",
   "Новый релиз": "New release",
   "Редактирование": "Editing",
   "Релизы": "Releases",

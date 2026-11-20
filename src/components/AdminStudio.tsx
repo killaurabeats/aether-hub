@@ -7,6 +7,7 @@ import {
   CloudUpload,
   FileArchive,
   Image as ImageIcon,
+  ListChecks,
   Loader2,
   MessageSquare,
   Pencil,
@@ -17,11 +18,19 @@ import {
   Trash2,
   UploadCloud,
   X,
+  Zap,
 } from "lucide-react";
 import type { Category, Comment, Release } from "../types";
 import { CATEGORY_META } from "../types";
 import { useStore } from "../lib/store";
-import { cloudEnabled, deleteRelease, saveRelease } from "../lib/cloud";
+import {
+  approveAllPending,
+  cloudEnabled,
+  deleteRelease,
+  fetchAppConfig,
+  saveRelease,
+  setAutoApproveLicenses,
+} from "../lib/cloud";
 import { fileStat, readImageDataUrl } from "../lib/desktop";
 import { formatBytes, formatDate, slugify, timeAgo } from "../lib/format";
 import { Avatar } from "./Avatar";
@@ -88,10 +97,75 @@ export function AdminStudio() {
     Array<Comment & { releaseTitle?: string }> | null
   >(null);
   const slugTouched = useRef(false);
+  const [autoApprove, setAutoApprove] = useState<boolean | null>(null);
+  const [autoPending, setAutoPending] = useState(0);
+  const [autoBusy, setAutoBusy] = useState(false);
+  const [approveAllBusy, setApproveAllBusy] = useState(false);
+  const [autoError, setAutoError] = useState<string | null>(null);
+
+  const loadAutomation = useCallback(async () => {
+    if (!cloudEnabled || !adminTokenReady) {
+      setAutoApprove(false);
+      setAutoPending(0);
+      return;
+    }
+    try {
+      const config = await fetchAppConfig();
+      setAutoApprove(config.autoApproveLicenses);
+      setAutoPending(config.pending);
+      setAutoError(null);
+    } catch (error) {
+      setAutoError(String(error));
+    }
+  }, [adminTokenReady]);
 
   useEffect(() => {
     void refreshAdminData();
-  }, [refreshAdminData]);
+    void loadAutomation();
+  }, [loadAutomation, refreshAdminData]);
+
+  const toggleAutoApprove = async () => {
+    if (!adminTokenReady || autoApprove === null) return;
+    setAutoBusy(true);
+    setAutoError(null);
+    try {
+      const config = await setAutoApproveLicenses(!autoApprove);
+      setAutoApprove(config.autoApproveLicenses);
+      setAutoPending(config.pending);
+      toast({
+        kind: "success",
+        title: config.autoApproveLicenses
+          ? t("Автовыдача лицензий включена")
+          : t("Автовыдача лицензий выключена"),
+      });
+    } catch (error) {
+      setAutoError(String(error));
+      toast({ kind: "error", title: t("Не удалось изменить автовыдачу"), message: String(error) });
+    } finally {
+      setAutoBusy(false);
+    }
+  };
+
+  const approveAll = async () => {
+    setApproveAllBusy(true);
+    try {
+      const result = await approveAllPending();
+      await refreshAdminData();
+      await loadAutomation();
+      toast({
+        kind: result.approved ? "success" : "info",
+        title: t("Одобрено заявок: {count}", { count: result.approved }),
+        message:
+          result.failed > 0
+            ? t("Не удалось подписать: {count}", { count: result.failed })
+            : t("Очередь обработана."),
+      });
+    } catch (error) {
+      toast({ kind: "error", title: t("Не удалось одобрить заявки"), message: String(error) });
+    } finally {
+      setApproveAllBusy(false);
+    }
+  };
 
   const comments = overview?.comments ?? [];
 
@@ -430,6 +504,70 @@ export function AdminStudio() {
           </div>
         </div>
       ) : null}
+
+      <div
+        className="admin-card glass"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 16,
+          marginBottom: 16,
+          padding: "18px 20px",
+        }}
+      >
+        <div className="seal" style={{ width: 44, height: 44, borderRadius: 14 }}>
+          <Zap size={18} />
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <h3 style={{ margin: 0 }}>{t("Автовыдача лицензий (Auto-Approve)")}</h3>
+            <span className={`chip ${autoApprove ? "green" : ""}`}>
+              {autoApprove === null ? "…" : autoApprove ? "ON" : "OFF"}
+            </span>
+            {autoPending > 0 ? (
+              <span className="chip gold">
+                {t("{count} ждут", { count: autoPending })}
+              </span>
+            ) : null}
+          </div>
+          <p className="sub" style={{ margin: "5px 0 0" }}>
+            {t(
+              "Новые заявки подписываются на сервере автоматически и сразу попадают в профиль пользователя.",
+            )}
+          </p>
+          {!cloudEnabled || !adminTokenReady ? (
+            <p style={{ margin: "5px 0 0", fontSize: 10, color: "var(--gold)" }}>
+              {t("Для автовыдачи нужен Cloud admin token.")}
+            </p>
+          ) : null}
+          {autoError ? (
+            <p style={{ margin: "5px 0 0", fontSize: 10, color: "var(--red)", wordBreak: "break-word" }}>
+              {autoError}
+            </p>
+          ) : null}
+        </div>
+        <button
+          className={`toggle ${autoApprove ? "on" : ""}`}
+          onClick={() => void toggleAutoApprove()}
+          disabled={!cloudEnabled || !adminTokenReady || autoBusy || autoApprove === null}
+          aria-pressed={Boolean(autoApprove)}
+          aria-label={t("Автовыдача лицензий (Auto-Approve)")}
+          title={t("Автовыдача лицензий (Auto-Approve)")}
+        />
+        <button
+          className="btn btn-soft btn-sm"
+          onClick={() => void approveAll()}
+          disabled={!cloudEnabled || !adminTokenReady || approveAllBusy || autoPending === 0}
+        >
+          {approveAllBusy ? (
+            <Loader2 size={12} className="spin" />
+          ) : (
+            <ListChecks size={12} />
+          )}
+          {t("Одобрить все ожидающие")}
+          {autoPending > 0 ? ` · ${autoPending}` : ""}
+        </button>
+      </div>
 
       <div className="segmented">
         <button className={tab === "publish" ? "active" : ""} onClick={() => setTab("publish")}>

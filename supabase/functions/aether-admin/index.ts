@@ -9,6 +9,92 @@
 // ============================================================================
 
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { eddsa } from "npm:@noble/curves@2.4.0/abstract/edwards.js";
+import { ed25519 } from "npm:@noble/curves@2.4.0/ed25519.js";
+import { blake2b } from "npm:@noble/hashes@2.4.0/blake2.js";
+
+// Monocypher's EdDSA is Ed25519 with BLAKE2b-512 instead of SHA-512. Noble's
+// Edwards arithmetic accepts a custom hash, which gives byte-identical
+// signatures to src-tauri/vendor/monocypher without shipping native WASM.
+const adjustScalarBytes = (bytes: Uint8Array): Uint8Array => {
+  bytes[0] &= 248;
+  bytes[31] &= 127;
+  bytes[31] |= 64;
+  return bytes;
+};
+
+const monoEdDsa = eddsa(ed25519.Point, blake2b, {
+  adjustScalarBytes,
+  zip215: true,
+});
+
+const BASE32 = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+const KEY_VERSION = 1;
+const DEFAULT_PRODUCT_TAG = "AETHER-VOCAL-STRIP";
+
+const hexToBytes = (hex: string): Uint8Array => {
+  if (hex.length % 2 !== 0) throw new Error("Invalid hex");
+  const out = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < out.length; i += 1) {
+    out[i] = Number.parseInt(hex.slice(i * 2, i * 2 + 2), 16);
+  }
+  return out;
+};
+
+const base32Encode = (data: Uint8Array): string => {
+  let out = "";
+  let buffer = 0;
+  let bits = 0;
+  for (const byte of data) {
+    buffer = (buffer << 8) | byte;
+    bits += 8;
+    while (bits >= 5) {
+      bits -= 5;
+      out += BASE32[(buffer >> bits) & 31];
+    }
+  }
+  if (bits > 0) out += BASE32[(buffer << (5 - bits)) & 31];
+  return out;
+};
+
+const normaliseMachineId = (value: unknown) =>
+  String(value ?? "").toUpperCase().replace(/[^0-9A-F]/g, "");
+
+const sanitiseTag = (value: unknown) => {
+  const cleaned = String(value ?? "")
+    .replace(/[^A-Za-z0-9._-]/g, "")
+    .toUpperCase()
+    .slice(0, 64);
+  return cleaned || DEFAULT_PRODUCT_TAG;
+};
+
+const readPrivateSeed = (raw: string | undefined): Uint8Array => {
+  if (!raw) throw new Error("LICENSE_PRIVATE_KEY secret is missing");
+  let value = raw.trim();
+  if (value.startsWith("{")) {
+    const parsed = JSON.parse(value);
+    value = String(parsed.privateKey ?? parsed.private_key ?? "");
+  }
+  const hex = value.replace(/[^0-9a-fA-F]/g, "");
+  if (hex.length < 64) throw new Error("LICENSE_PRIVATE_KEY is not valid");
+  return hexToBytes(hex.slice(0, 64));
+};
+
+const issueLicenseKey = (machineId: string, productTag: string): string => {
+  const canonical = normaliseMachineId(machineId);
+  if (canonical.length !== 32) {
+    throw new Error("Machine ID must contain exactly 32 hex characters.");
+  }
+  const seed = readPrivateSeed(Deno.env.get("LICENSE_PRIVATE_KEY"));
+  const tag = sanitiseTag(productTag);
+  const message = new TextEncoder().encode(`${tag}|v1|${canonical}`);
+  const signature = monoEdDsa.sign(message, seed);
+  const payload = new Uint8Array(65);
+  payload[0] = KEY_VERSION;
+  payload.set(signature, 1);
+  const encoded = base32Encode(payload);
+  return `AETHER-${encoded.match(/.{1,4}/g)?.join("-") ?? encoded}`;
+};
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -91,6 +177,58 @@ const mapComment = (row: Record<string, any>, releaseTitle?: string) => ({
   releaseTitle,
 });
 
+const issuePendingRequest = async (supabase: any, row: Record<string, any>) => {
+  if (!row || row.status !== "pending") return { skipped: true };
+
+  const key = issueLicenseKey(row.machine_id, row.product_tag);
+  const now = new Date().toISOString();
+
+  const { data: updated, error: updateError } = await supabase
+    .from("license_requests")
+    .update({ status: "approved", key, resolved_at: now })
+    .eq("id", row.id)
+    .eq("status", "pending")
+    .select("id")
+    .maybeSingle();
+
+  if (updateError) throw updateError;
+  if (!updated) return { skipped: true };
+
+  const { error: licenseError } = await supabase.from("licenses").upsert(
+    {
+      machine_id: norm(row.machine_id),
+      product_tag: row.product_tag,
+      plugin_title: row.plugin_title,
+      key,
+      nickname: row.nickname,
+      issued_at: now,
+    },
+    { onConflict: "machine_id,product_tag" },
+  );
+
+  if (licenseError) throw licenseError;
+  return { skipped: false, key };
+};
+
+const readAutoApprove = async (supabase: any): Promise<boolean> => {
+  const { data, error } = await supabase
+    .from("app_config")
+    .select("auto_approve_licenses")
+    .eq("id", true)
+    .maybeSingle();
+  if (error) throw error;
+  return Boolean(data?.auto_approve_licenses);
+};
+
+const pendingCount = async (supabase: any): Promise<number> => {
+  const { count, error } = await supabase
+    .from("license_requests")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "pending");
+  if (error) throw error;
+  return count ?? 0;
+};
+
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") {
     return new Response("ok", { headers: CORS });
@@ -127,6 +265,80 @@ Deno.serve(async (request) => {
 
   try {
     switch (action) {
+      // ----------------------------------------------------- auto-approve ----
+      case "config": {
+        return json({
+          autoApproveLicenses: await readAutoApprove(supabase),
+          pending: await pendingCount(supabase),
+        });
+      }
+
+      case "set_auto_approve": {
+        const enabled = Boolean(payload.enabled);
+        const { data, error } = await supabase
+          .from("app_config")
+          .upsert(
+            {
+              id: true,
+              auto_approve_licenses: enabled,
+              updated_at: new Date().toISOString(),
+            },
+            { onConflict: "id" },
+          )
+          .select("auto_approve_licenses")
+          .single();
+        if (error) return json({ error: error.message }, 400);
+        return json({
+          autoApproveLicenses: Boolean(data?.auto_approve_licenses),
+          pending: await pendingCount(supabase),
+        });
+      }
+
+      case "auto_approve_request": {
+        if (!(await readAutoApprove(supabase))) return json({ skipped: true });
+        const id = String(payload.id ?? "");
+        if (!id) return json({ error: "id required" }, 400);
+
+        const { data: requestRow, error: reqError } = await supabase
+          .from("license_requests")
+          .select("*")
+          .eq("id", id)
+          .maybeSingle();
+        if (reqError) return json({ error: reqError.message }, 400);
+        if (!requestRow) return json({ skipped: true });
+
+        const result = await issuePendingRequest(supabase, requestRow);
+        return json({ ok: true, ...result });
+      }
+
+      case "approve_all_pending": {
+        const { data: rows, error } = await supabase
+          .from("license_requests")
+          .select("*")
+          .eq("status", "pending")
+          .order("created_at", { ascending: true })
+          .limit(200);
+        if (error) return json({ error: error.message }, 400);
+
+        let approved = 0;
+        const failures: string[] = [];
+        for (const row of rows ?? []) {
+          try {
+            const result = await issuePendingRequest(supabase, row);
+            if (!result.skipped) approved += 1;
+          } catch (error) {
+            failures.push(`${row.id}: ${String(error)}`);
+          }
+        }
+
+        return json({
+          approved,
+          failed: failures.length,
+          errors: failures.slice(0, 10),
+          pending: await pendingCount(supabase),
+        });
+      }
+
       // ---------------------------------------------------------- uploads ----
       case "sign_upload": {
         const bucket = String(payload.bucket ?? "aether-assets");
