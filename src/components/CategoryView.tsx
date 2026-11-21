@@ -52,10 +52,18 @@ export function CategoryView({
     () => items.filter((release) => (release.tier ?? "free") !== "beta"),
     [items],
   );
-  const betaItems = useMemo(
-    () => items.filter((release) => (release.tier ?? "free") === "beta"),
-    [items],
-  );
+  const betaItems = useMemo(() => {
+    const beta = items.filter((release) => (release.tier ?? "free") === "beta");
+    // Test-ready betas (with at least one uploaded build) always come first;
+    // future roadmap placeholders follow in the regular date/rating order.
+    const withBuild: Release[] = [];
+    const upcoming: Release[] = [];
+    for (const release of beta) {
+      if (release.files.macos || release.files.windows) withBuild.push(release);
+      else upcoming.push(release);
+    }
+    return [...withBuild, ...upcoming];
+  }, [items]);
   const showRoadmap = category === "plugins" && betaItems.length > 0;
   const pluginCategoryOptions = [
     { value: "all", label: t("Все категории") },

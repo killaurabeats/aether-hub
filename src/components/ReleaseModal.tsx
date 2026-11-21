@@ -109,6 +109,9 @@ export function ReleaseModal({
   const meta = CATEGORY_META[release.category];
   const tier = release.tier ?? "free";
   const betaLocked = tier === "beta" && !betaTester;
+  const hasBetaBuild = Boolean(release.files.macos || release.files.windows);
+  const betaCoverLocked =
+    tier === "beta" && !((betaTester || adminVisible) && hasBetaBuild);
   const file = release.files[machine.os === "windows" ? "windows" : "macos"];
   const otherFile = release.files[machine.os === "windows" ? "macos" : "windows"];
 
@@ -182,14 +185,14 @@ export function ReleaseModal({
         transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
       >
         <div className="modal-scroll">
-          <div className={`detail-hero ${tier === "beta" ? "beta" : ""}`}>
+          <div className={`detail-hero ${betaCoverLocked ? "beta" : ""}`}>
             {release.coverUrl ? (
               <img src={release.coverUrl} alt={release.title} draggable={false} />
             ) : (
               <div style={{ height: "100%", background: "linear-gradient(140deg,#22163c,#0a0714)" }} />
             )}
 
-            {tier === "beta" ? (
+            {betaCoverLocked ? (
               <div className="beta-cover-lock detail">
                 <LockKeyhole size={22} />
                 <span>{t("В разработке")}</span>

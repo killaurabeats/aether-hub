@@ -98,15 +98,26 @@ export function ReleaseCard({
   onOpen: (release: Release) => void;
   index?: number;
 }) {
-  const { machine, installs, progress, getFileForOS, language, betaTester, t } =
-    useStore();
+  const {
+    machine,
+    installs,
+    progress,
+    getFileForOS,
+    language,
+    betaTester,
+    adminVisible,
+    t,
+  } = useStore();
   const record = installs[release.slug];
   const job = progress[release.slug];
   const file = getFileForOS(release);
   const Icon = categoryIcon[release.category];
   const meta = CATEGORY_META[release.category];
   const hasBetaBuild = Boolean(release.files.macos || release.files.windows);
-  const testReady = release.tier === "beta" && betaTester && hasBetaBuild;
+  // Beta testers and admins can preview a beta that already has a build.
+  const testReady =
+    release.tier === "beta" && (betaTester || adminVisible) && hasBetaBuild;
+  const betaCoverLocked = release.tier === "beta" && !testReady;
 
   return (
     <motion.article
@@ -118,7 +129,7 @@ export function ReleaseCard({
       whileHover={{ y: -3 }}
       layout={false}
     >
-      <div className={`release-cover ${release.tier === "beta" ? "beta" : ""}`}>
+      <div className={`release-cover ${betaCoverLocked ? "beta" : ""}`}>
         {release.coverUrl ? (
           <img src={release.coverUrl} alt={release.title} loading="lazy" draggable={false} />
         ) : (
@@ -136,7 +147,7 @@ export function ReleaseCard({
           </div>
         )}
 
-        {release.tier === "beta" ? (
+        {betaCoverLocked ? (
           <div className="beta-cover-lock">
             <LockKeyhole size={18} />
             <span>{t("В разработке")}</span>
@@ -219,8 +230,12 @@ export function FeaturedRelease({
   release: Release;
   onOpen: (release: Release) => void;
 }) {
-  const { machine, language, t } = useStore();
+  const { machine, language, betaTester, adminVisible, t } = useStore();
   const meta = CATEGORY_META[release.category];
+  const hasBetaBuild = Boolean(release.files.macos || release.files.windows);
+  const testReady =
+    release.tier === "beta" && (betaTester || adminVisible) && hasBetaBuild;
+  const betaCoverLocked = release.tier === "beta" && !testReady;
 
   return (
     <motion.div
@@ -229,13 +244,13 @@ export function FeaturedRelease({
       whileHover={{ y: -2 }}
       style={{ cursor: "pointer" }}
     >
-      <div className={`featured-cover ${release.tier === "beta" ? "beta" : ""}`}>
+      <div className={`featured-cover ${betaCoverLocked ? "beta" : ""}`}>
         {release.coverUrl ? (
           <img src={release.coverUrl} alt={release.title} draggable={false} />
         ) : (
           <div style={{ height: "100%", background: "linear-gradient(140deg,#24163f,#0b0815)" }} />
         )}
-        {release.tier === "beta" ? (
+        {betaCoverLocked ? (
           <div className="beta-cover-lock">
             <LockKeyhole size={18} />
             <span>{t("В разработке")}</span>
