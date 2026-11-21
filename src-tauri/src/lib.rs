@@ -667,7 +667,10 @@ pub fn machine_id_string() -> String {
 #[cfg(target_os = "macos")]
 fn make_webview_transparent(window: &tauri::WebviewWindow) {
     use objc2::msg_send;
+    use objc2_app_kit::{NSColor, NSView, NSWindow};
     use objc2_foundation::{NSNumber, NSString};
+    use objc2_quartz_core::CALayer;
+    use std::ffi::c_void;
 
     let _ = window.with_webview(|webview| {
         let view = webview.inner() as *mut objc2_web_kit::WKWebView;
@@ -679,6 +682,41 @@ fn make_webview_transparent(window: &tauri::WebviewWindow) {
             let key = NSString::from_str("drawsBackground");
             let value = NSNumber::numberWithBool(false);
             let _: () = msg_send![view, setValue: &*value, forKey: &*key];
+
+            let clear = NSColor::clearColor();
+            let cg_color: *mut c_void = msg_send![&*clear, CGColor];
+
+            let ns_window: *mut NSWindow = msg_send![view, window];
+            if !ns_window.is_null() {
+                let _: () = msg_send![ns_window, setOpaque: false];
+                let _: () = msg_send![ns_window, setBackgroundColor: &*clear];
+                let _: () = msg_send![ns_window, setHasShadow: false];
+
+                let content_view: *mut NSView = msg_send![ns_window, contentView];
+                if !content_view.is_null() {
+                    let _: () = msg_send![content_view, setWantsLayer: true];
+                    let layer: *mut CALayer = msg_send![content_view, layer];
+                    if !layer.is_null() {
+                        let _: () = msg_send![layer, setCornerRadius: 18.0f64];
+                        let _: () = msg_send![layer, setMasksToBounds: true];
+                        if !cg_color.is_null() {
+                            let _: () = msg_send![layer, setBackgroundColor: cg_color];
+                        }
+                    }
+                }
+            }
+
+            // Clip the WKWebView layer too so its own opaque backing store can
+            // never paint a square corner over the 18px window radius.
+            let _: () = msg_send![view, setWantsLayer: true];
+            let web_layer: *mut CALayer = msg_send![view, layer];
+            if !web_layer.is_null() {
+                let _: () = msg_send![web_layer, setCornerRadius: 18.0f64];
+                let _: () = msg_send![web_layer, setMasksToBounds: true];
+                if !cg_color.is_null() {
+                    let _: () = msg_send![web_layer, setBackgroundColor: cg_color];
+                }
+            }
         }
     });
 }
@@ -686,9 +724,7 @@ fn make_webview_transparent(window: &tauri::WebviewWindow) {
 #[cfg(target_os = "macos")]
 fn configure_macos_window(window: &tauri::WebviewWindow) {
     use objc2::msg_send;
-    use objc2_app_kit::{NSColor, NSView, NSWindow};
-    use objc2_quartz_core::CALayer;
-    use std::ffi::c_void;
+    use objc2_app_kit::{NSColor, NSWindow};
 
     let Ok(ns_window_ptr) = window.ns_window() else {
         return;
@@ -703,6 +739,30 @@ fn configure_macos_window(window: &tauri::WebviewWindow) {
         let clear = NSColor::clearColor();
         let _: () = msg_send![ns_window, setBackgroundColor: &*clear];
         let _: () = msg_send![ns_window, setHasShadow: false];
+    }
+}
+
+#[cfg(target_os = "macos")]
+fn apply_macos_window_clipping(window: &tauri::WebviewWindow) {
+    use objc2::msg_send;
+    use objc2_app_kit::{NSColor, NSView, NSWindow};
+    use objc2_quartz_core::CALayer;
+    use std::ffi::c_void;
+
+    let Ok(ns_window_ptr) = window.ns_window() else {
+        return;
+    };
+    if ns_window_ptr.is_null() {
+        return;
+    }
+
+    let ns_window = ns_window_ptr as *mut NSWindow;
+    unsafe {
+        let clear = NSColor::clearColor();
+        let cg_color: *mut c_void = msg_send![&*clear, CGColor];
+        let _: () = msg_send![ns_window, setOpaque: false];
+        let _: () = msg_send![ns_window, setBackgroundColor: &*clear];
+        let _: () = msg_send![ns_window, setHasShadow: false];
 
         let content_view: *mut NSView = msg_send![ns_window, contentView];
         if content_view.is_null() {
@@ -715,16 +775,24 @@ fn configure_macos_window(window: &tauri::WebviewWindow) {
             return;
         }
 
-        // Let the OS compositor itself clip the window to the same 18px radius
-        // used by the web UI. This removes the grey rectangular corner that a
-        // transparent webview alone cannot hide.
         let _: () = msg_send![layer, setCornerRadius: 18.0f64];
         let _: () = msg_send![layer, setMasksToBounds: true];
-        let cg_color: *mut c_void = msg_send![&*clear, CGColor];
         if !cg_color.is_null() {
             let _: () = msg_send![layer, setBackgroundColor: cg_color];
         }
     }
+}
+
+#[cfg(target_os = "macos")]
+fn schedule_macos_window_clipping(window: &tauri::WebviewWindow) {
+    let target = window.clone();
+    std::thread::spawn(move || {
+        std::thread::sleep(std::time::Duration::from_millis(1200));
+        let window = target.clone();
+        let _ = target.run_on_main_thread(move || {
+            apply_macos_window_clipping(&window);
+        });
+    });
 }
 
 #[cfg(target_os = "windows")]
@@ -779,6 +847,7 @@ pub fn run() {
                 {
                     make_webview_transparent(&window);
                     configure_macos_window(&window);
+                    schedule_macos_window_clipping(&window);
                 }
                 #[cfg(target_os = "windows")]
                 configure_windows_window(&window);
