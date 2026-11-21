@@ -140,12 +140,12 @@ export function seedReleases(): Release[] {
       files: {
         macos: {
           url: "/releases/aether-saturator-macos.zip",
-          sizeBytes: 6281071,
+          sizeBytes: 6269061,
           filename: "AetherSaturator_macOS_VST3_AU.zip",
         },
         windows: {
           url: "/releases/aether-saturator-windows.zip",
-          sizeBytes: 2284118,
+          sizeBytes: 2281464,
           filename: "AetherSaturator_Windows_VST3.zip",
         },
       },
