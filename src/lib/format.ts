@@ -17,7 +17,7 @@ export function descriptionFor(
 }
 
 export function formatBytes(bytes?: number | null): string {
-  if (!bytes || bytes <= 0) return "—";
+  if (!bytes || bytes <= 0) return "-";
   const mb = bytes / (1024 * 1024);
   if (mb >= 100) return `${Math.round(mb)} MB`;
   if (mb >= 10) return `${mb.toFixed(1)} MB`;

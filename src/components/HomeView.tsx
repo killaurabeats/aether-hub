@@ -75,7 +75,7 @@ export function HomeView({
           </h1>
           <p>
             {t(
-              "Плагины, драм-киты и пресеты в одном приватном хабе. Установка в один клик, живые оценки, мгновенные обновления — без переустановки лаунчера.",
+              "Плагины, драм-киты и пресеты в одном приватном хабе. Установка в один клик, живые оценки, мгновенные обновления - без переустановки лаунчера.",
             )}
           </p>
           <div className="hero-actions">
@@ -107,7 +107,7 @@ export function HomeView({
               <span>{t("рейтинг")}</span>
             </div>
             <div className="hero-stat">
-              <strong>{licenses.length || "—"}</strong>
+              <strong>{licenses.length || "-"}</strong>
               <span>{t("лицензий")}</span>
             </div>
           </div>
@@ -160,7 +160,9 @@ export function HomeView({
                 {featured.tier === "beta" ? (
                   <span className="chip beta">BETA</span>
                 ) : null}
-                {featured.badge ? <span className="chip gold">{featured.badge}</span> : null}
+                {featured.badge && featured.tier !== "beta" ? (
+                  <span className="chip gold">{featured.badge}</span>
+                ) : null}
                 <span className="rating-pill">
                   <Star size={10} /> {featured.ratingAvg.toFixed(1)}
                 </span>

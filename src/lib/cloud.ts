@@ -5,7 +5,7 @@
  * (ratings, comments, licence requests) use constrained RPC/inserts. Every
  * privileged action (publishing, moderation, issuing keys) goes through the
  * `aether-admin` Edge Function and requires VITE_AETHER_ADMIN_TOKEN *and* the
- * matching ADMIN_TOKEN secret in Supabase — so public builds simply don't have
+ * matching ADMIN_TOKEN secret in Supabase - so public builds simply don't have
  * admin access.
  *
  * With no .env keys the app runs in fully functional local mode: the same
@@ -201,7 +201,7 @@ function seedComments(): Comment[] {
       id: "c2",
       releaseId: "rel_aether_vocal_strip",
       nickname: "killaurabeats",
-      body: "v1.1 is the one — no-latency mode finally makes it usable while tracking.",
+      body: "v1.1 is the one - no-latency mode finally makes it usable while tracking.",
       createdAt: nowMinus(9),
       avatarUrl: null,
     },
@@ -254,7 +254,7 @@ function seedSupportTickets(): SupportTicket[] {
       avatarUrl: null,
       os: "macOS",
       message:
-        "После установки плагин не появился в списке FL Studio. Папки VST3 и Components проверил — файлы на месте. Что ещё можно сделать?",
+        "После установки плагин не появился в списке FL Studio. Папки VST3 и Components проверил - файлы на месте. Что ещё можно сделать?",
       status: "open",
       createdAt: nowMinus(3),
     },
@@ -282,7 +282,7 @@ function seedTicketMessages(): Record<string, TicketMessage[]> {
         senderName: "novaafterdark",
         senderAvatar: null,
         message:
-          "Привет! После установки AetherVocal Strip не вижу плагин в FL Studio. Папки VST3 и Components проверил — файлы там.",
+          "Привет! После установки AetherVocal Strip не вижу плагин в FL Studio. Папки VST3 и Components проверил - файлы там.",
         createdAt: nowMinus(3),
       },
       {
@@ -292,7 +292,7 @@ function seedTicketMessages(): Record<string, TicketMessage[]> {
         senderName: "killaurabeats",
         senderAvatar: "/logo.png",
         message:
-          "Привет! Открой Options → Manage plugins → Find more plugins и нажми Start scan. Если не появится — пришли скрин списка плагинов.",
+          "Привет! Открой Options → Manage plugins → Find more plugins и нажми Start scan. Если не появится - пришли скрин списка плагинов.",
         createdAt: nowMinus(2),
       },
       {
@@ -323,7 +323,7 @@ function seedTicketMessages(): Record<string, TicketMessage[]> {
         senderName: "killaurabeats",
         senderAvatar: "/logo.png",
         message:
-          "Скачай новую версию из хаба и установи поверх — пресеты хранятся отдельно и не затронутся. После установки перезапусти FL Studio.",
+          "Скачай новую версию из хаба и установи поверх - пресеты хранятся отдельно и не затронутся. После установки перезапусти FL Studio.",
         createdAt: nowMinus(40),
       },
     ],

@@ -136,7 +136,7 @@ export function ReleaseCard({
         {release.tier === "beta" ? (
           <div className="beta-cover-lock">
             <LockKeyhole size={18} />
-            <span>BETA • {t("В разработке")}</span>
+            <span>{t("В разработке")}</span>
           </div>
         ) : null}
 
@@ -151,7 +151,9 @@ export function ReleaseCard({
               </span>
             )
           ) : null}
-          {release.badge ? <span className="chip gold">{release.badge}</span> : null}
+          {release.badge && release.tier !== "beta" ? (
+            <span className="chip gold">{release.badge}</span>
+          ) : null}
           <span className="spacer" />
           <span className="rating-pill" title={t("{count} оценок", { count: release.ratingCount })}>
             <Star size={10} /> {release.ratingAvg.toFixed(1)}
@@ -176,7 +178,7 @@ export function ReleaseCard({
 
         <div className="card-foot">
           <div className="file-meta">
-            <b>{file ? formatBytes(file.sizeBytes) : "—"}</b>
+            <b>{file ? formatBytes(file.sizeBytes) : "-"}</b>
             <span>
               {release.category === "plugins" ? "VST3 / AU" : release.category === "presets" ? "FL / Aether" : "WAV 24-bit"} · {machine.platformLabel}
             </span>
@@ -226,7 +228,7 @@ export function FeaturedRelease({
         {release.tier === "beta" ? (
           <div className="beta-cover-lock">
             <LockKeyhole size={18} />
-            <span>BETA • {t("В разработке")}</span>
+            <span>{t("В разработке")}</span>
           </div>
         ) : null}
       </div>
@@ -234,7 +236,9 @@ export function FeaturedRelease({
         <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
           <span className="chip violet">{meta.singular}</span>
           {release.tier === "beta" ? <span className="chip beta">BETA</span> : null}
-          {release.badge ? <span className="chip gold">{release.badge}</span> : null}
+          {release.badge && release.tier !== "beta" ? (
+            <span className="chip gold">{release.badge}</span>
+          ) : null}
           <span className="rating-pill" style={{ marginLeft: 2 }}>
             <Star size={10} /> {release.ratingAvg.toFixed(1)}
           </span>
@@ -248,7 +252,7 @@ export function FeaturedRelease({
               ? formatBytes(
                   release.files[machine.os === "windows" ? "windows" : "macos"]!.sizeBytes,
                 )
-              : "—"}</b>
+              : "-"}</b>
             <span>
               v{release.version} · {meta.label}
             </span>

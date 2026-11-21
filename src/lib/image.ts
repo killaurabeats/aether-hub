@@ -18,7 +18,7 @@ export async function processAvatar(file: File, size = 256): Promise<string> {
   ctx.drawImage(bitmap, sx, sy, side, side, 0, 0, size, size);
   bitmap.close();
 
-  // JPEG keeps avatars tiny (~8–18 KB at 256 px).
+  // JPEG keeps avatars tiny (~8-18 KB at 256 px).
   return canvas.toDataURL("image/jpeg", 0.86);
 }
 

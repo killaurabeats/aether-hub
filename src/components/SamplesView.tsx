@@ -43,31 +43,16 @@ import {
   uploadSampleFile,
 } from "../lib/cloud";
 import { formatDate, timeAgo } from "../lib/format";
+import { AetherSelect } from "./AetherSelect";
 
 type SampleTab = "all" | "top" | "community";
 type TypeFilter = "all" | SampleCategory;
 
+const NOTES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+
 const MUSICAL_KEYS = [
   "Any",
-  "C",
-  "C#",
-  "D",
-  "D#",
-  "E",
-  "F",
-  "F#",
-  "G",
-  "G#",
-  "A",
-  "A#",
-  "B",
-  "Am",
-  "Bm",
-  "Cm",
-  "Dm",
-  "Em",
-  "Fm",
-  "Gm",
+  ...NOTES.flatMap((note) => [`${note} min`, `${note} maj`]),
 ];
 
 const SAMPLE_CATEGORY_OPTIONS = Object.entries(SAMPLE_CATEGORY_META) as Array<
@@ -76,11 +61,11 @@ const SAMPLE_CATEGORY_OPTIONS = Object.entries(SAMPLE_CATEGORY_META) as Array<
 
 const BPM_FILTERS: Array<{ id: string; label: string; test: (bpm: number | null) => boolean }> = [
   { id: "all", label: "Любой BPM", test: () => true },
-  { id: "60-90", label: "60–90", test: (bpm) => bpm != null && bpm >= 60 && bpm <= 90 },
-  { id: "90-120", label: "90–120", test: (bpm) => bpm != null && bpm >= 90 && bpm <= 120 },
-  { id: "120-150", label: "120–150", test: (bpm) => bpm != null && bpm >= 120 && bpm <= 150 },
-  { id: "150-180", label: "150–180", test: (bpm) => bpm != null && bpm >= 150 && bpm <= 180 },
-  { id: "180-plus", label: "180+", test: (bpm) => bpm != null && bpm >= 180 },
+  { id: "70-90", label: "70-90", test: (bpm) => bpm != null && bpm >= 70 && bpm <= 90 },
+  { id: "90-110", label: "90-110", test: (bpm) => bpm != null && bpm >= 90 && bpm <= 110 },
+  { id: "110-130", label: "110-130", test: (bpm) => bpm != null && bpm >= 110 && bpm <= 130 },
+  { id: "130-150", label: "130-150", test: (bpm) => bpm != null && bpm >= 130 && bpm <= 150 },
+  { id: "150-plus", label: "150+", test: (bpm) => bpm != null && bpm >= 150 },
 ];
 
 let activeStopFn: (() => void) | null = null;
@@ -268,7 +253,7 @@ function SampleCard({
       if (dragPathRef.current) {
         toast({
           kind: "info",
-          title: t("Файл готов — потяните карточку в FL Studio"),
+          title: t("Файл готов - потяните карточку в FL Studio"),
           message: t("Локальный кэш: {path}", { path: dragPathRef.current }),
         });
       }
@@ -361,14 +346,14 @@ function SampleCard({
 
       <div className="sample-title-row">
         <h3>{sample.title}</h3>
-        <span className="sample-bpm">{sample.bpm ? `${sample.bpm} BPM` : "—"}</span>
+        <span className="sample-bpm">{sample.bpm ? `${sample.bpm} BPM` : "-"}</span>
       </div>
 
       <div className="sample-meta-row">
         <span>
           <Users size={9} /> {sample.authorName}
         </span>
-        <span>{sample.musicalKey || "—"}</span>
+        <span>{sample.musicalKey || "-"}</span>
         <span>{timeAgo(sample.createdAt)}</span>
       </div>
 
@@ -414,6 +399,7 @@ export function SamplesView() {
   const [tab, setTab] = useState<SampleTab>("all");
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
   const [bpmFilter, setBpmFilter] = useState("all");
+  const [exactBpm, setExactBpm] = useState("");
   const [keyFilter, setKeyFilter] = useState("Any");
   const [uploadOpen, setUploadOpen] = useState(false);
   const [weekReset, setWeekReset] = useState(0);
@@ -429,7 +415,14 @@ export function SamplesView() {
     if (typeFilter !== "all") {
       list = list.filter((sample) => sample.category === typeFilter);
     }
-    list = list.filter((sample) => bpmRule.test(sample.bpm));
+    if (bpmFilter === "exact") {
+      const exact = Number(exactBpm);
+      list = list.filter(
+        (sample) => Number.isFinite(exact) && sample.bpm != null && sample.bpm === exact,
+      );
+    } else {
+      list = list.filter((sample) => bpmRule.test(sample.bpm));
+    }
     if (keyFilter !== "Any") {
       list = list.filter((sample) => sample.musicalKey === keyFilter);
     }
@@ -452,7 +445,7 @@ export function SamplesView() {
       if (a.isFeatured !== b.isFeatured) return a.isFeatured ? -1 : 1;
       return b.createdAt.localeCompare(a.createdAt);
     });
-  }, [bpmFilter, keyFilter, samples, tab, typeFilter]);
+  }, [bpmFilter, exactBpm, keyFilter, samples, tab, typeFilter]);
 
   const counts = useMemo(
     () => ({
@@ -464,6 +457,30 @@ export function SamplesView() {
     [samples],
   );
 
+  const categoryOptions = [
+    { value: "all", label: t("Все категории") },
+    ...SAMPLE_CATEGORY_OPTIONS.map(([id, meta]) => ({
+      value: id,
+      label: t(meta.label),
+    })),
+  ];
+
+  const bpmOptions = BPM_FILTERS.map((item) => ({
+    value: item.id,
+    label: item.label,
+  }));
+  if (exactBpm) {
+    bpmOptions.push({
+      value: "exact",
+      label: t("Точный BPM: {bpm}", { bpm: exactBpm }),
+    });
+  }
+
+  const keyOptions = MUSICAL_KEYS.map((key) => ({
+    value: key,
+    label: key === "Any" ? t("Любая тональность") : key,
+  }));
+
   return (
     <div className="page samples-page">
       <section className="samples-hero glass">
@@ -474,7 +491,7 @@ export function SamplesView() {
           </h1>
           <p>
             {t(
-              "Лупы и ваншоты от продюсеров Aether. Слушайте прямо в хабе и перетаскивайте файл на плейлист FL Studio — без ручного поиска в проводнике.",
+              "Лупы и ваншоты от продюсеров Aether. Слушайте прямо в хабе и перетаскивайте файл на плейлист FL Studio - без ручного поиска в проводнике.",
             )}
           </p>
           <div className="samples-hero-actions">
@@ -548,43 +565,48 @@ export function SamplesView() {
         </div>
 
         <div className="samples-filters">
-          <div className="sample-select sample-category-select">
-            <Sparkles size={11} />
-            <select
-              value={typeFilter}
-              onChange={(event) => setTypeFilter(event.target.value as TypeFilter)}
-              aria-label={t("Категория сэмпла")}
-            >
-              <option value="all">{t("Все категории")}</option>
-              {SAMPLE_CATEGORY_OPTIONS.map(([id, meta]) => (
-                <option key={id} value={id}>
-                  {t(meta.label)}
-                </option>
-              ))}
-            </select>
-          </div>
+          <AetherSelect
+            value={typeFilter}
+            options={categoryOptions}
+            onChange={(value) => setTypeFilter(value as TypeFilter)}
+            icon={<Sparkles size={11} />}
+            ariaLabel={t("Категория сэмпла")}
+            className="samples-filter-select category"
+          />
 
-          <div className="sample-select">
-            <Clock3 size={11} />
-            <select value={bpmFilter} onChange={(event) => setBpmFilter(event.target.value)}>
-              {BPM_FILTERS.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.label}
-                </option>
-              ))}
-            </select>
-          </div>
+          <AetherSelect
+            value={bpmFilter}
+            options={bpmOptions}
+            onChange={(value) => setBpmFilter(value)}
+            icon={<Clock3 size={11} />}
+            ariaLabel="BPM"
+            className="samples-filter-select bpm"
+            footer={
+              <div className="bpm-exact-input">
+                <span>{t("Точный BPM")}</span>
+                <input
+                  value={exactBpm}
+                  inputMode="numeric"
+                  maxLength={3}
+                  placeholder="128"
+                  onChange={(event) => {
+                    const next = event.target.value.replace(/[^0-9]/g, "");
+                    setExactBpm(next);
+                    setBpmFilter(next ? "exact" : "all");
+                  }}
+                />
+              </div>
+            }
+          />
 
-          <div className="sample-select">
-            <Music2 size={11} />
-            <select value={keyFilter} onChange={(event) => setKeyFilter(event.target.value)}>
-              {MUSICAL_KEYS.map((key) => (
-                <option key={key} value={key}>
-                  {key === "Any" ? t("Любая тональность") : key}
-                </option>
-              ))}
-            </select>
-          </div>
+          <AetherSelect
+            value={keyFilter}
+            options={keyOptions}
+            onChange={setKeyFilter}
+            icon={<Music2 size={11} />}
+            ariaLabel={t("Тональность")}
+            className="samples-filter-select key"
+          />
         </div>
       </div>
 
@@ -614,7 +636,7 @@ export function SamplesView() {
           <h3>{t("Под эти фильтры пока ничего нет")}</h3>
           <p>
             {t(
-              "Сбросьте фильтры или загрузите свой первый луп — после премодерации он появится здесь.",
+              "Сбросьте фильтры или загрузите свой первый луп - после премодерации он появится здесь.",
             )}
           </p>
           <button className="btn btn-soft btn-sm" onClick={() => setUploadOpen(true)}>
@@ -653,7 +675,7 @@ function UploadSampleModal({
   const [nickname, setNickname] = useState(defaultNickname || "aether user");
   const [category, setCategory] = useState<SampleCategory>("loop");
   const [bpm, setBpm] = useState("140");
-  const [musicalKey, setMusicalKey] = useState("Am");
+  const [musicalKey, setMusicalKey] = useState("A min");
   const [filePath, setFilePath] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const [fileObject, setFileObject] = useState<File | null>(null);

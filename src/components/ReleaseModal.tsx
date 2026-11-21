@@ -192,7 +192,7 @@ export function ReleaseModal({
             {tier === "beta" ? (
               <div className="beta-cover-lock detail">
                 <LockKeyhole size={22} />
-                <span>BETA • {t("В разработке")}</span>
+                <span>{t("В разработке")}</span>
               </div>
             ) : null}
 
@@ -211,7 +211,9 @@ export function ReleaseModal({
                   ) : tier === "pro" ? (
                     <span className="chip gold">PRO</span>
                   ) : null}
-                  {release.badge ? <span className="chip gold">{release.badge}</span> : null}
+                  {release.badge && tier !== "beta" ? (
+                    <span className="chip gold">{release.badge}</span>
+                  ) : null}
                   {record ? (
                     <span className="chip green">
                       <Check size={9} /> {t("Установлено").toLowerCase()}
@@ -221,11 +223,15 @@ export function ReleaseModal({
                 <h1>{release.title}</h1>
                 <div className="detail-meta">
                   <span className="mono">v{release.version}</span>
-                  <span className="dot" />
-                  <span>
-                    <Star size={11} style={{ color: "var(--gold)", fill: "var(--gold)" }} />
-                    {avgLabel} · {release.ratingCount} {t("оценок")}
-                  </span>
+                  {tier !== "beta" ? (
+                    <>
+                      <span className="dot" />
+                      <span>
+                        <Star size={11} style={{ color: "var(--gold)", fill: "var(--gold)" }} />
+                        {avgLabel} · {release.ratingCount} {t("оценок")}
+                      </span>
+                    </>
+                  ) : null}
                   <span className="dot" />
                   <span>{formatBytes(file?.sizeBytes)}</span>
                   <span className="dot" />
@@ -238,11 +244,11 @@ export function ReleaseModal({
                   ) : null}
                 </div>
               </div>
-              <InstallButton release={release} size="lg" />
+              {tier !== "beta" ? <InstallButton release={release} size="lg" /> : null}
             </div>
           </div>
 
-          <div className="detail-body">
+          <div className={`detail-body ${tier === "beta" ? "solo" : ""}`}>
             <div className="detail-main">
               <p className="detail-desc">{descriptionFor(release, language)}</p>
 
@@ -265,12 +271,8 @@ export function ReleaseModal({
                           <LockKeyhole size={18} />
                         </span>
                         <div className="beta-lock-copy">
-                          <b>{t("В разработке • Доступно только Beta-тестерам")}</b>
-                          <span>
-                            {t(
-                              "Активируйте одноразовый Beta-инвайт в профиле — и установка откроется в один клик.",
-                            )}
-                          </span>
+                          <b>{t("В разработке · Доступно только тестировщикам")}</b>
+                          <span>{t("Закрытый ранний доступ")}</span>
                         </div>
                         {onOpenProfile ? (
                           <button
@@ -280,7 +282,7 @@ export function ReleaseModal({
                               onOpenProfile();
                             }}
                           >
-                            <Sparkles size={12} /> {t("Ввести инвайт")}
+                            <KeyRound size={12} /> {t("Ввести код")}
                           </button>
                         ) : null}
                       </div>
@@ -456,7 +458,7 @@ export function ReleaseModal({
                   <h3>{t("Оценка релиза")}</h3>
                   <p>
                     {myRating
-                      ? t("Спасибо — ваша оценка уже учтена.")
+                      ? t("Спасибо - ваша оценка уже учтена.")
                       : t("Поставьте от 1 до 5 звёзд, чтобы поддержать релиз.")}
                   </p>
                   <div className="rating-row">
@@ -488,7 +490,7 @@ export function ReleaseModal({
                   </h3>
                   <p className="hint">
                     {t(
-                      "Ключ подписывает Machine ID этого компьютера. После одобрения он записывается в папку плагина автоматически — копировать вручную не нужно.",
+                      "Ключ подписывает Machine ID этого компьютера. После одобрения он записывается в папку плагина автоматически - копировать вручную не нужно.",
                     )}
                   </p>
 
@@ -516,7 +518,7 @@ export function ReleaseModal({
                       </div>
                       <span className="hint">
                         {t(
-                          "Если плагин показывает другой ID — вставьте его сюда. Пустое поле вернёт автоматический HWID.",
+                          "Если плагин показывает другой ID - вставьте его сюда. Пустое поле вернёт автоматический HWID.",
                         )}
                       </span>
                     </div>
@@ -581,7 +583,7 @@ export function ReleaseModal({
                       {pending ? (
                         <div className="request-status">
                           <span className="status-dot offline" />{" "}
-                          {t("Заявка отправлена — ждём одобрения")}
+                          {t("Заявка отправлена - ждём одобрения")}
                         </div>
                       ) : null}
 
@@ -614,7 +616,7 @@ export function ReleaseModal({
                   </h3>
                   <p className="hint">
                     {t(
-                      "Этот плагин бесплатный. Лицензия создаётся автоматически при установке и записывается в папку плагина — никаких заявок и ожиданий.",
+                      "Этот плагин бесплатный. Лицензия создаётся автоматически при установке и записывается в папку плагина - никаких заявок и ожиданий.",
                     )}
                   </p>
                   <div
@@ -640,6 +642,7 @@ export function ReleaseModal({
               ) : null}
             </div>
 
+            {tier !== "beta" ? (
             <aside className="detail-side">
               <div className="comments-head">
                 <h3>
@@ -676,7 +679,7 @@ export function ReleaseModal({
                   ))
                 ) : (
                   <div className="comments-empty">
-                    {t("Пока тихо. Оставьте первый комментарий — это увидят все.")}
+                    {t("Пока тихо. Оставьте первый комментарий - это увидят все.")}
                   </div>
                 )}
               </div>
@@ -700,6 +703,7 @@ export function ReleaseModal({
                 </button>
               </div>
             </aside>
+            ) : null}
           </div>
         </div>
       </motion.div>

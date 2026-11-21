@@ -851,7 +851,7 @@ export function AdminStudio() {
               <Zap size={14} />
               <div>
                 {t(
-                  "Нет PRO-плагинов — переключатели появятся здесь автоматически при публикации PRO-версий.",
+                  "Нет PRO-плагинов - переключатели появятся здесь автоматически при публикации PRO-версий.",
                 )}
               </div>
             </div>
@@ -908,7 +908,7 @@ export function AdminStudio() {
               {t(
                 "Перетащите ZIP-архивы и обложку прямо в это окно (или выберите файлы). Для macOS положите в архив",
               )}{" "}
-              <code>.vst3</code> / <code>.component</code>, {t("для Windows —")}{" "}
+              <code>.vst3</code> / <code>.component</code>, {t("для Windows -")}{" "}
               <code>.vst3</code>.
             </p>
 
@@ -1109,7 +1109,7 @@ export function AdminStudio() {
                 <input
                   value={form.preview}
                   onChange={(event) => setForm((prev) => ({ ...prev, preview: event.target.value }))}
-                  placeholder={t("https://…/demo.mp3 — для мини-плеера в карточке драм-кита")}
+                  placeholder={t("https://…/demo.mp3 - для мини-плеера в карточке драм-кита")}
                 />
               </div>
               <div className="field span2">
@@ -1239,7 +1239,7 @@ export function AdminStudio() {
                     <b>{release.title}</b>
                     <span>
                       {CATEGORY_META[release.category].singular} · v{release.version} · macOS{" "}
-                      {mac ? formatBytes(mac) : "—"} · Win {win ? formatBytes(win) : "—"}
+                      {mac ? formatBytes(mac) : "-"} · Win {win ? formatBytes(win) : "-"}
                     </span>
                   </div>
                   {release.category === "plugins" ? (
@@ -1287,7 +1287,7 @@ export function AdminStudio() {
                 <Sparkles size={20} />
               </div>
               <h3>{t("Каталог пуст")}</h3>
-              <p>{t("Опубликуйте первый релиз — он сразу появится у всех пользователей.")}</p>
+              <p>{t("Опубликуйте первый релиз - он сразу появится у всех пользователей.")}</p>
             </div>
           ) : null}
         </div>
@@ -1427,8 +1427,8 @@ export function AdminStudio() {
                       </span>
                     </div>
                     <div className="admin-sample-meta">
-                      {sample.authorName} · {sample.bpm ? `${sample.bpm} BPM` : "—"} ·{" "}
-                      {sample.musicalKey || "—"} · {timeAgo(sample.createdAt)}
+                      {sample.authorName} · {sample.bpm ? `${sample.bpm} BPM` : "-"} ·{" "}
+                      {sample.musicalKey || "-"} · {timeAgo(sample.createdAt)}
                     </div>
                     <div className="sample-wave small">
                       {(sample.waveformPeaks.length

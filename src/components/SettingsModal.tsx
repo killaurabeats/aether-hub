@@ -79,7 +79,7 @@ export function SettingsModal({
     initialSection === "cloud" && !adminVisible ? "general" : initialSection,
   );
   const [confirmReset, setConfirmReset] = useState(false);
-  const [version, setVersion] = useState("1.3.1");
+  const [version, setVersion] = useState("1.3.2");
   const [health, setHealth] = useState<CloudHealth | null>(null);
   const [checkingCloud, setCheckingCloud] = useState(false);
   const [secretOpen, setSecretOpen] = useState(false);
@@ -149,7 +149,7 @@ export function SettingsModal({
     try {
       return new URL(cloudConfig.url).host;
     } catch {
-      return "—";
+      return "-";
     }
   })();
 
@@ -314,7 +314,7 @@ export function SettingsModal({
                   <Info size={14} />
                   <div>
                     {t(
-                      "Все анимации построены на transform/opacity и композитятся на GPU. Целевые 60–120 FPS достигаются без нагрузки на CPU.",
+                      "Все анимации построены на transform/opacity и композитятся на GPU. Целевые 60-120 FPS достигаются без нагрузки на CPU.",
                     )}
                   </div>
                 </div>
@@ -409,7 +409,7 @@ export function SettingsModal({
                     <b>{t("Пресеты FL Studio")}</b>
                     <span>
                       {t(
-                        "Сюда распаковываются пресет-паки. По умолчанию — Documents/Image-Line/FL Studio/Presets/Aether Plugins.",
+                        "Сюда распаковываются пресет-паки. По умолчанию - Documents/Image-Line/FL Studio/Presets/Aether Plugins.",
                       )}
                     </span>
                     <div className="path-box" style={{ marginTop: 8 }}>
@@ -436,7 +436,7 @@ export function SettingsModal({
                     <b>{t("Драм-киты")}</b>
                     <span>
                       {t(
-                        "Папка для сэмплов. Можно указать свою библиотеку — установщик создаст подпапку с названием кита.",
+                        "Папка для сэмплов. Можно указать свою библиотеку - установщик создаст подпапку с названием кита.",
                       )}
                     </span>
                     <div className="path-box" style={{ marginTop: 8 }}>
@@ -535,7 +535,7 @@ export function SettingsModal({
                             host: urlHost,
                           })
                         : t(
-                            "Supabase не настроен — используется локальный каталог и localStorage. Все функции интерфейса доступны.",
+                            "Supabase не настроен - используется локальный каталог и localStorage. Все функции интерфейса доступны.",
                           )}
                     </span>
                   </div>
@@ -559,7 +559,7 @@ export function SettingsModal({
                             "Токен админа активен на этом ПК. Публикация и модерация включены.",
                           )
                         : t(
-                            "Токен админа не задан — эта сборка безопасна для публикации. Admin Studio работает локально и через приватный ключ.",
+                            "Токен админа не задан - эта сборка безопасна для публикации. Admin Studio работает локально и через приватный ключ.",
                           )}
                     </span>
                   </div>
@@ -683,7 +683,7 @@ export function SettingsModal({
                     {t("Создайте проект на supabase.com, выполните")} <code>supabase/schema.sql</code>,{" "}
                     {t("задеплойте функцию")} <code>aether-admin</code>{" "}
                     {t("и впишите ключи в")} <code>.env</code>.{" "}
-                    {t("Затем пересоберите приложение. Подробная инструкция — в")}{" "}
+                    {t("Затем пересоберите приложение. Подробная инструкция - в")}{" "}
                     <code>README.md</code>.
                   </p>
                   <div
@@ -803,10 +803,10 @@ VITE_AETHER_ADMIN_TOKEN=...   # only on your device`}
                             )
                           : adminTokenReady
                             ? t(
-                                "Admin Token активен на этом ПК — Admin Studio и Support Tickets открыты.",
+                                "Admin Token активен на этом ПК - Admin Studio и Support Tickets открыты.",
                               )
                             : t(
-                                "Не найден — админ-панель скрыта. Обычный пользователь видит только библиотеку.",
+                                "Не найден - админ-панель скрыта. Обычный пользователь видит только библиотеку.",
                               )}
                       </span>
                       {admin.privateKeyPath ? (
@@ -859,7 +859,7 @@ VITE_AETHER_ADMIN_TOKEN=...   # only on your device`}
 
                 <p style={{ margin: "18px 0 0", fontSize: 9.5, color: "var(--dim)", lineHeight: 1.6 }}>
                   {t(
-                    "Каталог и релизы обновляются из облака — переустановка лаунчера не требуется. Приложение не собирает телеметрию. Аватар хранится локально и в вашем профиле Supabase.",
+                    "Каталог и релизы обновляются из облака - переустановка лаунчера не требуется. Приложение не собирает телеметрию. Аватар хранится локально и в вашем профиле Supabase.",
                   )}
                 </p>
               </>

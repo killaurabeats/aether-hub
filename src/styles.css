@@ -3374,7 +3374,7 @@ a {
 
 /* -------------------------------------------------------- reduced effects */
 
-/* Glass Blur OFF — dense, opaque surfaces and no backdrop-filter anywhere. */
+/* Glass Blur OFF - dense, opaque surfaces and no backdrop-filter anywhere. */
 .no-blur *,
 .no-blur *::before,
 .no-blur *::after {
@@ -4726,7 +4726,7 @@ a {
 }
 
 /* ============================================================ v1.3.0 ==== */
-/* BETA tier — signature gold neon, always last in the FREE → PRO → BETA order */
+/* BETA tier - signature gold neon, always last in the FREE → PRO → BETA order */
 .chip.beta {
   color: #fff6dd;
   border-color: rgba(251, 191, 36, 0.62);
@@ -6555,4 +6555,355 @@ a {
   background: rgba(255, 255, 255, 0.9);
   border-color: rgba(76, 29, 149, 0.15);
   color: var(--text);
+}
+
+/* ============================================================ v1.3.2 ==== */
+/* Custom Aether selects */
+.aether-select {
+  position: relative;
+}
+
+.aether-select-trigger {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 150px;
+  height: 36px;
+  padding: 0 10px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.025);
+  color: var(--muted);
+  font-size: 10.5px;
+  transition: 0.18s ease;
+}
+
+.aether-select-trigger:hover,
+.aether-select-trigger.open {
+  color: var(--text);
+  border-color: var(--line-strong);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.aether-select-icon {
+  display: grid;
+  place-items: center;
+  color: var(--dim);
+  flex: 0 0 auto;
+}
+
+.aether-select-trigger.open .aether-select-icon {
+  color: var(--lav);
+}
+
+.aether-select-value {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+}
+
+.aether-select-chevron {
+  flex: 0 0 auto;
+  opacity: 0.7;
+  transition: transform 0.2s ease;
+}
+
+.aether-select-trigger.open .aether-select-chevron {
+  transform: rotate(180deg);
+}
+
+.aether-select-menu {
+  position: absolute;
+  z-index: 80;
+  top: calc(100% + 7px);
+  left: 0;
+  min-width: 100%;
+  border-radius: 13px;
+  border: 1px solid rgba(196, 181, 253, 0.22);
+  background:
+    radial-gradient(100% 70% at 100% 0%, rgba(139, 92, 246, 0.14), transparent 70%),
+    linear-gradient(160deg, rgba(28, 22, 48, 0.99), rgba(10, 8, 18, 0.99));
+  box-shadow: 0 24px 55px rgba(0, 0, 0, 0.55), 0 0 34px -22px rgba(139, 92, 246, 0.8);
+  overflow: hidden;
+}
+
+.aether-select-scroll {
+  max-height: 268px;
+  overflow-y: auto;
+  padding: 5px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(196, 181, 253, 0.38) transparent;
+}
+
+.aether-select-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.aether-select-scroll::-webkit-scrollbar-thumb {
+  background: rgba(196, 181, 253, 0.32);
+  border-radius: 99px;
+}
+
+.aether-select-option {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 9px;
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 10.5px;
+  text-align: left;
+  transition: 0.15s ease;
+}
+
+.aether-select-option:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.aether-select-option.active {
+  color: var(--text);
+  background: rgba(139, 92, 246, 0.18);
+  box-shadow: inset 0 0 0 1px rgba(196, 181, 253, 0.12);
+}
+
+.aether-select-option.active svg {
+  color: var(--lav);
+}
+
+.aether-select-footer {
+  border-top: 1px solid var(--line);
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.bpm-exact-input {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bpm-exact-input span {
+  flex: 1;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+.bpm-exact-input input {
+  width: 72px;
+  height: 30px;
+  padding: 0 8px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: rgba(5, 4, 10, 0.55);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 11px;
+  outline: none;
+}
+
+.bpm-exact-input input:focus {
+  border-color: rgba(196, 181, 253, 0.4);
+}
+
+.samples-filter-select.key .aether-select-trigger {
+  min-width: 170px;
+}
+
+.samples-filter-select.category .aether-select-trigger {
+  min-width: 170px;
+}
+
+.app-shell.theme-light .aether-select-trigger {
+  background: rgba(255, 255, 255, 0.72);
+  border-color: rgba(76, 29, 149, 0.14);
+  color: var(--muted);
+}
+
+.app-shell.theme-light .aether-select-trigger:hover,
+.app-shell.theme-light .aether-select-trigger.open {
+  background: #fff;
+  border-color: rgba(76, 29, 149, 0.28);
+  color: var(--text);
+}
+
+.app-shell.theme-light .aether-select-menu {
+  background:
+    radial-gradient(100% 70% at 100% 0%, rgba(109, 63, 240, 0.08), transparent 70%),
+    linear-gradient(160deg, #fff, #f7f4fd);
+  border-color: rgba(76, 29, 149, 0.16);
+  box-shadow: 0 24px 55px rgba(76, 29, 149, 0.22);
+}
+
+.app-shell.theme-light .aether-select-option {
+  color: var(--muted);
+}
+
+.app-shell.theme-light .aether-select-option:hover {
+  background: rgba(109, 63, 240, 0.07);
+  color: var(--text);
+}
+
+.app-shell.theme-light .aether-select-option.active {
+  color: var(--text);
+  background: rgba(109, 63, 240, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(109, 63, 240, 0.16);
+}
+
+.app-shell.theme-light .aether-select-footer {
+  background: rgba(109, 63, 240, 0.035);
+}
+
+.app-shell.theme-light .bpm-exact-input input {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: rgba(76, 29, 149, 0.15);
+  color: var(--text);
+}
+
+/* Window corners */
+html,
+body,
+#root {
+  border-radius: 18px;
+  overflow: hidden;
+  background: transparent;
+}
+
+/* Clean Light contrast fixes */
+.app-shell.theme-light .chip.beta {
+  color: #92400e;
+  border-color: rgba(180, 83, 9, 0.48);
+  background: linear-gradient(115deg, rgba(251, 191, 36, 0.3), rgba(245, 158, 11, 0.14));
+  box-shadow:
+    0 0 0 1px rgba(180, 83, 9, 0.08),
+    0 0 12px -5px rgba(180, 83, 9, 0.4);
+  text-shadow: none;
+}
+
+.app-shell.theme-light .hero-badge {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: rgba(76, 29, 149, 0.18);
+  color: #3f3659;
+  box-shadow: 0 8px 24px -16px rgba(76, 29, 149, 0.5);
+}
+
+.app-shell.theme-light .hero-badge b {
+  color: #1c1533;
+}
+
+.app-shell.theme-light .hero-badge .status-dot {
+  background: #0f9f8f;
+  box-shadow: 0 0 10px rgba(15, 159, 143, 0.55);
+}
+
+.app-shell.theme-light .soon-ring {
+  border-color: rgba(109, 63, 240, 0.3);
+  box-shadow: inset 0 0 80px rgba(109, 63, 240, 0.08);
+}
+
+.app-shell.theme-light .soon-ring::after {
+  border-color: rgba(109, 63, 240, 0.22);
+}
+
+.app-shell.theme-light .beta-cover-lock {
+  color: #ffe4a3;
+}
+
+.detail-body.solo {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.profile-mode-grid {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 10px 0 2px;
+}
+
+.profile-mode-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.profile-mode-copy b {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 550;
+}
+
+.profile-mode-copy span {
+  display: block;
+  margin-top: 4px;
+  font-size: 10px;
+  line-height: 1.5;
+  color: var(--dim);
+}
+
+.profile-mode-switch {
+  flex: 0 0 auto;
+  margin: 0;
+}
+
+@media (max-width: 620px) {
+  .profile-mode-grid {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .profile-mode-switch {
+    width: 100%;
+  }
+
+  .profile-mode-switch button {
+    flex: 1;
+    justify-content: center;
+  }
+}
+
+/* Windows typography: denser secondary text with no ultra-thin translucency */
+:root {
+  --muted: #b4adc9;
+  --dim: #8c84a5;
+}
+
+.app-shell.theme-light {
+  --muted: #51486b;
+  --dim: #6f6684;
+}
+
+body,
+button,
+input,
+textarea,
+select {
+  font-weight: 400;
+}
+
+.hint,
+.sub,
+.card-desc,
+.file-meta,
+.setting-row .text span,
+.modal-head .sub,
+.notif-copy span,
+.sample-meta-row,
+.admin-sample-meta,
+.profile-mode-copy span,
+.detail-meta,
+.field .hint {
+  font-weight: 400;
+  opacity: 1;
+}
+
+.samples-filter-select.key .aether-select-menu {
+  left: auto;
+  right: 0;
 }

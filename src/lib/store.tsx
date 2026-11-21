@@ -304,7 +304,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         toast({
           kind: "info",
           title: t("Облако пока пустое"),
-          message: t("В Supabase нет опубликованных релизов — показан демо-каталог."),
+          message: t("В Supabase нет опубликованных релизов - показан демо-каталог."),
         });
       } else if (result.source === "demo" && cloudEnabled && result.error) {
         toast({
@@ -335,7 +335,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setBetaTester(nextBeta);
       setMySamples(nextMySamples);
     } catch {
-      // Offline or cloud not configured — keep the local UI usable.
+      // Offline or cloud not configured - keep the local UI usable.
     } finally {
       setBetaLoading(false);
     }

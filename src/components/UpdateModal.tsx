@@ -123,7 +123,7 @@ export function UpdateModal({
               >
                 <span>
                   {done
-                    ? t("Установлено — перезапускаем…")
+                    ? t("Установлено - перезапускаем…")
                     : progress.total
                       ? `${formatBytes(progress.received)} / ${formatBytes(progress.total)}`
                       : t("Скачивание…")}

@@ -206,7 +206,7 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
                   />
                   <span className="hint">
                     {t(
-                      "Нажмите на аватар, чтобы открыть редактор. Итог — квадрат 256 × 256 px.",
+                      "Нажмите на аватар, чтобы открыть редактор. Итог - квадрат 256 × 256 px.",
                     )}
                   </span>
                 </div>
@@ -281,7 +281,7 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
                   </div>
                   <span className="hint">
                     {t(
-                      "Вставьте Machine ID, который показывает плагин в окне активации. Пустое значение — автоматический HWID этого компьютера.",
+                      "Вставьте Machine ID, который показывает плагин в окне активации. Пустое значение - автоматический HWID этого компьютера.",
                     )}
                   </span>
                 </div>
@@ -313,31 +313,36 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
                   </h3>
                   <span>{t("только для админа")}</span>
                 </div>
-                <div className="segmented profile-mode-switch">
-                  <button
-                    className={adminView === "admin" ? "active" : ""}
-                    onClick={() => {
-                      setAdminView("admin");
-                      toast({ kind: "info", title: t("Режим админа включён") });
-                    }}
-                  >
-                    {t("Админ")}
-                  </button>
-                  <button
-                    className={adminView === "user" ? "active" : ""}
-                    onClick={() => {
-                      setAdminView("user");
-                      toast({ kind: "info", title: t("Режим пользователя включён") });
-                    }}
-                  >
-                    {t("Юзер")}
-                  </button>
+                <div className="profile-mode-grid">
+                  <div className="profile-mode-copy">
+                    <b>{t("Текущий режим")}</b>
+                    <span>
+                      {t(
+                        "Режим «Юзер» прячет Admin Studio и показывает хаб глазами обычного пользователя.",
+                      )}
+                    </span>
+                  </div>
+                  <div className="segmented profile-mode-switch">
+                    <button
+                      className={adminView === "admin" ? "active" : ""}
+                      onClick={() => {
+                        setAdminView("admin");
+                        toast({ kind: "info", title: t("Режим админа включён") });
+                      }}
+                    >
+                      {t("Админ")}
+                    </button>
+                    <button
+                      className={adminView === "user" ? "active" : ""}
+                      onClick={() => {
+                        setAdminView("user");
+                        toast({ kind: "info", title: t("Режим пользователя включён") });
+                      }}
+                    >
+                      {t("Юзер")}
+                    </button>
+                  </div>
                 </div>
-                <span className="hint">
-                  {t(
-                    "Режим «Юзер» прячет Admin Studio и показывает хаб глазами обычного пользователя.",
-                  )}
-                </span>
               </div>
             ) : null}
 
@@ -375,7 +380,7 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
                   <KeyRound size={14} />
                   <div>
                     {t(
-                      "Пока нет выданных ключей. Откройте плагин и нажмите «Запросить ключ активации» — после одобрения ключ появится здесь автоматически.",
+                      "Пока нет выданных ключей. Откройте плагин и нажмите «Запросить ключ активации» - после одобрения ключ появится здесь автоматически.",
                     )}
                   </div>
                 </div>
@@ -423,7 +428,7 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
                 </h3>
               </div>
               <p style={{ margin: 0, fontSize: 11, color: "var(--dim)", lineHeight: 1.6 }}>
-                {t("Вопросы по лицензии, приватные дропы и поддержка — Telegram")}
+                {t("Вопросы по лицензии, приватные дропы и поддержка - Telegram")}
               </p>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12 }}>
                 <button
@@ -432,7 +437,7 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
                 >
                   <Mail size={11} /> @whofriends1
                 </button>
-                <span className="chip violet">v1.3.1</span>
+                <span className="chip violet">v1.3.2</span>
               </div>
             </div>
           </div>

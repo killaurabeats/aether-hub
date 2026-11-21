@@ -72,7 +72,7 @@ export function Sidebar({ view, onNavigate, onOpenSettings, onOpenSupport }: Pro
           whileHover={{ scale: 1.03 }}
           whileTap={{ scale: 0.97 }}
           title={t("Главное меню")}
-          aria-label={`Aether Hub — ${t("Главное меню")}`}
+          aria-label={`Aether Hub - ${t("Главное меню")}`}
         >
           <img src="/logo.png" alt="" draggable={false} />
         </motion.button>
