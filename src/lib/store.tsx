@@ -561,6 +561,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    // Ratings are bound to the licensing HWID. When the identity changes, do
+    // not keep showing a star from the previous machine.
+    setMyRatings({});
+  }, [licensingMachineId]);
+
+  useEffect(() => {
     if (ready) void refreshCloudUser();
   }, [ready, licensingMachineId, refreshCloudUser]);
 
@@ -854,7 +860,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const rate = useCallback(
     async (release: Release, value: number) => {
       try {
-        const result = await cloudRate(release.id, machine.formatted, value);
+        const result = await cloudRate(release.id, licensingMachineId, value);
         setMyRatings((prev) => ({ ...prev, [release.id]: value }));
         setReleases((prev) =>
           prev.map((r) =>
@@ -868,21 +874,20 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         toast({ kind: "error", title: t("Оценка не сохранена"), message: String(error) });
       }
     },
-    [machine.formatted, toast, t],
+    [licensingMachineId, toast, t],
   );
 
   const loadMyRating = useCallback(
     async (releaseId: string) => {
-      if (myRatings[releaseId]) return;
       try {
         const { fetchMyRating } = await import("./cloud");
-        const value = await fetchMyRating(releaseId, machine.formatted);
+        const value = await fetchMyRating(releaseId, licensingMachineId);
         if (value) setMyRatings((prev) => ({ ...prev, [releaseId]: value }));
       } catch {
-        // ignore
+        // Offline or cloud unavailable - keep the local UI usable.
       }
     },
-    [machine.formatted, myRatings],
+    [licensingMachineId],
   );
 
   const saveProfile = useCallback(

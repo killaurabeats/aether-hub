@@ -29,6 +29,7 @@ import { openExternal, openFolder } from "../lib/desktop";
 import { cloudConfig, cloudEnabled } from "../lib/cloud";
 import { checkCloudHealth, type CloudHealth } from "../lib/cloudHealth";
 import { playIntro, setIntroVolume, stopIntro } from "../lib/sound";
+import { isVersionNewer, type UpdateCheckStatus } from "../lib/updater";
 
 export type SettingsSection = "general" | "appearance" | "install" | "cloud" | "about";
 
@@ -46,12 +47,14 @@ export function SettingsModal({
   onAdminUnlocked,
   onCheckUpdates,
   checkingUpdate,
+  updateStatus,
 }: {
   onClose: () => void;
   initialSection?: SettingsSection;
   onAdminUnlocked: () => void;
   onCheckUpdates: () => void;
   checkingUpdate: boolean;
+  updateStatus: UpdateCheckStatus | null;
 }) {
   const {
     settings,
@@ -79,7 +82,7 @@ export function SettingsModal({
     initialSection === "cloud" && !adminVisible ? "general" : initialSection,
   );
   const [confirmReset, setConfirmReset] = useState(false);
-  const [version, setVersion] = useState("1.3.6");
+  const [version, setVersion] = useState("1.3.7");
   const [health, setHealth] = useState<CloudHealth | null>(null);
   const [checkingCloud, setCheckingCloud] = useState(false);
   const [secretOpen, setSecretOpen] = useState(false);
@@ -855,6 +858,56 @@ VITE_AETHER_ADMIN_TOKEN=...   # only on your device`}
                     <RefreshCw size={13} className={checkingUpdate ? "spin" : ""} />{" "}
                     {t("Проверить обновления")}
                   </button>
+                </div>
+
+                <div className="update-status-card">
+                  <div className="row">
+                    <span>{t("Текущая версия")}</span>
+                    <b>v{updateStatus?.currentVersion || version}</b>
+                  </div>
+                  <div className="row">
+                    <span>{t("Последняя версия на сервере")}</span>
+                    <b>
+                      {checkingUpdate
+                        ? t("Проверяем…")
+                        : updateStatus?.latestVersion
+                          ? `v${updateStatus.latestVersion.replace(/^v/i, "")}`
+                          : "-"}
+                    </b>
+                  </div>
+                  <div className="row">
+                    <span>{t("Статус обновления")}</span>
+                    <b
+                      className={
+                        updateStatus?.error
+                          ? "error"
+                          : updateStatus?.latestVersion &&
+                              isVersionNewer(
+                                updateStatus.latestVersion,
+                                updateStatus.currentVersion || version,
+                              )
+                            ? "available"
+                            : "ok"
+                      }
+                    >
+                      {checkingUpdate
+                        ? t("Проверяем…")
+                        : updateStatus?.error
+                          ? t("Ошибка проверки")
+                          : updateStatus?.latestVersion &&
+                              isVersionNewer(
+                                updateStatus.latestVersion,
+                                updateStatus.currentVersion || version,
+                              )
+                            ? t("Доступно обновление")
+                            : updateStatus
+                              ? t("Установлена последняя версия")
+                              : t("Ещё не проверялось")}
+                    </b>
+                  </div>
+                  {updateStatus?.error ? (
+                    <p className="error-detail">{updateStatus.error}</p>
+                  ) : null}
                 </div>
 
                 <p style={{ margin: "18px 0 0", fontSize: 9.5, color: "var(--dim)", lineHeight: 1.6 }}>

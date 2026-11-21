@@ -11,6 +11,54 @@ export async function checkForUpdate(): Promise<Update | null> {
   return check();
 }
 
+export interface UpdateCandidate {
+  version: string;
+  currentVersion: string;
+  body?: string | null;
+  native?: Update;
+  downloadUrl?: string | null;
+  source: "native" | "config";
+}
+
+export interface UpdateCheckStatus {
+  currentVersion: string;
+  latestVersion: string | null;
+  error: string | null;
+  checkedAt: string;
+  source: "native" | "config" | "none";
+}
+
+function versionParts(value: string): number[] {
+  return value
+    .replace(/^v/i, "")
+    .split(/[.+-]/)
+    .map((part) => Number.parseInt(part, 10) || 0);
+}
+
+/** Strictly newer semantic-ish version check used for the Supabase fallback. */
+export function isVersionNewer(latest: string, current: string): boolean {
+  if (!latest.trim() || !current.trim()) return false;
+  const a = versionParts(latest);
+  const b = versionParts(current);
+  const length = Math.max(a.length, b.length);
+  for (let index = 0; index < length; index += 1) {
+    const left = a[index] ?? 0;
+    const right = b[index] ?? 0;
+    if (left !== right) return left > right;
+  }
+  return false;
+}
+
+/** Direct installer asset in the public aether-hub-releases repository. */
+export function installerUrlFor(version: string, os: string): string {
+  const clean = version.replace(/^v/i, "");
+  const tag = `v${clean}`;
+  const base = `https://github.com/killaurabeats/aether-hub-releases/releases/download/${tag}`;
+  return os === "windows"
+    ? `${base}/Aether.Hub_${clean}_x64-setup.exe`
+    : `${base}/Aether.Hub_${clean}_universal.dmg`;
+}
+
 export interface UpdateProgress {
   percent: number;
   received: number;

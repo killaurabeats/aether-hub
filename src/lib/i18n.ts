@@ -557,7 +557,7 @@ const en: Record<string, string> = {
 
   // -------------------------------------------------------------------- misc
   "Aether Plugins · by. @killaurabeats": "Aether Plugins · by. @killaurabeats",
-  "AETHER HUB · 1.3.6 · CINEMATIC INTRO": "AETHER HUB · 1.3.6 · CINEMATIC INTRO",
+  "AETHER HUB · 1.3.7 · CINEMATIC INTRO": "AETHER HUB · 1.3.7 · CINEMATIC INTRO",
   "Эффекты стекла": "Glass effects",
   "Размытие": "Blur",
   "Включено": "On",
@@ -585,7 +585,7 @@ const en: Record<string, string> = {
   "Включить звук заставки": "Enable the startup sound",
   "Русский": "Russian",
   "не задан": "not set",
-  "Aether Hub · 1.3.6 · CINEMATIC INTRO": "AETHER HUB · 1.3.6 · CINEMATIC INTRO",
+  "Aether Hub · 1.3.7 · CINEMATIC INTRO": "AETHER HUB · 1.3.7 · CINEMATIC INTRO",
   "Чат с создателем": "Creator chat",
   "Скоро здесь появится встроенная поддержка.":
     "Built-in support is coming soon.",
@@ -697,7 +697,7 @@ const en: Record<string, string> = {
   "Что внутри, для кого, чем отличается версия…":
     "What's inside, who it's for and what changed…",
 
-  // ------------------------------------------------------------ v1.3.6 UI
+  // ------------------------------------------------------------ v1.3.7 UI
   "Уведомления": "Notifications",
   "Всё прочитано": "All caught up",
   "{count} новых": "{count} new",
@@ -829,7 +829,7 @@ const en: Record<string, string> = {
   "Прослушать": "Preview",
   "ВЫБОР КОМЬЮНИТИ": "COMMUNITY PICK",
 
-  // ------------------------------------------------------------ v1.3.6 UI
+  // ------------------------------------------------------------ v1.3.7 UI
   "В разработке": "In development",
   "Уведомление Aether": "Aether notification",
   "Перейти к плагину": "Open plugin",
@@ -902,6 +902,23 @@ const en: Record<string, string> = {
   "Компрессоры": "Compressors",
   "Пространство": "Space",
   "Мастеринг": "Mastering",
+  "Текущая версия": "Current version",
+  "Последняя версия на сервере": "Latest version on server",
+  "Проверяем…": "Checking…",
+  "Статус обновления": "Update status",
+  "Ошибка проверки": "Check failed",
+  "Доступно обновление": "Update available",
+  "Установлена последняя версия": "You have the latest version",
+  "Ещё не проверялось": "Not checked yet",
+  "Автоматическая установка недоступна. Откройте страницу загрузки установщика для вашей ОС.":
+    "Automatic install is unavailable. Open the installer download page for your OS.",
+  "Страница загрузки открыта в браузере.": "The download page was opened in your browser.",
+  "Ссылка на установщик недоступна": "Installer link is unavailable",
+  "Загрузка открыта": "Download opened",
+  "Откроем страницу загрузки установщика для вашей ОС.":
+    "We will open the installer download page for your OS.",
+  "Автообновление доступно только в приложении":
+    "Auto-update is available in the desktop app only",
 };
 
 export function translate(

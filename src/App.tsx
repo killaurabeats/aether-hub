@@ -23,7 +23,15 @@ import { SupportTickets } from "./components/SupportTickets";
 import { Toasts } from "./components/Toasts";
 import { SupportModal } from "./components/SupportModal";
 import { UpdateModal } from "./components/UpdateModal";
-import { checkForUpdate, isUpdaterAvailable, type Update } from "./lib/updater";
+import { getVersion } from "@tauri-apps/api/app";
+import {
+  checkForUpdate,
+  installerUrlFor,
+  isUpdaterAvailable,
+  isVersionNewer,
+  type UpdateCandidate,
+  type UpdateCheckStatus,
+} from "./lib/updater";
 import { fetchLauncherNotice } from "./lib/cloud";
 
 function initialView(): View {
@@ -43,6 +51,7 @@ function Shell() {
     admin,
     adminVisible,
     adminTokenReady,
+    machine,
     releases,
     refreshCatalog,
     refreshCloudUser,
@@ -61,8 +70,9 @@ function Shell() {
   const [supportOpen, setSupportOpen] = useState(false);
   const [settingsSection, setSettingsSection] = useState<SettingsSection>("general");
   const [refreshing, setRefreshing] = useState(false);
-  const [update, setUpdate] = useState<Update | null>(null);
+  const [update, setUpdate] = useState<UpdateCandidate | null>(null);
   const [updateOpen, setUpdateOpen] = useState(false);
+  const [updateStatus, setUpdateStatus] = useState<UpdateCheckStatus | null>(null);
   const [checkingUpdate, setCheckingUpdate] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement | null>(null);
@@ -133,6 +143,13 @@ function Shell() {
   const checkUpdates = useCallback(
     async (silent = false) => {
       if (!isUpdaterAvailable()) {
+        setUpdateStatus({
+          currentVersion: "",
+          latestVersion: null,
+          error: t("Автообновление доступно только в приложении"),
+          checkedAt: new Date().toISOString(),
+          source: "none",
+        });
         if (!silent) {
           toast({
             kind: "info",
@@ -144,48 +161,89 @@ function Shell() {
       }
 
       setCheckingUpdate(true);
+      const currentVersion = await getVersion()
+        .catch(() => invoke<string>("app_version"))
+        .catch(() => "");
+
+      let nativeUpdate: Awaited<ReturnType<typeof checkForUpdate>> = null;
+      let nativeError: string | null = null;
       try {
-        const next = await checkForUpdate();
-        if (next) {
-          setUpdate(next);
-          setUpdateOpen(true);
-        } else {
-          const notice = await fetchLauncherNotice();
-          const current = await invoke<string>("app_version").catch(() => "");
-          if (
-            notice?.latestVersion &&
-            current &&
-            notice.latestVersion !== current &&
-            localStorage.getItem("aether.update.notice") !== notice.latestVersion
-          ) {
-            localStorage.setItem("aether.update.notice", notice.latestVersion);
-            toast({
-              kind: "info",
-              title: t("Доступно обновление v{version}", { version: notice.latestVersion }),
-              message: notice.notice || notice.url || "",
-            });
-          }
-          if (!silent) {
-            toast({
-              kind: "success",
-              title: t("Обновлений нет"),
-              message: t("Установлена последняя версия Aether Hub."),
-            });
-          }
-        }
+        nativeUpdate = await checkForUpdate();
       } catch (error) {
+        nativeError = String(error);
+      }
+
+      const notice = await fetchLauncherNotice().catch(() => null);
+      const serverVersion = nativeUpdate?.version || notice?.latestVersion || null;
+      const newer =
+        Boolean(serverVersion) &&
+        Boolean(currentVersion) &&
+        isVersionNewer(String(serverVersion), currentVersion);
+
+      setUpdateStatus({
+        currentVersion,
+        latestVersion: serverVersion,
+        error: nativeError,
+        checkedAt: new Date().toISOString(),
+        source: nativeUpdate ? "native" : newer ? "config" : "none",
+      });
+
+      if (nativeUpdate) {
+        setUpdate({
+          version: nativeUpdate.version,
+          currentVersion: nativeUpdate.currentVersion || currentVersion,
+          body: nativeUpdate.body,
+          native: nativeUpdate,
+          source: "native",
+        });
+        setUpdateOpen(true);
         if (!silent) {
           toast({
-            kind: "error",
-            title: t("Не удалось проверить обновления"),
-            message: String(error),
+            kind: "info",
+            title: t("Доступно обновление v{version}", { version: nativeUpdate.version }),
+            message: nativeUpdate.body || "",
           });
         }
-      } finally {
-        setCheckingUpdate(false);
+      } else if (newer && serverVersion) {
+        // Built-in updater failed or returned nothing, but Supabase knows a
+        // newer public release. Open the modal with a direct installer link.
+        setUpdate({
+          version: String(serverVersion),
+          currentVersion,
+          body: notice?.notice || "",
+          downloadUrl: installerUrlFor(String(serverVersion), machine.os),
+          source: "config",
+        });
+        setUpdateOpen(true);
+        if (!silent) {
+          toast({
+            kind: "info",
+            title: t("Доступно обновление v{version}", { version: serverVersion }),
+            message: t("Откроем страницу загрузки установщика для вашей ОС."),
+          });
+        }
+      } else {
+        setUpdateOpen(false);
+        if (nativeError) {
+          if (!silent) {
+            toast({
+              kind: "error",
+              title: t("Не удалось проверить обновления"),
+              message: nativeError,
+            });
+          }
+        } else if (!silent) {
+          toast({
+            kind: "success",
+            title: t("Обновлений нет"),
+            message: t("Установлена последняя версия Aether Hub."),
+          });
+        }
       }
+
+      setCheckingUpdate(false);
     },
-    [t, toast],
+    [machine.os, t, toast],
   );
 
   // Check for updates only after the startup intro has finished (or was
@@ -320,6 +378,7 @@ function Shell() {
             onAdminUnlocked={handleAdminUnlocked}
             onCheckUpdates={() => void checkUpdates(false)}
             checkingUpdate={checkingUpdate}
+            updateStatus={updateStatus}
           />
         ) : null}
       </AnimatePresence>

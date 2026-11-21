@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Download, Loader2, Sparkles, X } from "lucide-react";
-import { installUpdate, type Update, type UpdateProgress } from "../lib/updater";
+import { installUpdate, type UpdateCandidate, type UpdateProgress } from "../lib/updater";
+import { openExternal } from "../lib/desktop";
 import { formatBytes } from "../lib/format";
 import { useStore } from "../lib/store";
 
@@ -9,7 +10,7 @@ export function UpdateModal({
   update,
   onClose,
 }: {
-  update: Update;
+  update: UpdateCandidate;
   onClose: () => void;
 }) {
   const { t } = useStore();
@@ -21,13 +22,22 @@ export function UpdateModal({
   const [installing, setInstalling] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  const [opened, setOpened] = useState(false);
 
   const install = async () => {
     setInstalling(true);
     setError(null);
     try {
-      await installUpdate(update, setProgress);
-      setDone(true);
+      if (update.native) {
+        await installUpdate(update.native, setProgress);
+        setDone(true);
+      } else if (update.downloadUrl) {
+        await openExternal(update.downloadUrl);
+        setOpened(true);
+        setInstalling(false);
+      } else {
+        throw new Error(t("Ссылка на установщик недоступна"));
+      }
     } catch (err) {
       setError(String(err));
       setInstalling(false);
@@ -110,7 +120,43 @@ export function UpdateModal({
             </div>
           ) : null}
 
-          {installing || done ? (
+          {!update.native ? (
+            <div
+              style={{
+                marginTop: 12,
+                padding: "10px 12px",
+                borderRadius: 10,
+                border: "1px solid rgba(251,191,36,.24)",
+                background: "rgba(251,191,36,.07)",
+                color: "#ffe4b0",
+                fontSize: 10.5,
+                lineHeight: 1.55,
+              }}
+            >
+              {t(
+                "Автоматическая установка недоступна. Откройте страницу загрузки установщика для вашей ОС.",
+              )}
+            </div>
+          ) : null}
+
+          {opened ? (
+            <div
+              style={{
+                marginTop: 12,
+                padding: "10px 12px",
+                borderRadius: 10,
+                border: "1px solid rgba(94,234,212,.22)",
+                background: "rgba(94,234,212,.07)",
+                color: "#b8fff2",
+                fontSize: 10.5,
+                lineHeight: 1.55,
+              }}
+            >
+              {t("Страница загрузки открыта в браузере.")}
+            </div>
+          ) : null}
+
+          {update.native && (installing || done) ? (
             <div style={{ marginTop: 18 }}>
               <div
                 style={{
@@ -168,14 +214,18 @@ export function UpdateModal({
             <button
               className="btn btn-primary"
               onClick={() => void install()}
-              disabled={installing || done}
+              disabled={installing || done || opened}
             >
-              {installing || done ? (
+              {update.native && (installing || done) ? (
                 <Loader2 size={13} className="spin" />
               ) : (
                 <Download size={13} />
               )}
-              {done ? t("Перезапуск…") : t("Обновить сейчас")}
+              {update.native && done
+                ? t("Перезапуск…")
+                : opened
+                  ? t("Загрузка открыта")
+                  : t("Обновить сейчас")}
             </button>
           </div>
         </div>
