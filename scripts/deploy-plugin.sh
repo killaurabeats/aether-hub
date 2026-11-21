@@ -17,6 +17,10 @@
 #    --featured                 pin on the home page
 #    --dry-run                  print the publish payload without uploading
 #
+#  Release descriptions must follow docs/RELEASE_DESCRIPTIONS.md:
+#  two short, musician-friendly sentences, no implementation details, library
+#  names, formats/platforms or changelog lists; only the short hyphen "-".
+#
 #  Credentials are read from the hub .env (or the current environment):
 #    VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_AETHER_ADMIN_TOKEN
 #
@@ -27,7 +31,7 @@
 set -euo pipefail
 
 usage() {
-  sed -n '2,32p' "$0" | sed 's/^# \{0,1\}//'
+  sed -n '2,29p' "$0" | sed 's/^# \{0,1\}//'
   exit "${1:-0}"
 }
 
