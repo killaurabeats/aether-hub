@@ -70,6 +70,7 @@ export const isTauri =
 const PROFILE_KEY = "aether.profile.v1";
 const SETTINGS_KEY = "aether.settings.v1";
 const NOTIF_READ_KEY = "aether.notifications.read.v1";
+const NOTIF_CLEARED_KEY = "aether.notifications.cleared.v1";
 const LICENSE_WRITTEN_KEY = "aether.licenses.written.v1";
 
 interface PostUpdateNotice {
@@ -202,6 +203,7 @@ interface StoreValue {
   likeSample: (sample: CommunitySample) => Promise<void>;
   trackSampleDownload: (sample: CommunitySample) => Promise<void>;
   markNotificationsRead: () => void;
+  clearNotifications: () => void;
   pickFolder: (kind: "presetDir" | "drumkitDir") => Promise<void>;
   toast: (toast: Omit<Toast, "id">) => void;
   dismissToast: (id: string) => void;
@@ -242,6 +244,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [notifRead, setNotifRead] = useState<string[]>(() => {
     try {
       return JSON.parse(localStorage.getItem(NOTIF_READ_KEY) ?? "[]") as string[];
+    } catch {
+      return [];
+    }
+  });
+  const [notifCleared, setNotifCleared] = useState<string[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem(NOTIF_CLEARED_KEY) ?? "[]") as string[];
     } catch {
       return [];
     }
@@ -1040,6 +1049,22 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const clearNotifications = useCallback(() => {
+    setNotifCleared((prev) => {
+      const next = [...prev];
+      for (const id of notifIdsRef.current) {
+        if (!next.includes(id)) next.push(id);
+      }
+      try {
+        localStorage.setItem(NOTIF_CLEARED_KEY, JSON.stringify(next.slice(-1000)));
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+    toast({ kind: "info", title: t("Уведомления очищены") });
+  }, [t, toast]);
+
   const pickFolder = useCallback(
     async (kind: "presetDir" | "drumkitDir") => {
       if (!isTauri) return;
@@ -1197,8 +1222,20 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       });
     }
 
-    return items.sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 40);
-  }, [betaTester, mySamples, postUpdateNotice, releases, requests, settings.language, t]);
+    return items
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      .filter((item) => !notifCleared.includes(item.id))
+      .slice(0, 40);
+  }, [
+    betaTester,
+    mySamples,
+    notifCleared,
+    postUpdateNotice,
+    releases,
+    requests,
+    settings.language,
+    t,
+  ]);
 
   notifIdsRef.current = notifications.map((item) => item.id);
   const unreadNotifications = notifications.filter(
@@ -1262,6 +1299,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       likeSample,
       trackSampleDownload,
       markNotificationsRead,
+      clearNotifications,
       pickFolder,
       toast,
       dismissToast,
@@ -1321,6 +1359,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       likeSample,
       trackSampleDownload,
       markNotificationsRead,
+      clearNotifications,
       pickFolder,
       toast,
       dismissToast,

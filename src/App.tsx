@@ -188,11 +188,13 @@ function Shell() {
     [t, toast],
   );
 
+  // Check for updates only after the startup intro has finished (or was
+  // skipped), then let the modal animate in front of the user automatically.
   useEffect(() => {
-    if (!isUpdaterAvailable()) return;
-    const timer = window.setTimeout(() => void checkUpdates(true), 2600);
+    if (splash || !isUpdaterAvailable()) return;
+    const timer = window.setTimeout(() => void checkUpdates(true), 450);
     return () => window.clearTimeout(timer);
-  }, [checkUpdates]);
+  }, [checkUpdates, splash]);
 
   const refresh = async () => {
     setRefreshing(true);

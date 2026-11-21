@@ -7,6 +7,7 @@ import {
   KeyRound,
   RefreshCw,
   Sparkles,
+  Trash2,
   Waves,
   X,
 } from "lucide-react";
@@ -29,7 +30,13 @@ export function NotificationBell({
   onNavigate: (view: View) => void;
   onOpenRelease: (slug: string) => void;
 }) {
-  const { notifications, unreadNotifications, markNotificationsRead, t } = useStore();
+  const {
+    notifications,
+    unreadNotifications,
+    markNotificationsRead,
+    clearNotifications,
+    t,
+  } = useStore();
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<AppNotification | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -99,7 +106,7 @@ export function NotificationBell({
             transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
           >
             <div className="notif-head">
-              <div>
+              <div className="notif-head-title">
                 <b>{t("Уведомления")}</b>
                 <span>
                   {unreadNotifications > 0
@@ -107,7 +114,18 @@ export function NotificationBell({
                     : t("Всё прочитано")}
                 </span>
               </div>
-              <span className="chip">{notifications.length}</span>
+              <div className="notif-head-actions">
+                <span className="notif-count">{notifications.length}</span>
+                <button
+                  className="notif-clear"
+                  onClick={clearNotifications}
+                  disabled={!notifications.length}
+                  title={t("Очистить уведомления")}
+                  aria-label={t("Очистить уведомления")}
+                >
+                  <Trash2 size={12} />
+                </button>
+              </div>
             </div>
 
             <div className="notif-list">

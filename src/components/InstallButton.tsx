@@ -1,4 +1,4 @@
-import { Check, Download, Loader2, LockKeyhole, RotateCw } from "lucide-react";
+import { Check, Download, Loader2, RotateCw } from "lucide-react";
 import type { Release } from "../types";
 import { useStore } from "../lib/store";
 
@@ -20,19 +20,10 @@ export function InstallButton({
 
   const sizeClass = size === "sm" ? "btn-sm" : size === "lg" ? "btn-lg" : "";
 
-  if (betaLocked) {
-    return (
-      <button
-        className={`install-btn locked ${sizeClass} ${className}`}
-        onClick={(event) => event.stopPropagation()}
-        title={t("В разработке • Доступно только Beta-тестерам")}
-        aria-label={t("В разработке • Доступно только Beta-тестерам")}
-      >
-        <LockKeyhole size={13} />
-        {t("BETA · по инвайту")}
-      </button>
-    );
-  }
+  // Beta cards already show the BETA badge and the blurred "В РАЗРАБОТКЕ"
+  // cover lock. Hiding the locked install button keeps the card clean; invited
+  // testers get the normal one-click install button below.
+  if (betaLocked) return null;
 
   if (job) {
     return (

@@ -1,4 +1,4 @@
-# Aether Hub v1.3.3
+# Aether Hub v1.3.4
 
 Премиальный десктопный лаунчер для плагинов, драм-китов и пресетов Aether.
 Tauri 2 (Rust) + React 18 + TypeScript + Framer Motion, с полностью рабочим
@@ -113,7 +113,7 @@ Tauri 2 (Rust) + React 18 + TypeScript + Framer Motion, с полностью р
 ## Стек и структура
 
 ```
-Aether Hub v1.3.3/
+Aether Hub v1.3.4/
 ├─ src/                    React + TypeScript UI
 │  ├─ components/          Splash, Sidebar, ReleaseCard, Admin Studio, модалки
 │  ├─ lib/

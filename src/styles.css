@@ -6992,3 +6992,95 @@ select {
 .app-shell.theme-light .install-btn.locked svg {
   color: #78350f;
 }
+
+/* v1.3.4 hero polish */
+.hero-badge.b1 {
+  top: auto;
+  bottom: 24px;
+  right: 0;
+}
+
+.hero-orbit::after {
+  display: none;
+}
+
+/* v1.3.4 window corners */
+html,
+body,
+#root {
+  background: transparent !important;
+  margin: 0;
+  padding: 0;
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+.app-shell {
+  border-radius: 18px;
+  overflow: hidden;
+  background-clip: padding-box;
+  outline: 1px solid rgba(196, 181, 253, 0.13);
+  outline-offset: -1px;
+}
+
+.notif-head-title {
+  min-width: 0;
+}
+
+.notif-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  flex: 0 0 auto;
+}
+
+.notif-count {
+  min-width: 24px;
+  height: 24px;
+  padding: 0 7px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 8px;
+  border: 1px solid rgba(196, 181, 253, 0.2);
+  background: rgba(139, 92, 246, 0.14);
+  color: var(--lav);
+  font-size: 10px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.notif-clear {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--dim);
+  transition: 0.18s ease;
+}
+
+.notif-clear:hover:not(:disabled) {
+  color: #ffd7dd;
+  border-color: rgba(251, 113, 133, 0.3);
+  background: rgba(251, 113, 133, 0.1);
+}
+
+.notif-clear:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.app-shell.theme-light .notif-count {
+  background: rgba(109, 63, 240, 0.1);
+  border-color: rgba(109, 63, 240, 0.18);
+  color: var(--violet);
+}
+
+.app-shell.theme-light .notif-clear {
+  background: rgba(255, 255, 255, 0.7);
+  border-color: rgba(76, 29, 149, 0.14);
+  color: var(--muted);
+}

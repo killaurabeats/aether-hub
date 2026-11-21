@@ -175,7 +175,7 @@ export function UpdateModal({
               ) : (
                 <Download size={13} />
               )}
-              {done ? t("Перезапуск…") : t("Скачать и установить")}
+              {done ? t("Перезапуск…") : t("Обновить сейчас")}
             </button>
           </div>
         </div>
