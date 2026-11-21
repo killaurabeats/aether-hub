@@ -706,7 +706,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           title: t("{name} установлен", { name: release.title }),
           message:
             release.category === "plugins"
-              ? t("VST3 / AU скопированы в системные папки плагинов.")
+              ? t(
+                  "Плагин установлен в {path}. Если FL Studio не видит его, добавьте эту папку в Options - Manage plugins - Plugin search paths.",
+                  { path: record.paths.join(" · ") },
+                )
               : t("{size} распакованы.", { size: formatBytes(record.sizeBytes) }),
         });
 

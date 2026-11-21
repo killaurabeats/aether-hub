@@ -307,7 +307,64 @@ fn write_installs(app: &AppHandle, installs: &Installs) -> Result<(), String> {
 
 #[tauri::command]
 pub fn check_installs(app: AppHandle) -> Installs {
-    read_installs(&app)
+    #[allow(unused_mut)]
+    let mut installs = read_installs(&app);
+
+    #[cfg(target_os = "windows")]
+    {
+        let roots = windows_vst3_roots();
+        let mut changed = false;
+        let keys: Vec<String> = installs.keys().cloned().collect();
+
+        for key in keys {
+            let mut drop_record = false;
+            if let Some(record) = installs.get_mut(&key) {
+                if record.category != "plugins" {
+                    continue;
+                }
+
+                let mut resolved: Vec<String> = Vec::new();
+                for path in &record.paths {
+                    let candidate = PathBuf::from(path);
+                    if candidate.exists() {
+                        resolved.push(path.clone());
+                        continue;
+                    }
+
+                    let Some(name) = candidate.file_name() else {
+                        continue;
+                    };
+                    if let Some(found) = roots
+                        .iter()
+                        .map(|root| root.join(name))
+                        .find(|item| item.exists())
+                    {
+                        resolved.push(found.display().to_string());
+                        changed = true;
+                    }
+                }
+
+                if resolved.len() != record.paths.len() {
+                    record.paths = resolved;
+                    changed = true;
+                }
+                if record.paths.is_empty() {
+                    drop_record = true;
+                }
+            }
+
+            if drop_record {
+                installs.remove(&key);
+                changed = true;
+            }
+        }
+
+        if changed {
+            let _ = write_installs(&app, &installs);
+        }
+    }
+
+    installs
 }
 
 #[tauri::command]
@@ -571,6 +628,75 @@ fn extract_zip(archive: &Path, destination: &Path) -> Result<(), String> {
     Ok(())
 }
 
+#[cfg(not(target_os = "windows"))]
+fn elevated_copy_bundle(_source: &Path, _destination: &Path) -> Result<(), String> {
+    Err("Administrator copy is only available on Windows".into())
+}
+
+#[cfg(target_os = "windows")]
+fn ps_escape(value: &str) -> String {
+    value.replace('\'', "''")
+}
+
+/// Copies a staged VST3 bundle into Program Files through a UAC elevation
+/// prompt. Returns an error when the user cancels UAC or the elevated copy
+/// fails, so the caller can fall back to the per-user VST3 folder.
+#[cfg(target_os = "windows")]
+fn elevated_copy_bundle(source: &Path, destination: &Path) -> Result<(), String> {
+    use std::os::windows::process::CommandExt;
+    use std::process::Command;
+
+    const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+
+    let parent = destination
+        .parent()
+        .ok_or_else(|| "Invalid VST3 destination".to_string())?;
+    let stage_root = std::env::temp_dir().join("aether_vst_install");
+    fs::create_dir_all(&stage_root).map_err(|e| e.to_string())?;
+
+    let bundle_name = source
+        .file_name()
+        .ok_or_else(|| "Invalid VST3 bundle name".to_string())?;
+    let staged = stage_root.join(bundle_name);
+    if staged.exists() {
+        let _ = fs::remove_dir_all(&staged);
+    }
+    copy_dir_contents(source, &staged)?;
+
+    let script_path = stage_root.join(format!("copy-{}.ps1", uuid::Uuid::new_v4()));
+    let script = format!(
+        "$ErrorActionPreference='Stop'\ntry {{\n  New-Item -ItemType Directory -Force -Path '{}' | Out-Null\n  if (Test-Path -LiteralPath '{}') {{ Remove-Item -LiteralPath '{}' -Recurse -Force }}\n  Copy-Item -LiteralPath '{}' -Destination '{}' -Recurse -Force\n  exit 0\n}} catch {{ Write-Error $_; exit 1 }}\n",
+        ps_escape(&parent.display().to_string()),
+        ps_escape(&destination.display().to_string()),
+        ps_escape(&destination.display().to_string()),
+        ps_escape(&staged.display().to_string()),
+        ps_escape(&destination.display().to_string()),
+    );
+    fs::write(&script_path, script).map_err(|e| e.to_string())?;
+
+    let command = format!(
+        "$p = Start-Process -FilePath 'powershell.exe' -Verb RunAs -Wait -PassThru -ArgumentList '-NoProfile','-ExecutionPolicy','Bypass','-File','{}'; if ($p.ExitCode -ne 0) {{ exit $p.ExitCode }}",
+        ps_escape(&script_path.display().to_string())
+    );
+
+    let status = Command::new("powershell.exe")
+        .args(["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", command.as_str()])
+        .creation_flags(CREATE_NO_WINDOW)
+        .status()
+        .map_err(|e| format!("Could not request administrator access: {e}"))?;
+
+    let _ = fs::remove_file(&script_path);
+    let _ = fs::remove_dir_all(&staged);
+
+    if !status.success() {
+        return Err("Administrator access was cancelled or the elevated copy failed".into());
+    }
+    if !destination.exists() {
+        return Err("The elevated copy did not create the VST3 bundle".into());
+    }
+    Ok(())
+}
+
 /// Every place Windows hosts scan for VST3 plug-ins. FL Studio can keep loading
 /// an old copy from the *other* folder even after an update, so installs must
 /// reconcile both locations instead of only writing to one of them.
@@ -693,15 +819,25 @@ fn install_plugins(extracted: &Path) -> Result<(Vec<PathBuf>, u64), String> {
         match atomic_replace_dir(&bundle, &destination) {
             Ok(()) => {}
             Err(err) if cfg!(target_os = "windows") && !is_component => {
-                // Program Files may require elevation; fall back to the user
-                // VST3 folder, which every modern host scans.
-                let (_, fallback) = plugin_dirs();
-                fs::create_dir_all(&fallback).map_err(|e| e.to_string())?;
-                target_root = fallback;
-                destination = target_root.join(&file_name);
-                atomic_replace_dir(&bundle, &destination).map_err(|second| {
-                    format!("Could not install to {} ({err}); fallback also failed ({second})", target_root.display())
-                })?;
+                // Program Files is the folder FL Studio scans by default. Try
+                // the same copy again through UAC elevation.
+                match elevated_copy_bundle(&bundle, &destination) {
+                    Ok(()) => {}
+                    Err(elevated_err) => {
+                        // UAC cancelled or elevation failed: install into the
+                        // per-user VST3 folder and let the UI show its path.
+                        let (_, fallback) = plugin_dirs();
+                        fs::create_dir_all(&fallback).map_err(|e| e.to_string())?;
+                        target_root = fallback;
+                        destination = target_root.join(&file_name);
+                        atomic_replace_dir(&bundle, &destination).map_err(|second| {
+                            format!(
+                                "Could not install to {} ({err}); administrator copy failed ({elevated_err}); fallback also failed ({second})",
+                                target_root.display()
+                            )
+                        })?;
+                    }
+                }
             }
             Err(err) => return Err(format!("Could not install {}: {err}", bundle.display())),
         }

@@ -6,7 +6,6 @@ import {
   KeyRound,
   MessageSquareText,
   Send,
-  Settings2,
   ShieldCheck,
   SlidersHorizontal,
   Sparkles,
@@ -23,7 +22,6 @@ import { cloudEnabled } from "../lib/cloud";
 interface Props {
   view: View;
   onNavigate: (view: View) => void;
-  onOpenSettings: () => void;
   onOpenSupport: () => void;
 }
 
@@ -34,7 +32,7 @@ const NAV = [
   { key: "presets", label: "Presets", icon: SlidersHorizontal },
 ] as const;
 
-export function Sidebar({ view, onNavigate, onOpenSettings, onOpenSupport }: Props) {
+export function Sidebar({ view, onNavigate, onOpenSupport }: Props) {
   const {
     releases,
     admin,
@@ -152,10 +150,6 @@ export function Sidebar({ view, onNavigate, onOpenSettings, onOpenSupport }: Pro
       <div className="sidebar-spacer" />
 
       <div className="side-actions">
-        <button className="side-action" onClick={onOpenSettings}>
-          <Settings2 size={14} />
-          {t("Настройки")}
-        </button>
         <button className="side-action" onClick={onOpenSupport}>
           <MessageSquareText size={14} />
           {t("Поддержка")}

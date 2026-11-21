@@ -557,7 +557,7 @@ const en: Record<string, string> = {
 
   // -------------------------------------------------------------------- misc
   "Aether Plugins · by. @killaurabeats": "Aether Plugins · by. @killaurabeats",
-  "AETHER HUB · 1.3.7 · CINEMATIC INTRO": "AETHER HUB · 1.3.7 · CINEMATIC INTRO",
+  "AETHER HUB · 1.3.8 · CINEMATIC INTRO": "AETHER HUB · 1.3.8 · CINEMATIC INTRO",
   "Эффекты стекла": "Glass effects",
   "Размытие": "Blur",
   "Включено": "On",
@@ -585,7 +585,7 @@ const en: Record<string, string> = {
   "Включить звук заставки": "Enable the startup sound",
   "Русский": "Russian",
   "не задан": "not set",
-  "Aether Hub · 1.3.7 · CINEMATIC INTRO": "AETHER HUB · 1.3.7 · CINEMATIC INTRO",
+  "Aether Hub · 1.3.8 · CINEMATIC INTRO": "AETHER HUB · 1.3.8 · CINEMATIC INTRO",
   "Чат с создателем": "Creator chat",
   "Скоро здесь появится встроенная поддержка.":
     "Built-in support is coming soon.",
@@ -697,7 +697,7 @@ const en: Record<string, string> = {
   "Что внутри, для кого, чем отличается версия…":
     "What's inside, who it's for and what changed…",
 
-  // ------------------------------------------------------------ v1.3.7 UI
+  // ------------------------------------------------------------ v1.3.8 UI
   "Уведомления": "Notifications",
   "Всё прочитано": "All caught up",
   "{count} новых": "{count} new",
@@ -829,7 +829,7 @@ const en: Record<string, string> = {
   "Прослушать": "Preview",
   "ВЫБОР КОМЬЮНИТИ": "COMMUNITY PICK",
 
-  // ------------------------------------------------------------ v1.3.7 UI
+  // ------------------------------------------------------------ v1.3.8 UI
   "В разработке": "In development",
   "Уведомление Aether": "Aether notification",
   "Перейти к плагину": "Open plugin",
@@ -919,6 +919,8 @@ const en: Record<string, string> = {
     "We will open the installer download page for your OS.",
   "Автообновление доступно только в приложении":
     "Auto-update is available in the desktop app only",
+  "Плагин установлен в {path}. Если FL Studio не видит его, добавьте эту папку в Options - Manage plugins - Plugin search paths.":
+    "Plugin installed to {path}. If FL Studio cannot see it, add this folder in Options - Manage plugins - Plugin search paths.",
 };
 
 export function translate(

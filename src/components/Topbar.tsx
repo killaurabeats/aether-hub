@@ -2,6 +2,7 @@ import {
   ChevronDown,
   RefreshCw,
   Search,
+  Settings2,
   ShieldCheck,
   Volume2,
   VolumeX,
@@ -18,6 +19,7 @@ interface Props {
   query: string;
   onQuery: (value: string) => void;
   onOpenProfile: () => void;
+  onOpenSettings: () => void;
   onRefresh: () => void;
   onNavigate: (view: View) => void;
   onOpenRelease: (slug: string) => void;
@@ -62,6 +64,7 @@ export function Topbar({
   query,
   onQuery,
   onOpenProfile,
+  onOpenSettings,
   onRefresh,
   onNavigate,
   onOpenRelease,
@@ -118,6 +121,15 @@ export function Topbar({
         disabled={refreshing}
       >
         <RefreshCw size={15} className={refreshing ? "spin" : ""} />
+      </button>
+
+      <button
+        className="icon-button"
+        onClick={onOpenSettings}
+        title={t("Настройки")}
+        aria-label={t("Настройки")}
+      >
+        <Settings2 size={15} />
       </button>
 
       <NotificationBell onNavigate={onNavigate} onOpenRelease={onOpenRelease} />

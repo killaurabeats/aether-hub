@@ -315,7 +315,6 @@ function Shell() {
         <Sidebar
           view={effectiveView}
           onNavigate={navigate}
-          onOpenSettings={() => openSettings("general")}
           onOpenSupport={() => setSupportOpen(true)}
         />
 
@@ -325,6 +324,7 @@ function Shell() {
             query={query}
             onQuery={setQuery}
             onOpenProfile={() => setProfileOpen(true)}
+            onOpenSettings={() => openSettings("general")}
             onRefresh={() => void refresh()}
             onNavigate={navigate}
             onOpenRelease={(slug) => {
