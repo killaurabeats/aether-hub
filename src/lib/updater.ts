@@ -17,6 +17,9 @@ export interface UpdateProgress {
   total: number;
 }
 
+export const UPDATE_PENDING_KEY = "aether.update.pending.v1";
+export const UPDATE_NOTICE_KEY = "aether.update.notice.v1";
+
 /** Downloads, verifies and installs an update, then relaunches the app. */
 export async function installUpdate(
   update: Update,
@@ -37,6 +40,19 @@ export async function installUpdate(
       onProgress({ percent: 100, received: total, total });
     }
   });
+
+  // Persist the short user-facing release body so the next launch can add a
+  // compact "Updated to vX" card to the notification bell.
+  try {
+    const pending = {
+      version: String(update.version ?? "").replace(/^v/i, ""),
+      body: String(update.body ?? "").trim().slice(0, 280),
+      savedAt: new Date().toISOString(),
+    };
+    localStorage.setItem(UPDATE_PENDING_KEY, JSON.stringify(pending));
+  } catch {
+    // localStorage can be unavailable in hardened webviews; updating still works.
+  }
 
   await relaunch();
 }

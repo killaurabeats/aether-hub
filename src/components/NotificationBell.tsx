@@ -5,6 +5,7 @@ import {
   Bell,
   BadgeCheck,
   KeyRound,
+  RefreshCw,
   Sparkles,
   Waves,
   X,
@@ -18,6 +19,7 @@ const kindIcon = {
   beta: BadgeCheck,
   license: KeyRound,
   sample: Waves,
+  update: RefreshCw,
 } as const;
 
 export function NotificationBell({

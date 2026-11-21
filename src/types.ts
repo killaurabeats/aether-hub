@@ -111,7 +111,7 @@ export interface SubmitSampleInput {
 
 export interface AppNotification {
   id: string;
-  kind: "release" | "beta" | "license" | "sample";
+  kind: "release" | "beta" | "license" | "sample" | "update";
   title: string;
   message: string;
   details?: string;

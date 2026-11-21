@@ -62,6 +62,7 @@ import { formatBytes } from "./format";
 import { processAvatar } from "./image";
 import { setFormatLanguage } from "./format";
 import { translate, type Language } from "./i18n";
+import { UPDATE_NOTICE_KEY, UPDATE_PENDING_KEY } from "./updater";
 
 export const isTauri =
   typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
@@ -70,6 +71,27 @@ const PROFILE_KEY = "aether.profile.v1";
 const SETTINGS_KEY = "aether.settings.v1";
 const NOTIF_READ_KEY = "aether.notifications.read.v1";
 const LICENSE_WRITTEN_KEY = "aether.licenses.written.v1";
+
+interface PostUpdateNotice {
+  version: string;
+  body: string;
+  savedAt: string;
+}
+
+function readPostUpdateNotice(raw: string | null): PostUpdateNotice | null {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as Partial<PostUpdateNotice>;
+    if (!parsed.version || !parsed.savedAt) return null;
+    return {
+      version: String(parsed.version).replace(/^v/i, ""),
+      body: String(parsed.body ?? "").trim().slice(0, 280),
+      savedAt: parsed.savedAt,
+    };
+  } catch {
+    return null;
+  }
+}
 
 const defaultSettings: Settings = {
   language: "ru",
@@ -216,6 +238,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [samples, setSamples] = useState<CommunitySample[]>([]);
   const [mySamples, setMySamples] = useState<CommunitySample[]>([]);
   const [samplesLoading, setSamplesLoading] = useState(true);
+  const [postUpdateNotice, setPostUpdateNotice] = useState<PostUpdateNotice | null>(null);
   const [notifRead, setNotifRead] = useState<string[]>(() => {
     try {
       return JSON.parse(localStorage.getItem(NOTIF_READ_KEY) ?? "[]") as string[];
@@ -425,18 +448,21 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         });
       }
 
+      let currentVersion = "";
       if (isTauri) {
         const results = await Promise.allSettled([
           invoke<MachineInfo>("machine_id"),
           invoke<AppPaths>("app_paths"),
           invoke<AdminStatus>("admin_status"),
           invoke<Installs>("check_installs"),
+          invoke<string>("app_version"),
         ]);
 
         if (results[0].status === "fulfilled") nextMachine = results[0].value;
         if (results[1].status === "fulfilled") nextPaths = results[1].value;
         if (results[2].status === "fulfilled") nextAdmin = results[2].value;
         if (results[3].status === "fulfilled") setInstalls(results[3].value);
+        if (results[4].status === "fulfilled") currentVersion = results[4].value;
       } else if (new URLSearchParams(window.location.search).get("previewAdmin") === "1") {
         // Browser-only design preview: never reachable inside the Tauri app.
         nextAdmin = {
@@ -458,6 +484,24 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       };
       setProfile(mergedProfile);
       localStorage.setItem(PROFILE_KEY, JSON.stringify(mergedProfile));
+
+      const normalizedVersion = currentVersion.replace(/^v/i, "");
+      const pendingNotice = readPostUpdateNotice(localStorage.getItem(UPDATE_PENDING_KEY));
+      const storedNotice = readPostUpdateNotice(localStorage.getItem(UPDATE_NOTICE_KEY));
+      const activeNotice =
+        pendingNotice && pendingNotice.version === normalizedVersion
+          ? pendingNotice
+          : storedNotice && storedNotice.version === normalizedVersion
+            ? storedNotice
+            : null;
+
+      if (activeNotice) {
+        setPostUpdateNotice(activeNotice);
+        localStorage.setItem(UPDATE_NOTICE_KEY, JSON.stringify(activeNotice));
+        if (pendingNotice && pendingNotice.version === normalizedVersion) {
+          localStorage.removeItem(UPDATE_PENDING_KEY);
+        }
+      }
 
       setReady(true);
       void refreshCatalog();
@@ -1029,6 +1073,22 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const now = Date.now();
     const recentCutoff = now - 30 * 24 * 3600_000;
 
+    if (postUpdateNotice) {
+      items.push({
+        id: `update:${postUpdateNotice.version}`,
+        kind: "update",
+        title: t("Обновлено до v{version}", { version: postUpdateNotice.version }),
+        message:
+          postUpdateNotice.body ||
+          t("Aether Hub обновлён до последней версии."),
+        details:
+          postUpdateNotice.body ||
+          t("Aether Hub обновлён до последней версии."),
+        createdAt: postUpdateNotice.savedAt,
+        action: "plugins",
+      });
+    }
+
     for (const release of releases) {
       const created = release.createdAt ? Date.parse(release.createdAt) : NaN;
       if (!Number.isFinite(created) || created < recentCutoff) continue;
@@ -1138,7 +1198,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }
 
     return items.sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 40);
-  }, [betaTester, mySamples, releases, requests, settings.language, t]);
+  }, [betaTester, mySamples, postUpdateNotice, releases, requests, settings.language, t]);
 
   notifIdsRef.current = notifications.map((item) => item.id);
   const unreadNotifications = notifications.filter(

@@ -884,6 +884,9 @@ const en: Record<string, string> = {
   "Текущий режим": "Current mode",
   "Точный BPM": "Exact BPM",
   "Точный BPM: {bpm}": "Exact BPM: {bpm}",
+  "Обновлено до v{version}": "Updated to v{version}",
+  "Aether Hub обновлён до последней версии.":
+    "Aether Hub was updated to the latest version.",
 };
 
 export function translate(

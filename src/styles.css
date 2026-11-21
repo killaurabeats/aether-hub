@@ -6907,3 +6907,24 @@ select {
   left: auto;
   right: 0;
 }
+
+.notif-item.update .notif-icon {
+  color: #ddd6fe;
+  border-color: rgba(139, 92, 246, 0.35);
+  background: linear-gradient(140deg, rgba(139, 92, 246, 0.24), rgba(232, 121, 249, 0.12));
+  box-shadow: 0 0 16px -7px rgba(139, 92, 246, 0.9);
+}
+
+.notif-detail-head .notif-icon.update {
+  color: #ddd6fe;
+  border-color: rgba(139, 92, 246, 0.35);
+  background: linear-gradient(140deg, rgba(139, 92, 246, 0.24), rgba(232, 121, 249, 0.12));
+  box-shadow: 0 0 16px -7px rgba(139, 92, 246, 0.9);
+}
+
+.notif-copy span {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
