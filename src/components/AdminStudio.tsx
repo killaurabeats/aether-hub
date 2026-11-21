@@ -1447,6 +1447,15 @@ export function AdminStudio() {
                         <Check size={11} /> {t("Одобрить")}
                       </button>
                     ) : null}
+                    {sample.status === "pending" ? (
+                      <button
+                        className="btn btn-danger btn-sm"
+                        onClick={() => void moderate(sample, "reject")}
+                        disabled={sampleActionBusy === sample.id}
+                      >
+                        <X size={11} /> {t("Отклонить")}
+                      </button>
+                    ) : null}
                     <button
                       className="btn btn-ghost btn-sm"
                       onClick={() => void moderate(sample, sample.isFeatured ? "unfeature" : "feature")}
