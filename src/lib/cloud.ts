@@ -129,28 +129,33 @@ export function seedReleases(): Release[] {
       slug: "aether-saturator",
       category: "plugins",
       title: "AetherSaturator",
-      version: "1.0.0",
+      version: "1.1.0-beta",
       description:
-        "A free universal saturation plugin: TUBE, TAPE, VALVE and 808 characters, 2×/4× oversampling, smart auto-gain, warmth, tone tilt and an audio-reactive neon DRIVE ring. VST3 + AU for macOS, VST3 for Windows.",
+        "Liquid-glass saturation rebuild: 0 to +28 dB drive, four characters, working warmth, mono-maker, RMS auto-gain and a reactive cyan neon ring. VST3 + AU for macOS, VST3 for Windows. FREE beta.",
       descriptionEn:
-        "A free universal saturation plugin: TUBE, TAPE, VALVE and 808 characters, 2×/4× oversampling, smart auto-gain, warmth, tone tilt and an audio-reactive neon DRIVE ring. VST3 + AU for macOS, VST3 for Windows.",
+        "Liquid-glass saturation rebuild: 0 to +28 dB drive, four characters (TUBE, TAPE, VALVE, 808), working warmth, mono-maker, RMS auto-gain and a reactive cyan neon ring. VST3 + AU for macOS, VST3 for Windows. FREE beta.",
       descriptionRu:
-        "Бесплатный универсальный сатуратор: режимы TUBE, TAPE, VALVE и 808, оверсэмплинг 2×/4×, умный auto-gain, WARMTH, TONE и реактивное неоновое кольцо DRIVE. VST3 + AU для macOS, VST3 для Windows.",
+        "Пересобранный сатуратор в стиле liquid glass: DRIVE от 0 до +28 dB, четыре характера (TUBE, TAPE, VALVE, 808), рабочая WARMTH, mono-maker, RMS auto-gain и реактивное циановое неоновое кольцо. VST3 + AU для macOS, VST3 для Windows. Бесплатная бета.",
       coverUrl: "/covers/aether-saturator.jpg",
       files: {
         macos: {
           url: "/releases/aether-saturator-macos.zip",
-          sizeBytes: 6223064,
+          sizeBytes: 6281071,
           filename: "AetherSaturator_macOS_VST3_AU.zip",
+        },
+        windows: {
+          url: "/releases/aether-saturator-windows.zip",
+          sizeBytes: 2284118,
+          filename: "AetherSaturator_Windows_VST3.zip",
         },
       },
       ratingAvg: 0,
       ratingCount: 0,
       productTag: "AETHER-SATURATOR",
       pluginCategory: "saturation",
-      tier: "free",
+      tier: "beta",
       featured: false,
-      badge: "NEW",
+      badge: "BETA",
       createdAt: nowMinus(1),
     },
     {
