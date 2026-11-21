@@ -683,6 +683,86 @@ fn make_webview_transparent(window: &tauri::WebviewWindow) {
     });
 }
 
+#[cfg(target_os = "macos")]
+fn configure_macos_window(window: &tauri::WebviewWindow) {
+    use objc2::msg_send;
+    use objc2_app_kit::{NSColor, NSView, NSWindow};
+    use objc2_quartz_core::CALayer;
+    use std::ffi::c_void;
+
+    let Ok(ns_window_ptr) = window.ns_window() else {
+        return;
+    };
+    if ns_window_ptr.is_null() {
+        return;
+    }
+
+    let ns_window = ns_window_ptr as *mut NSWindow;
+    unsafe {
+        let _: () = msg_send![ns_window, setOpaque: false];
+        let clear = NSColor::clearColor();
+        let _: () = msg_send![ns_window, setBackgroundColor: &*clear];
+        let _: () = msg_send![ns_window, setHasShadow: false];
+
+        let content_view: *mut NSView = msg_send![ns_window, contentView];
+        if content_view.is_null() {
+            return;
+        }
+
+        let _: () = msg_send![content_view, setWantsLayer: true];
+        let layer: *mut CALayer = msg_send![content_view, layer];
+        if layer.is_null() {
+            return;
+        }
+
+        // Let the OS compositor itself clip the window to the same 18px radius
+        // used by the web UI. This removes the grey rectangular corner that a
+        // transparent webview alone cannot hide.
+        let _: () = msg_send![layer, setCornerRadius: 18.0f64];
+        let _: () = msg_send![layer, setMasksToBounds: true];
+        let cg_color: *mut c_void = msg_send![&*clear, CGColor];
+        if !cg_color.is_null() {
+            let _: () = msg_send![layer, setBackgroundColor: cg_color];
+        }
+    }
+}
+
+#[cfg(target_os = "windows")]
+fn configure_windows_window(window: &tauri::WebviewWindow) {
+    use std::mem::size_of_val;
+    use windows::Win32::Graphics::Dwm::{
+        DwmSetWindowAttribute, DWMWA_BORDER_COLOR, DWMWA_COLOR_NONE,
+        DWMWA_WINDOW_CORNER_PREFERENCE, DWMWCP_DONOTROUND,
+    };
+
+    let Ok(hwnd) = window.hwnd() else {
+        return;
+    };
+    if hwnd.0.is_null() {
+        return;
+    }
+
+    unsafe {
+        let corner = DWMWCP_DONOTROUND;
+        let _ = DwmSetWindowAttribute(
+            hwnd,
+            DWMWA_WINDOW_CORNER_PREFERENCE,
+            &corner as *const _ as *const _,
+            size_of_val(&corner) as u32,
+        );
+
+        // Windows 11 default border would paint a visible rectangle around the
+        // transparent rounded WebView. Remove it completely.
+        let border = DWMWA_COLOR_NONE;
+        let _ = DwmSetWindowAttribute(
+            hwnd,
+            DWMWA_BORDER_COLOR,
+            &border as *const _ as *const _,
+            size_of_val(&border) as u32,
+        );
+    }
+}
+
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
@@ -696,7 +776,12 @@ pub fn run() {
                 let _ = window.set_background_color(Some(tauri::window::Color(0, 0, 0, 0)));
                 let _ = window.set_shadow(false);
                 #[cfg(target_os = "macos")]
-                make_webview_transparent(&window);
+                {
+                    make_webview_transparent(&window);
+                    configure_macos_window(&window);
+                }
+                #[cfg(target_os = "windows")]
+                configure_windows_window(&window);
             }
             Ok(())
         })
