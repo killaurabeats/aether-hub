@@ -118,6 +118,34 @@ const nowMinus = (hours: number) =>
 export function seedReleases(): Release[] {
   return [
     {
+      id: "rel_aether_saturator",
+      slug: "aether-saturator",
+      category: "plugins",
+      title: "AetherSaturator",
+      version: "1.0.0",
+      description:
+        "A free universal saturation plugin: TUBE, TAPE, VALVE and 808 characters, 2×/4× oversampling, smart auto-gain, warmth, tone tilt and an audio-reactive neon DRIVE ring. VST3 + AU for macOS, VST3 for Windows.",
+      descriptionEn:
+        "A free universal saturation plugin: TUBE, TAPE, VALVE and 808 characters, 2×/4× oversampling, smart auto-gain, warmth, tone tilt and an audio-reactive neon DRIVE ring. VST3 + AU for macOS, VST3 for Windows.",
+      descriptionRu:
+        "Бесплатный универсальный сатуратор: режимы TUBE, TAPE, VALVE и 808, оверсэмплинг 2×/4×, умный auto-gain, WARMTH, TONE и реактивное неоновое кольцо DRIVE. VST3 + AU для macOS, VST3 для Windows.",
+      coverUrl: "/covers/aether-saturator.jpg",
+      files: {
+        macos: {
+          url: "/releases/aether-saturator-macos.zip",
+          sizeBytes: 6223091,
+          filename: "AetherSaturator_macOS_VST3_AU.zip",
+        },
+      },
+      ratingAvg: 0,
+      ratingCount: 0,
+      productTag: "AETHER-SATURATOR",
+      tier: "free",
+      featured: false,
+      badge: "NEW",
+      createdAt: nowMinus(1),
+    },
+    {
       id: "rel_aether_vocal_strip",
       slug: "aether-vocal-strip",
       category: "plugins",
