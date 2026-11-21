@@ -6540,3 +6540,19 @@ a {
   padding-top: 2px;
   padding-bottom: 2px;
 }
+
+.app-shell.theme-light .comment {
+  background: rgba(255, 255, 255, 0.62);
+  border-color: rgba(76, 29, 149, 0.08);
+}
+
+.app-shell.theme-light .comment:hover {
+  background: #fff;
+  border-color: rgba(76, 29, 149, 0.16);
+}
+
+.app-shell.theme-light .comment-form textarea {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: rgba(76, 29, 149, 0.15);
+  color: var(--text);
+}
