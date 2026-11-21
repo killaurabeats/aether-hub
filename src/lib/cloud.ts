@@ -26,6 +26,7 @@ import type {
   Release,
   ReleaseFile,
   Tier,
+  PluginCategory,
   CommunitySample,
   SampleCategory,
   SampleStatus,
@@ -146,6 +147,7 @@ export function seedReleases(): Release[] {
       ratingAvg: 0,
       ratingCount: 0,
       productTag: "AETHER-SATURATOR",
+      pluginCategory: "saturation",
       tier: "free",
       featured: false,
       badge: "NEW",
@@ -179,6 +181,7 @@ export function seedReleases(): Release[] {
       ratingAvg: 4.9,
       ratingCount: 128,
       productTag: "AETHER-VOCAL-STRIP",
+      pluginCategory: "vocal",
       tier: "free",
       featured: true,
       badge: "NEW",
@@ -493,6 +496,14 @@ function parseJson<T>(value: unknown, fallback: T): T {
   return value as T;
 }
 
+const PLUGIN_CATEGORIES: PluginCategory[] = [
+  "vocal",
+  "saturation",
+  "compressors",
+  "space",
+  "mastering",
+];
+
 export function mapRelease(row: Row): Release {
   const files = parseJson<Record<string, any>>(row.files, {});
   const normalisedFiles: Partial<Record<"macos" | "windows", ReleaseFile>> = {};
@@ -522,6 +533,9 @@ export function mapRelease(row: Row): Release {
     ratingAvg: numeric(row.rating_avg),
     ratingCount: numeric(row.rating_count),
     productTag: row.product_tag ?? null,
+    pluginCategory: PLUGIN_CATEGORIES.includes(row.plugin_category)
+      ? (row.plugin_category as PluginCategory)
+      : null,
     tier: row.tier === "pro" ? "pro" : row.tier === "beta" ? "beta" : "free",
     featured: Boolean(row.featured),
     badge: row.badge ?? null,
@@ -1429,6 +1443,7 @@ export interface PublishPayload {
   coverUrl?: string | null;
   files: Release["files"];
   productTag?: string | null;
+  pluginCategory?: PluginCategory | null;
   tier?: Tier;
   featured?: boolean;
   badge?: string | null;
@@ -1462,6 +1477,7 @@ export async function saveRelease(payload: PublishPayload): Promise<Release> {
     ratingAvg: existing?.ratingAvg ?? 5,
     ratingCount: existing?.ratingCount ?? 1,
     productTag: payload.productTag ?? null,
+    pluginCategory: payload.pluginCategory ?? existing?.pluginCategory ?? null,
     tier: payload.tier ?? "free",
     featured: payload.featured ?? false,
     badge: payload.badge ?? null,

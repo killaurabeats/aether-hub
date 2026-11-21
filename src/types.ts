@@ -3,6 +3,39 @@ export type OSKey = "macos" | "windows";
 export type Tier = "free" | "pro" | "beta";
 export const TIER_ORDER: Tier[] = ["free", "pro", "beta"];
 
+export type PluginCategory =
+  | "vocal"
+  | "saturation"
+  | "compressors"
+  | "space"
+  | "mastering";
+
+export const PLUGIN_CATEGORY_META: Record<
+  PluginCategory,
+  { label: string; description: string }
+> = {
+  vocal: {
+    label: "Вокал и обработка",
+    description: "Vocal & processing",
+  },
+  saturation: {
+    label: "Сатурация",
+    description: "Saturation",
+  },
+  compressors: {
+    label: "Компрессоры",
+    description: "Compressors",
+  },
+  space: {
+    label: "Пространство",
+    description: "Space",
+  },
+  mastering: {
+    label: "Мастеринг",
+    description: "Mastering",
+  },
+};
+
 export const CATEGORY_META: Record<
   Category,
   { label: string; singular: string; sub: string }
@@ -49,6 +82,7 @@ export interface Release {
   ratingAvg: number;
   ratingCount: number;
   productTag?: string | null;
+  pluginCategory?: PluginCategory | null;
   tier?: Tier;
   featured?: boolean;
   badge?: string | null;

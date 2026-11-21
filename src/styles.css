@@ -7164,3 +7164,39 @@ html.is-fullscreen .chat-backdrop {
   color: #fbbf24;
   fill: #fbbf24;
 }
+
+/* ============================================================ v1.3.6 ==== */
+.category-head > div:last-child {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.plugin-category-filter .aether-select-trigger {
+  min-width: 178px;
+}
+
+.roadmap-divider {
+  height: 1px;
+  margin: 30px 2px 22px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(251, 191, 36, 0.25) 12%,
+    rgba(196, 181, 253, 0.2) 55%,
+    transparent
+  );
+}
+
+.roadmap-head {
+  padding-bottom: 14px;
+}
+
+.roadmap-head h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.roadmap-head .sub {
+  margin-top: 3px;
+}

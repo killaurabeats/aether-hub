@@ -23,6 +23,7 @@ create table if not exists public.releases (
   rating_avg    numeric(3, 2) not null default 5.00,
   rating_count  integer not null default 0,
   product_tag   text,
+  plugin_category text check (plugin_category is null or plugin_category in ('vocal', 'saturation', 'compressors', 'space', 'mastering')),
   tier          text not null default 'free' check (tier in ('free', 'pro', 'beta')),
   featured      boolean not null default false,
   badge         text,
@@ -38,6 +39,11 @@ alter table public.releases add column if not exists tier text not null default 
 alter table public.releases drop constraint if exists releases_tier_check;
 alter table public.releases add constraint releases_tier_check check (tier in ('free', 'pro', 'beta'));
 update public.releases set tier = 'free' where tier is null;
+
+alter table public.releases add column if not exists plugin_category text;
+alter table public.releases drop constraint if exists releases_plugin_category_check;
+alter table public.releases add constraint releases_plugin_category_check
+  check (plugin_category is null or plugin_category in ('vocal', 'saturation', 'compressors', 'space', 'mastering'));
 
 -- --------------------------------------------------- community samples ----
 create table if not exists public.community_samples (

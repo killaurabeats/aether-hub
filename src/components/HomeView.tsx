@@ -34,8 +34,16 @@ export function HomeView({
     t,
   } = useStore();
 
-  const featured = releases.find((r) => r.featured) ?? releases[0];
-  const latest = useMemo(() => releases.slice(0, 6), [releases]);
+  const readyReleases = useMemo(
+    () => releases.filter((release) => (release.tier ?? "free") !== "beta"),
+    [releases],
+  );
+  const featured =
+    readyReleases.find((release) => release.featured) ?? readyReleases[0] ?? releases[0];
+  const latest = useMemo(
+    () => (readyReleases.length ? readyReleases : releases).slice(0, 6),
+    [readyReleases, releases],
+  );
 
   const avgRating = releases.length
     ? releases.reduce((total, r) => total + r.ratingAvg, 0) / releases.length

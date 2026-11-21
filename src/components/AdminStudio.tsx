@@ -27,8 +27,15 @@ import {
   X,
   Zap,
 } from "lucide-react";
-import type { Category, Comment, Release, CommunitySample, SampleStatus } from "../types";
-import { SAMPLE_CATEGORY_META } from "../types";
+import type {
+  Category,
+  Comment,
+  Release,
+  CommunitySample,
+  SampleStatus,
+  PluginCategory,
+} from "../types";
+import { PLUGIN_CATEGORY_META, SAMPLE_CATEGORY_META } from "../types";
 import { CATEGORY_META } from "../types";
 import { useStore } from "../lib/store";
 import {
@@ -71,6 +78,7 @@ interface FormState {
   descriptionRu: string;
   descriptionEn: string;
   productTag: string;
+  pluginCategory: PluginCategory;
   tier: "free" | "pro" | "beta";
   badge: string;
   preview: string;
@@ -85,6 +93,7 @@ const emptyForm: FormState = {
   descriptionRu: "",
   descriptionEn: "",
   productTag: "AETHER-VOCAL-STRIP",
+  pluginCategory: "vocal",
   tier: "free",
   badge: "NEW",
   preview: "",
@@ -487,6 +496,7 @@ export function AdminStudio() {
       descriptionRu: release.descriptionRu || release.description,
       descriptionEn: release.descriptionEn || release.description,
       productTag: release.productTag || "AETHER-VOCAL-STRIP",
+      pluginCategory: release.pluginCategory ?? "vocal",
       tier: release.tier ?? "free",
       badge: release.badge || "",
       preview: release.previews?.[0]?.url || "",
@@ -617,6 +627,7 @@ export function AdminStudio() {
         coverUrl,
         files: nextFiles,
         productTag: form.category === "plugins" ? form.productTag : null,
+        pluginCategory: form.category === "plugins" ? form.pluginCategory : null,
         tier: form.category === "plugins" ? form.tier : "free",
         featured: form.featured,
         badge: form.badge.trim() || null,
@@ -1083,6 +1094,26 @@ export function AdminStudio() {
                             "Ранний доступ: установка только для HWID с активированным Beta-инвайтом, лицензия выдаётся автоматически.",
                           )}
                   </span>
+                </div>
+              ) : null}
+              {form.category === "plugins" ? (
+                <div className="field">
+                  <label>{t("Категория плагина")}</label>
+                  <select
+                    value={form.pluginCategory}
+                    onChange={(event) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        pluginCategory: event.target.value as PluginCategory,
+                      }))
+                    }
+                  >
+                    {(Object.keys(PLUGIN_CATEGORY_META) as PluginCategory[]).map((key) => (
+                      <option key={key} value={key}>
+                        {t(PLUGIN_CATEGORY_META[key].label)}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               ) : null}
               <div className="field">

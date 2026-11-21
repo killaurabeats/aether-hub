@@ -1,13 +1,15 @@
 import { useMemo, useState } from "react";
-import { CheckCircle2, Clock3, SearchX, ShieldAlert } from "lucide-react";
-import type { Category, Release } from "../types";
-import { CATEGORY_META } from "../types";
+import { CheckCircle2, Clock3, SearchX, ShieldAlert, Tags } from "lucide-react";
+import type { Category, Release, PluginCategory } from "../types";
+import { CATEGORY_META, PLUGIN_CATEGORY_META } from "../types";
 import { useStore } from "../lib/store";
+import { AetherSelect } from "./AetherSelect";
 import { ReleaseCard } from "./ReleaseCard";
 
 type Filter = "all" | "installed";
 type TierFilter = "all" | "free" | "pro" | "beta";
 type Sort = "new" | "rating";
+type CategoryFilter = "all" | PluginCategory;
 
 export function CategoryView({
   category,
@@ -20,6 +22,7 @@ export function CategoryView({
   const [filter, setFilter] = useState<Filter>("all");
   const [tierFilter, setTierFilter] = useState<TierFilter>("all");
   const [sort, setSort] = useState<Sort>("new");
+  const [pluginCategory, setPluginCategory] = useState<CategoryFilter>("all");
 
   const meta = CATEGORY_META[category];
   const categoryTotal = releases.filter((release) => release.category === category).length;
@@ -34,13 +37,33 @@ export function CategoryView({
     if (category === "plugins" && tierFilter !== "all") {
       list = list.filter((release) => (release.tier ?? "free") === tierFilter);
     }
+    if (category === "plugins" && pluginCategory !== "all") {
+      list = list.filter((release) => release.pluginCategory === pluginCategory);
+    }
     if (sort === "rating") list = [...list].sort((a, b) => b.ratingAvg - a.ratingAvg);
     else
       list = [...list].sort((a, b) =>
         String(b.createdAt ?? "").localeCompare(String(a.createdAt ?? "")),
       );
     return list;
-  }, [releases, category, filter, tierFilter, sort, installs]);
+  }, [releases, category, filter, tierFilter, pluginCategory, sort, installs]);
+
+  const readyItems = useMemo(
+    () => items.filter((release) => (release.tier ?? "free") !== "beta"),
+    [items],
+  );
+  const betaItems = useMemo(
+    () => items.filter((release) => (release.tier ?? "free") === "beta"),
+    [items],
+  );
+  const showRoadmap = category === "plugins" && betaItems.length > 0;
+  const pluginCategoryOptions = [
+    { value: "all", label: t("Все категории") },
+    ...(Object.keys(PLUGIN_CATEGORY_META) as PluginCategory[]).map((key) => ({
+      value: key,
+      label: t(PLUGIN_CATEGORY_META[key].label),
+    })),
+  ];
 
   return (
     <div className="page">
@@ -97,6 +120,16 @@ export function CategoryView({
               </button>
             </div>
           ) : null}
+          {category === "plugins" ? (
+            <AetherSelect
+              value={pluginCategory}
+              options={pluginCategoryOptions}
+              onChange={(value) => setPluginCategory(value as CategoryFilter)}
+              icon={<Tags size={11} />}
+              ariaLabel={t("Категория плагина")}
+              className="plugin-category-filter"
+            />
+          ) : null}
           <div className="filter-row">
             <button
               className={`filter-pill ${sort === "new" ? "active" : ""}`}
@@ -136,6 +169,62 @@ export function CategoryView({
             </div>
           ))}
         </div>
+      ) : category === "plugins" ? (
+        <>
+          {readyItems.length ? (
+            <div className="release-grid">
+              {readyItems.map((release, index) => (
+                <ReleaseCard
+                  key={release.id}
+                  release={release}
+                  onOpen={onOpenRelease}
+                  index={index}
+                />
+              ))}
+            </div>
+          ) : null}
+
+          {showRoadmap ? (
+            <>
+              <div className="roadmap-divider" />
+              <div className="section-head roadmap-head">
+                <div>
+                  <h2>{t("В разработке · Roadmap")}</h2>
+                  <div className="sub">
+                    {t("Будущие плагины Aether - ранний доступ для тестировщиков")}
+                  </div>
+                </div>
+                <span className="chip beta">{betaItems.length} BETA</span>
+              </div>
+              <div className="release-grid">
+                {betaItems.map((release, index) => (
+                  <ReleaseCard
+                    key={release.id}
+                    release={release}
+                    onOpen={onOpenRelease}
+                    index={index}
+                  />
+                ))}
+              </div>
+            </>
+          ) : null}
+
+          {!readyItems.length && !betaItems.length ? (
+            <div className="empty-state">
+              <div className="icon">
+                {filter === "installed" ? <CheckCircle2 size={22} /> : <ShieldAlert size={22} />}
+              </div>
+              <h3>
+                {filter === "installed" ? t("Здесь пока пусто") : t("Релизов пока нет")}
+              </h3>
+              <p>
+                {filter === "installed"
+                  ? t("Установите что-нибудь из общей библиотеки - и это появится здесь.")
+                  : t("Админ ещё не опубликовал контент в этой категории. Загляните позже.")}
+              </p>
+            </div>
+          ) : null}
+        </>
       ) : items.length ? (
         <div className="release-grid">
           {items.map((release, index) => (

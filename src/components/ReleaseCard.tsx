@@ -98,12 +98,15 @@ export function ReleaseCard({
   onOpen: (release: Release) => void;
   index?: number;
 }) {
-  const { machine, installs, progress, getFileForOS, language, t } = useStore();
+  const { machine, installs, progress, getFileForOS, language, betaTester, t } =
+    useStore();
   const record = installs[release.slug];
   const job = progress[release.slug];
   const file = getFileForOS(release);
   const Icon = categoryIcon[release.category];
   const meta = CATEGORY_META[release.category];
+  const hasBetaBuild = Boolean(release.files.macos || release.files.windows);
+  const testReady = release.tier === "beta" && betaTester && hasBetaBuild;
 
   return (
     <motion.article
@@ -144,7 +147,12 @@ export function ReleaseCard({
           <span className="chip violet">{meta.singular}</span>
           {release.category === "plugins" ? (
             release.tier === "beta" ? (
-              <span className="chip beta">BETA</span>
+              <>
+                <span className="chip beta">BETA</span>
+                {testReady ? (
+                  <span className="chip green">{t("Доступно для теста")}</span>
+                ) : null}
+              </>
             ) : (
               <span className={`chip ${release.tier === "pro" ? "gold" : "green"}`}>
                 {release.tier === "pro" ? "PRO" : "FREE"}

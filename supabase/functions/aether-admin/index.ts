@@ -125,6 +125,7 @@ const mapRelease = (row: Record<string, any>) => ({
   ratingAvg: Number(row.rating_avg ?? 0),
   ratingCount: Number(row.rating_count ?? 0),
   productTag: row.product_tag,
+  pluginCategory: row.plugin_category ?? null,
   tier: row.tier === "pro" ? "pro" : row.tier === "beta" ? "beta" : "free",
   featured: Boolean(row.featured),
   badge: row.badge,
@@ -662,6 +663,12 @@ Deno.serve(async (request) => {
           if (!["macos", "windows"].includes(key)) delete files[key];
         }
 
+        const pluginCategory = ["vocal", "saturation", "compressors", "space", "mastering"].includes(
+          String(release.pluginCategory ?? ""),
+        )
+          ? String(release.pluginCategory)
+          : null;
+
         const row: Record<string, any> = {
           slug: String(release.slug).slice(0, 80),
           category: release.category,
@@ -673,6 +680,7 @@ Deno.serve(async (request) => {
           cover_url: release.coverUrl ?? null,
           files,
           product_tag: release.productTag ? String(release.productTag).slice(0, 64) : null,
+          plugin_category: pluginCategory,
           tier: release.tier === "pro" ? "pro" : release.tier === "beta" ? "beta" : "free",
           featured: Boolean(release.featured),
           badge: release.badge ? String(release.badge).slice(0, 16) : null,
