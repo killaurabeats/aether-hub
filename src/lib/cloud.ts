@@ -133,7 +133,7 @@ export function seedReleases(): Release[] {
       files: {
         macos: {
           url: "/releases/aether-saturator-macos.zip",
-          sizeBytes: 6223091,
+          sizeBytes: 6223064,
           filename: "AetherSaturator_macOS_VST3_AU.zip",
         },
       },
