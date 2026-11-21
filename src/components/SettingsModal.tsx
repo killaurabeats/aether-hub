@@ -74,7 +74,7 @@ export function SettingsModal({
 
   const [section, setSection] = useState<SettingsSection>(initialSection);
   const [confirmReset, setConfirmReset] = useState(false);
-  const [version, setVersion] = useState("1.2.2");
+  const [version, setVersion] = useState("1.3.0");
   const [health, setHealth] = useState<CloudHealth | null>(null);
   const [checkingCloud, setCheckingCloud] = useState(false);
   const [secretOpen, setSecretOpen] = useState(false);

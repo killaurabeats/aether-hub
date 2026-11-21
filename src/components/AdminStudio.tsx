@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
+import { convertFileSrc } from "@tauri-apps/api/core";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import {
   AlertTriangle,
@@ -11,18 +12,22 @@ import {
   ListChecks,
   Loader2,
   MessageSquare,
+  Pause,
   Pencil,
+  Play,
   Plus,
   RefreshCw,
   ShieldCheck,
   Sparkles,
+  Star,
   Ticket,
   Trash2,
   UploadCloud,
+  Waves,
   X,
   Zap,
 } from "lucide-react";
-import type { Category, Comment, Release } from "../types";
+import type { Category, Comment, Release, CommunitySample, SampleStatus } from "../types";
 import { CATEGORY_META } from "../types";
 import { useStore } from "../lib/store";
 import {
@@ -34,6 +39,8 @@ import {
   deleteRelease,
   fetchAppConfig,
   listBetaInvites,
+  listSamplesForModeration,
+  moderateSample,
   saveRelease,
   setAutoApproveLicenses,
   setAutoApproveSlugs,
@@ -43,8 +50,10 @@ import { fileStat, readImageDataUrl } from "../lib/desktop";
 import { copyText, formatBytes, formatDate, slugify, timeAgo } from "../lib/format";
 import { Avatar } from "./Avatar";
 
-type Tab = "publish" | "releases" | "moderation" | "beta";
+type Tab = "publish" | "releases" | "moderation" | "samples" | "beta";
 type OS = "macos" | "windows";
+
+let adminSampleAudio: HTMLAudioElement | null = null;
 
 interface Picked {
   path?: string;
@@ -61,7 +70,7 @@ interface FormState {
   descriptionRu: string;
   descriptionEn: string;
   productTag: string;
-  tier: "free" | "pro";
+  tier: "free" | "pro" | "beta";
   badge: string;
   preview: string;
   featured: boolean;
@@ -120,6 +129,11 @@ export function AdminStudio() {
   const [betaLoading, setBetaLoading] = useState(false);
   const [confirmClearBeta, setConfirmClearBeta] = useState(false);
   const [slugBusy, setSlugBusy] = useState<string | null>(null);
+  const [adminSamples, setAdminSamples] = useState<CommunitySample[]>([]);
+  const [samplesStatus, setSamplesStatus] = useState<SampleStatus | "all">("pending");
+  const [samplesBusy, setSamplesBusy] = useState(false);
+  const [sampleActionBusy, setSampleActionBusy] = useState<string | null>(null);
+  const [playingSample, setPlayingSample] = useState<string | null>(null);
 
   const loadBeta = useCallback(async () => {
     if (!cloudEnabled || !adminTokenReady) return;
@@ -133,9 +147,60 @@ export function AdminStudio() {
     }
   }, [adminTokenReady, t, toast]);
 
+  const loadAdminSamples = useCallback(
+    async (status: SampleStatus | "all" = samplesStatus) => {
+      if (cloudEnabled && !adminTokenReady) {
+        setAdminSamples([]);
+        return;
+      }
+      setSamplesBusy(true);
+      try {
+        setAdminSamples(await listSamplesForModeration(status));
+      } catch (error) {
+        toast({
+          kind: "error",
+          title: t("Не удалось загрузить сэмплы"),
+          message: String(error),
+        });
+      } finally {
+        setSamplesBusy(false);
+      }
+    },
+    [adminTokenReady, samplesStatus, t, toast],
+  );
+
   useEffect(() => {
     if (tab === "beta") void loadBeta();
-  }, [loadBeta, tab]);
+    if (tab === "samples") void loadAdminSamples();
+  }, [loadAdminSamples, loadBeta, tab]);
+
+  const moderate = async (
+    sample: CommunitySample,
+    mode: "approve" | "reject" | "feature" | "unfeature" | "delete",
+  ) => {
+    setSampleActionBusy(sample.id);
+    try {
+      await moderateSample(sample.id, mode);
+      await loadAdminSamples();
+      toast({
+        kind: "success",
+        title:
+          mode === "approve"
+            ? t("Сэмпл одобрен")
+            : mode === "reject"
+              ? t("Сэмпл отклонён")
+              : mode === "feature"
+                ? t("Добавлено в выбор комьюнити")
+                : mode === "unfeature"
+                  ? t("Убрано из выбора комьюнити")
+                  : t("Сэмпл удалён"),
+      });
+    } catch (error) {
+      toast({ kind: "error", title: t("Действие не выполнено"), message: String(error) });
+    } finally {
+      setSampleActionBusy(null);
+    }
+  };
 
   const generateBeta = async () => {
     setBetaBusy(true);
@@ -182,6 +247,27 @@ export function AdminStudio() {
     } catch (error) {
       toast({ kind: "error", title: t("Не удалось очистить инвайты"), message: String(error) });
     }
+  };
+
+  const toggleSamplePlayback = (sample: CommunitySample) => {
+    if (playingSample === sample.id) {
+      adminSampleAudio?.pause();
+      adminSampleAudio = null;
+      setPlayingSample(null);
+      return;
+    }
+    adminSampleAudio?.pause();
+    const source = sample.fileUrl.startsWith("local:")
+      ? convertFileSrc(sample.fileUrl.slice("local:".length))
+      : sample.fileUrl;
+    const audio = new Audio(source);
+    audio.volume = 0.85;
+    audio.onended = () => setPlayingSample(null);
+    adminSampleAudio = audio;
+    audio
+      .play()
+      .then(() => setPlayingSample(sample.id))
+      .catch(() => setPlayingSample(null));
   };
 
   const loadAutomation = useCallback(async () => {
@@ -784,6 +870,12 @@ export function AdminStudio() {
           <MessageSquare size={12} /> {t("Модерация")}{" "}
           <span style={{ opacity: 0.55 }}>{comments.length}</span>
         </button>
+        <button className={tab === "samples" ? "active" : ""} onClick={() => setTab("samples")}>
+          <Waves size={12} /> {t("Модерация сэмплов")}
+          {adminSamples.length ? (
+            <span style={{ opacity: 0.55 }}>{adminSamples.length}</span>
+          ) : null}
+        </button>
         <button className={tab === "beta" ? "active" : ""} onClick={() => setTab("beta")}>
           <Ticket size={12} /> {t("Beta-инвайты")}
           {betaInvites.length ? (
@@ -973,11 +1065,22 @@ export function AdminStudio() {
                     >
                       PRO
                     </button>
+                    <button
+                      type="button"
+                      className={`beta ${form.tier === "beta" ? "active" : ""}`}
+                      onClick={() => setForm((prev) => ({ ...prev, tier: "beta" }))}
+                    >
+                      BETA
+                    </button>
                   </div>
                   <span className="hint">
                     {form.tier === "free"
                       ? t("Без лицензии: ключ создаётся автоматически при установке.")
-                      : t("С лицензией: пользователь запрашивает ключ по Machine ID.")}
+                      : form.tier === "pro"
+                        ? t("С лицензией: пользователь запрашивает ключ по Machine ID.")
+                        : t(
+                            "Ранний доступ: установка только для HWID с активированным Beta-инвайтом, лицензия выдаётся автоматически.",
+                          )}
                   </span>
                 </div>
               ) : null}
@@ -1139,7 +1242,15 @@ export function AdminStudio() {
                     </span>
                   </div>
                   {release.category === "plugins" ? (
-                    <span className={`chip ${release.tier === "pro" ? "gold" : "green"}`}>
+                    <span
+                      className={`chip ${
+                        release.tier === "beta"
+                          ? "beta"
+                          : release.tier === "pro"
+                            ? "gold"
+                            : "green"
+                      }`}
+                    >
                       {(release.tier ?? "free").toUpperCase()}
                     </span>
                   ) : null}
@@ -1230,6 +1341,140 @@ export function AdminStudio() {
               <p>{t("Здесь появятся все сообщения пользователей для модерации.")}</p>
             </div>
           ) : null}
+        </div>
+      ) : null}
+
+      {tab === "samples" ? (
+        <div className="admin-card glass">
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 10,
+              flexWrap: "wrap",
+            }}
+          >
+            <div>
+              <h3>
+                <Waves size={14} style={{ verticalAlign: -2, marginRight: 5 }} />
+                {t("Модерация Samples & Loops")}
+              </h3>
+              <p className="sub" style={{ marginBottom: 10 }}>
+                {t(
+                  "Прослушайте загрузку и одобрите её, добавьте в выбор комьюнити или отклоните.",
+                )}
+              </p>
+            </div>
+            <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+              <div className="filter-row">
+                {(["pending", "approved", "rejected", "all"] as const).map((status) => (
+                  <button
+                    key={status}
+                    className={`filter-pill ${samplesStatus === status ? "active" : ""}`}
+                    onClick={() => {
+                      setSamplesStatus(status);
+                      void loadAdminSamples(status);
+                    }}
+                  >
+                    {status === "pending"
+                      ? t("На модерации")
+                      : status === "approved"
+                        ? t("Одобренные")
+                        : status === "rejected"
+                          ? t("Отклонённые")
+                          : t("Все")}
+                  </button>
+                ))}
+              </div>
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={() => void loadAdminSamples()}
+                disabled={samplesBusy}
+              >
+                <RefreshCw size={12} className={samplesBusy ? "spin" : ""} /> {t("Обновить")}
+              </button>
+            </div>
+          </div>
+
+          {adminSamples.length ? (
+            <div className="admin-sample-list">
+              {adminSamples.map((sample) => (
+                <div className="admin-sample-row" key={sample.id}>
+                  <button
+                    className={`sample-play ${playingSample === sample.id ? "playing" : ""}`}
+                    onClick={() => toggleSamplePlayback(sample)}
+                    aria-label={t("Прослушать")}
+                  >
+                    {playingSample === sample.id ? <Pause size={13} /> : <Play size={13} />}
+                  </button>
+
+                  <div className="admin-sample-main">
+                    <div className="admin-sample-title">
+                      <b>{sample.title}</b>
+                      <span className={`chip ${sample.isFeatured ? "beta" : ""}`}>
+                        {sample.isFeatured ? t("FEATURED") : sample.category === "loop" ? t("ЛУП") : t("ВАНШОТ")}
+                      </span>
+                      <span className={`chip ${sample.status === "approved" ? "green" : sample.status === "rejected" ? "" : "gold"}`}>
+                        {sample.status === "approved"
+                          ? t("ОДОБРЕН")
+                          : sample.status === "rejected"
+                            ? t("ОТКЛОНЁН")
+                            : t("ОЖИДАЕТ")}
+                      </span>
+                    </div>
+                    <div className="admin-sample-meta">
+                      {sample.authorName} · {sample.bpm ? `${sample.bpm} BPM` : "—"} ·{" "}
+                      {sample.musicalKey || "—"} · {timeAgo(sample.createdAt)}
+                    </div>
+                    <div className="sample-wave small">
+                      {(sample.waveformPeaks.length
+                        ? sample.waveformPeaks
+                        : Array.from({ length: 48 }, (_, i) => 0.25 + Math.abs(Math.sin(i * 1.7)) * 0.7)
+                      ).map((peak, index) => (
+                        <i key={index} style={{ height: `${Math.max(8, peak * 100)}%` }} />
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="admin-sample-actions">
+                    {sample.status !== "approved" ? (
+                      <button
+                        className="btn btn-soft btn-sm"
+                        onClick={() => void moderate(sample, "approve")}
+                        disabled={sampleActionBusy === sample.id}
+                      >
+                        <Check size={11} /> {t("Одобрить")}
+                      </button>
+                    ) : null}
+                    <button
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => void moderate(sample, sample.isFeatured ? "unfeature" : "feature")}
+                      disabled={sampleActionBusy === sample.id}
+                    >
+                      <Star size={11} />{" "}
+                      {sample.isFeatured ? t("Убрать из выбора") : t("В выбор комьюнити")}
+                    </button>
+                    <button
+                      className="btn btn-danger btn-sm"
+                      onClick={() => void moderate(sample, "delete")}
+                      disabled={sampleActionBusy === sample.id}
+                    >
+                      <Trash2 size={11} /> {t("Удалить")}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="empty-state" style={{ marginTop: 8 }}>
+              <div className="icon">
+                <Waves size={20} />
+              </div>
+              <h3>{t("Очередь пуста")}</h3>
+              <p>{t("Новые загрузки комьюнити появятся здесь для премодерации.")}</p>
+            </div>
+          )}
         </div>
       ) : null}
 

@@ -1,4 +1,4 @@
-# Aether Hub v1.2.2
+# Aether Hub v1.3.0
 
 Премиальный десктопный лаунчер для плагинов, драм-китов и пресетов Aether.
 Tauri 2 (Rust) + React 18 + TypeScript + Framer Motion, с полностью рабочим
@@ -50,6 +50,24 @@ Tauri 2 (Rust) + React 18 + TypeScript + Framer Motion, с полностью р
   настройках.
 - **Библиотека**: `Plugins`, `Drumkits`, `Presets` с поиском, фильтрами,
   рейтингами, обложками, точным весом файла и статусом установки.
+- **BETA-уровень и ранний доступ**: релизы с `tier = beta` открываются только
+  для HWID с активированным Beta-инвайтом. Бейджи **BETA / BETA TESTER** и замок
+  раннего доступа светятся фирменным золотым неоном, а BETA-лицензия пишется на
+  диск автоматически при установке.
+- **Samples & Loops от комьюнити**: лупы и ваншоты с BPM/тональностью,
+  встроенным waveform-плеером, лайками и нативным drag & drop сразу на плейлист
+  FL Studio. Загрузки проходят премодерацию в Admin Studio.
+- **Колокольчик уведомлений**: свежие релизы, BETA-обновления, статусы
+  PRO-лицензий и модерации сэмплов, со счётчиком непрочитанных.
+- **Zero-Copy лицензии PRO**: после одобрения заявки кнопка превращается в
+  «Активировать и установить», а `license.aether` сам записывается в системную
+  папку плагина.
+- **Анти-дубликаты VST3 на Windows**: установщик сверяет и
+  `%LOCALAPPDATA%\Programs\Common\VST3`, и `C:\Program Files\Common Files\VST3`,
+  удаляя старые конфликтующие копии, которые мешают FL Studio.
+- **Деплой плагинов одной командой**: `scripts/deploy-plugin.sh` (и копия в
+  `~/Desktop/OpenCode Project/AetherPlugins/`) упаковывает macOS/Windows билды,
+  загружает их в Supabase Storage и обновляет запись в `releases`.
 - **Умная установка в 1 клик**: ZIP под macOS/Windows, распаковка и раскладка
   `.vst3` / `.component` по системным папкам, пресетов — в FL Studio,
   драм-китов — в выбранную папку. Обновление и удаление из карточки релиза.
@@ -95,7 +113,7 @@ Tauri 2 (Rust) + React 18 + TypeScript + Framer Motion, с полностью р
 ## Стек и структура
 
 ```
-Aether Hub v1.2/
+Aether Hub v1.3.0/
 ├─ src/                    React + TypeScript UI
 │  ├─ components/          Splash, Sidebar, ReleaseCard, Admin Studio, модалки
 │  ├─ lib/

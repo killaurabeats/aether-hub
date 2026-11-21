@@ -571,6 +571,88 @@ fn extract_zip(archive: &Path, destination: &Path) -> Result<(), String> {
     Ok(())
 }
 
+/// Every place Windows hosts scan for VST3 plug-ins. FL Studio can keep loading
+/// an old copy from the *other* folder even after an update, so installs must
+/// reconcile both locations instead of only writing to one of them.
+fn windows_vst3_roots() -> Vec<PathBuf> {
+    let mut roots: Vec<PathBuf> = Vec::new();
+
+    let mut push_unique = |path: PathBuf| {
+        if !roots.iter().any(|existing| existing == &path) {
+            roots.push(path);
+        }
+    };
+
+    if let Ok(common) = std::env::var("COMMONPROGRAMFILES") {
+        push_unique(PathBuf::from(common).join("VST3"));
+    }
+    if let Ok(program_files) = std::env::var("PROGRAMFILES") {
+        push_unique(
+            PathBuf::from(program_files)
+                .join("Common Files")
+                .join("VST3"),
+        );
+    }
+    if let Ok(local) = std::env::var("LOCALAPPDATA") {
+        push_unique(
+            PathBuf::from(local)
+                .join("Programs")
+                .join("Common")
+                .join("VST3"),
+        );
+    }
+
+    roots
+}
+
+/// Removes stale copies of the same `.vst3` bundle from the other VST3 roots.
+/// Only exact (case-insensitive) bundle names are touched, so unrelated plug-ins
+/// are never deleted.
+fn cleanup_windows_vst3_duplicates(
+    bundle_name: &std::ffi::OsStr,
+    keep: &Path,
+) -> Vec<PathBuf> {
+    let wanted = bundle_name.to_string_lossy().to_lowercase();
+    let mut removed: Vec<PathBuf> = Vec::new();
+
+    for root in windows_vst3_roots() {
+        let Ok(entries) = fs::read_dir(&root) else {
+            continue;
+        };
+
+        for entry in entries.flatten() {
+            let path = entry.path();
+            let is_vst3 = path
+                .extension()
+                .map(|ext| ext.eq_ignore_ascii_case("vst3"))
+                .unwrap_or(false);
+            if !is_vst3 || path == keep {
+                continue;
+            }
+
+            let name = path
+                .file_name()
+                .map(|value| value.to_string_lossy().to_lowercase())
+                .unwrap_or_default();
+            if name != wanted {
+                continue;
+            }
+
+            let result = if path.is_dir() {
+                fs::remove_dir_all(&path)
+            } else {
+                fs::remove_file(&path)
+            };
+
+            if result.is_ok() {
+                removed.push(path);
+            }
+        }
+    }
+
+    removed
+}
+
 fn install_plugins(extracted: &Path) -> Result<(Vec<PathBuf>, u64), String> {
     let mut bundles: Vec<PathBuf> = Vec::new();
     collect_bundles(extracted, &mut bundles, 0);
@@ -622,6 +704,15 @@ fn install_plugins(extracted: &Path) -> Result<(Vec<PathBuf>, u64), String> {
                 })?;
             }
             Err(err) => return Err(format!("Could not install {}: {err}", bundle.display())),
+        }
+
+        // Windows: FL Studio may keep resolving an old VST3 from the other
+        // common folder. Remove same-name copies after the fresh bundle landed.
+        if !is_component && cfg!(target_os = "windows") {
+            let removed = cleanup_windows_vst3_duplicates(&file_name, &destination);
+            for path in removed {
+                eprintln!("[aether] removed legacy VST3 duplicate: {}", path.display());
+            }
         }
 
         total_size += dir_size(&destination);

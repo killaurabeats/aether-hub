@@ -6,7 +6,7 @@ import { useStore } from "../lib/store";
 import { ReleaseCard } from "./ReleaseCard";
 
 type Filter = "all" | "installed";
-type TierFilter = "all" | "free" | "pro";
+type TierFilter = "all" | "free" | "pro" | "beta";
 type Sort = "new" | "rating";
 
 export function CategoryView({
@@ -83,6 +83,12 @@ export function CategoryView({
                 onClick={() => setTierFilter("pro")}
               >
                 PRO
+              </button>
+              <button
+                className={`filter-pill beta ${tierFilter === "beta" ? "active" : ""}`}
+                onClick={() => setTierFilter("beta")}
+              >
+                BETA
               </button>
             </div>
           ) : null}

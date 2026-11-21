@@ -23,7 +23,7 @@ create table if not exists public.releases (
   rating_avg    numeric(3, 2) not null default 5.00,
   rating_count  integer not null default 0,
   product_tag   text,
-  tier          text not null default 'free' check (tier in ('free', 'pro')),
+  tier          text not null default 'free' check (tier in ('free', 'pro', 'beta')),
   featured      boolean not null default false,
   badge         text,
   previews      jsonb not null default '[]'::jsonb,
@@ -36,8 +36,40 @@ alter table public.releases add column if not exists description_ru text;
 alter table public.releases add column if not exists description_en text;
 alter table public.releases add column if not exists tier text not null default 'free';
 alter table public.releases drop constraint if exists releases_tier_check;
-alter table public.releases add constraint releases_tier_check check (tier in ('free', 'pro'));
+alter table public.releases add constraint releases_tier_check check (tier in ('free', 'pro', 'beta'));
 update public.releases set tier = 'free' where tier is null;
+
+-- --------------------------------------------------- community samples ----
+create table if not exists public.community_samples (
+  id              uuid primary key default gen_random_uuid(),
+  title           text not null,
+  author_hwid     text not null,
+  author_name     text not null default 'aether user',
+  category        text not null check (category in ('loop', 'oneshot')),
+  bpm             integer check (bpm is null or (bpm between 20 and 400)),
+  musical_key     text,
+  file_url        text not null,
+  waveform_peaks  jsonb not null default '[]'::jsonb,
+  downloads_count integer not null default 0,
+  likes_count     integer not null default 0,
+  status          text not null default 'pending' check (status in ('pending', 'approved', 'rejected')),
+  is_featured     boolean not null default false,
+  created_at      timestamptz not null default now()
+);
+
+alter table public.community_samples add column if not exists waveform_peaks jsonb not null default '[]'::jsonb;
+alter table public.community_samples add column if not exists downloads_count integer not null default 0;
+alter table public.community_samples add column if not exists likes_count integer not null default 0;
+alter table public.community_samples add column if not exists is_featured boolean not null default false;
+
+create index if not exists community_samples_status_idx
+  on public.community_samples (status, created_at desc);
+create index if not exists community_samples_featured_idx
+  on public.community_samples (is_featured, created_at desc);
+create index if not exists community_samples_author_idx
+  on public.community_samples (author_hwid, created_at desc);
+create index if not exists community_samples_filter_idx
+  on public.community_samples (status, category, bpm, created_at desc);
 
 create table if not exists public.profiles (
   id          text primary key,
@@ -415,8 +447,123 @@ begin
 end;
 $$;
 
+-- ------------------------------------------------------- community samples ---
+create or replace function public.aether_submit_sample(
+  p_title text,
+  p_author_hwid text,
+  p_author_name text,
+  p_category text,
+  p_bpm integer,
+  p_musical_key text,
+  p_file_url text,
+  p_waveform_peaks jsonb
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_machine text := public.aether_norm_machine(p_author_hwid);
+  v_category text := lower(trim(coalesce(p_category, '')));
+  v_title text := left(trim(coalesce(p_title, '')), 80);
+  v_url text := trim(coalesce(p_file_url, ''));
+  v_pending integer;
+  v_row public.community_samples;
+begin
+  if length(v_machine) <> 32 then
+    raise exception 'invalid machine id';
+  end if;
+  if v_title = '' then
+    raise exception 'title is required';
+  end if;
+  if v_category not in ('loop', 'oneshot') then
+    raise exception 'invalid category';
+  end if;
+  if v_url = '' or (v_url not like 'http://%' and v_url not like 'https://%' and v_url not like 'local:%') then
+    raise exception 'invalid file url';
+  end if;
+
+  select count(*) into v_pending
+    from public.community_samples
+   where author_hwid = v_machine and status = 'pending';
+  if v_pending >= 12 then
+    raise exception 'too many pending samples';
+  end if;
+
+  insert into public.community_samples (
+    title, author_hwid, author_name, category, bpm, musical_key,
+    file_url, waveform_peaks, status
+  ) values (
+    v_title,
+    v_machine,
+    left(coalesce(nullif(trim(p_author_name), ''), 'aether user'), 40),
+    v_category,
+    case when p_bpm is null then null else greatest(20, least(400, p_bpm)) end,
+    nullif(left(trim(coalesce(p_musical_key, '')), 16), ''),
+    v_url,
+    case when jsonb_typeof(coalesce(p_waveform_peaks, '[]'::jsonb)) = 'array'
+         then coalesce(p_waveform_peaks, '[]'::jsonb) else '[]'::jsonb end,
+    'pending'
+  )
+  returning * into v_row;
+
+  return to_jsonb(v_row);
+end;
+$$;
+
+create or replace function public.aether_my_samples(p_machine_id text)
+returns setof public.community_samples
+language sql
+security definer
+set search_path = public
+as $$
+  select * from public.community_samples
+   where author_hwid = public.aether_norm_machine(p_machine_id)
+   order by created_at desc
+   limit 60;
+$$;
+
+create or replace function public.aether_sample_downloaded(p_id uuid)
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_count integer;
+begin
+  update public.community_samples
+     set downloads_count = downloads_count + 1
+   where id = p_id and status = 'approved'
+   returning downloads_count into v_count;
+  return coalesce(v_count, 0);
+end;
+$$;
+
+create or replace function public.aether_like_sample(p_id uuid)
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_count integer;
+begin
+  update public.community_samples
+     set likes_count = likes_count + 1
+   where id = p_id and status = 'approved'
+   returning likes_count into v_count;
+  return coalesce(v_count, 0);
+end;
+$$;
+
 revoke all on function public.aether_my_requests(text) from public;
 revoke all on function public.aether_my_licenses(text) from public;
+revoke all on function public.aether_submit_sample(text, text, text, text, integer, text, text, jsonb) from public;
+revoke all on function public.aether_my_samples(text) from public;
+revoke all on function public.aether_sample_downloaded(uuid) from public;
+revoke all on function public.aether_like_sample(uuid) from public;
 revoke all on function public.aether_beta_status(text) from public;
 revoke all on function public.aether_redeem_beta_invite(text, text) from public;
 create or replace function public.aether_launcher_notice()
@@ -444,6 +591,10 @@ grant execute on function public.aether_my_requests(text) to anon, authenticated
 grant execute on function public.aether_my_licenses(text) to anon, authenticated;
 grant execute on function public.aether_beta_status(text) to anon, authenticated;
 grant execute on function public.aether_redeem_beta_invite(text, text) to anon, authenticated;
+grant execute on function public.aether_submit_sample(text, text, text, text, integer, text, text, jsonb) to anon, authenticated;
+grant execute on function public.aether_my_samples(text) to anon, authenticated;
+grant execute on function public.aether_sample_downloaded(uuid) to anon, authenticated;
+grant execute on function public.aether_like_sample(uuid) to anon, authenticated;
 
 -- ------------------------------------------------------- auto-approve hook ----
 -- A new license request pings the Edge Function when the admin toggle is on.
@@ -533,6 +684,7 @@ alter table public.support_tickets enable row level security;
 alter table public.ticket_messages enable row level security;
 alter table public.app_config enable row level security;
 alter table public.beta_invites enable row level security;
+alter table public.community_samples enable row level security;
 
 drop policy if exists releases_public_read on public.releases;
 create policy releases_public_read on public.releases
@@ -558,6 +710,11 @@ create policy comments_public_insert on public.comments
     and (avatar_url is null or char_length(avatar_url) < 400000)
   );
 
+drop policy if exists community_samples_public_read on public.community_samples;
+create policy community_samples_public_read on public.community_samples
+  for select to anon, authenticated
+  using (status = 'approved');
+
 -- Sensitive tables are reachable only through the SECURITY DEFINER RPCs above
 -- or the service role used by the Edge Function.
 revoke all on public.profiles from anon, authenticated;
@@ -570,8 +727,10 @@ revoke all on public.comments from anon, authenticated;
 revoke all on public.releases from anon, authenticated;
 revoke all on public.app_config from anon, authenticated;
 revoke all on public.beta_invites from anon, authenticated;
+revoke all on public.community_samples from anon, authenticated;
 
 grant select on public.releases to anon, authenticated;
+grant select on public.community_samples to anon, authenticated;
 grant select, insert on public.comments to anon, authenticated;
 
 -- The Edge Function talks to PostgREST with the service role. Keep its grants
@@ -595,6 +754,25 @@ create policy aether_assets_public_read on storage.objects
 -- No anon insert/update/delete policies: uploads only via the admin Edge
 -- Function (service role) and signed upload URLs.
 
+-- Community samples: public read, gated community uploads (wav/mp3 only).
+insert into storage.buckets (id, name, public)
+values ('aether-samples', 'aether-samples', true)
+on conflict (id) do update set public = true;
+
+drop policy if exists aether_samples_public_read on storage.objects;
+create policy aether_samples_public_read on storage.objects
+  for select to anon, authenticated
+  using (bucket_id = 'aether-samples');
+
+drop policy if exists aether_samples_public_insert on storage.objects;
+create policy aether_samples_public_insert on storage.objects
+  for insert to anon, authenticated
+  with check (
+    bucket_id = 'aether-samples'
+    and name like 'samples/%'
+    and lower(name) ~ '\.(wav|mp3)$'
+  );
+
 -- ------------------------------------------------------------ realtime ------
 -- Optional: live comments / requests in the app.
 do $$
@@ -613,6 +791,10 @@ begin
   end;
   begin
     alter publication supabase_realtime add table public.ticket_messages;
+  exception when duplicate_object then null;
+  end;
+  begin
+    alter publication supabase_realtime add table public.community_samples;
   exception when duplicate_object then null;
   end;
 end;

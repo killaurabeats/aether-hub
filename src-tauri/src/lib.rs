@@ -62,16 +62,44 @@ fn generate_license(
     Ok(issued)
 }
 
+fn license_folder_for_tag(tag: &str) -> String {
+    let upper = tag.trim().to_uppercase();
+    match upper.as_str() {
+        "AETHER-VOCAL-STRIP" => "AetherVocalStrip".to_string(),
+        "AETHER-SATURATOR" => "AetherSaturator".to_string(),
+        _ => {
+            let cleaned: String = upper
+                .trim_start_matches("AETHER-")
+                .split(['-', '_', ' '])
+                .filter(|part| !part.is_empty())
+                .map(|part| {
+                    let mut chars = part.chars();
+                    match chars.next() {
+                        Some(first) => {
+                            first.to_uppercase().collect::<String>() + &chars.as_str().to_lowercase()
+                        }
+                        None => String::new(),
+                    }
+                })
+                .collect();
+            if cleaned.is_empty() {
+                upper
+                    .chars()
+                    .filter(|c| c.is_ascii_alphanumeric())
+                    .collect::<String>()
+            } else {
+                cleaned
+            }
+        }
+    }
+}
+
+/// Zero-copy activation: writes `license.aether` directly into the plugin's
+/// per-product licence folder (Application Support on macOS, %APPDATA% on
+/// Windows) and returns the exact path so the UI can confirm it.
 #[tauri::command]
-fn write_license_file(key: String, product_tag: String) -> Result<(), String> {
-    let tag = product_tag.to_uppercase();
-    let folder = if tag == "AETHER-VOCAL-STRIP" {
-        "AetherVocalStrip".to_string()
-    } else {
-        tag.chars()
-            .filter(|c| c.is_ascii_alphanumeric())
-            .collect::<String>()
-    };
+fn write_license_file(key: String, product_tag: String) -> Result<String, String> {
+    let folder = license_folder_for_tag(&product_tag);
     if folder.is_empty() {
         return Err("Invalid product tag".into());
     }
@@ -81,7 +109,161 @@ fn write_license_file(key: String, product_tag: String) -> Result<(), String> {
     fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
     let path = dir.join("license.aether");
     fs::write(&path, key.trim()).map_err(|e| e.to_string())?;
-    Ok(())
+    Ok(path.display().to_string())
+}
+
+fn sanitize_filename(value: &str, fallback: &str) -> String {
+    let cleaned: String = value
+        .chars()
+        .map(|c| {
+            if matches!(c, '/' | '\\' | ':' | '*' | '?' | '"' | '<' | '>' | '|') {
+                '-'
+            } else {
+                c
+            }
+        })
+        .collect();
+    let trimmed = cleaned.trim().trim_matches('.').trim();
+    if trimmed.is_empty() {
+        fallback.to_string()
+    } else {
+        trimmed.to_string()
+    }
+}
+
+fn sample_cache_dir(app: &AppHandle) -> Result<PathBuf, String> {
+    let base = app
+        .path()
+        .app_cache_dir()
+        .or_else(|_| app.path().app_data_dir())
+        .map_err(|e| format!("Cannot locate the cache folder: {e}"))?;
+    let dir = base.join("samples");
+    fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    Ok(dir)
+}
+
+async fn download_to_file(url: &str, target: &PathBuf) -> Result<(), String> {
+    if let Some(local) = url.strip_prefix("local:").or_else(|| url.strip_prefix("file://")) {
+        tokio::fs::copy(local, target)
+            .await
+            .map(|_| ())
+            .map_err(|e| format!("Could not copy sample: {e}"))?;
+        return Ok(());
+    }
+
+    if !(url.starts_with("http://") || url.starts_with("https://")) {
+        return Err("Unsupported sample URL".into());
+    }
+
+    let client = reqwest::Client::builder()
+        .user_agent("AetherHub/1.3")
+        .build()
+        .map_err(|e| e.to_string())?;
+    let response = client
+        .get(url)
+        .send()
+        .await
+        .map_err(|e| format!("Sample download failed: {e}"))?;
+    if !response.status().is_success() {
+        return Err(format!("Sample download failed with HTTP {}", response.status()));
+    }
+
+    let bytes = response
+        .bytes()
+        .await
+        .map_err(|e| format!("Sample download interrupted: {e}"))?;
+    tokio::fs::write(target, &bytes)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+/// Downloads (or reuses) a community sample in the app cache. The returned
+/// native path is what the Tauri file-drag plugin hands to FL Studio.
+#[tauri::command]
+async fn cache_sample_file(
+    app: AppHandle,
+    url: String,
+    filename: String,
+) -> Result<String, String> {
+    let dir = sample_cache_dir(&app)?;
+    let name = sanitize_filename(&filename, "aether-sample.wav");
+    let target = dir.join(&name);
+
+    if target.is_file() {
+        if let Ok(meta) = fs::metadata(&target) {
+            if meta.len() > 0 {
+                return Ok(target.display().to_string());
+            }
+        }
+    }
+
+    download_to_file(&url, &target).await?;
+    Ok(target.display().to_string())
+}
+
+/// Saves a sample into ~/Downloads/Aether Hub Samples for a regular download.
+#[tauri::command]
+async fn save_sample_file(
+    app: AppHandle,
+    url: String,
+    filename: String,
+) -> Result<String, String> {
+    let _ = app;
+    let downloads = dirs::download_dir()
+        .or_else(|| dirs::home_dir().map(|home| home.join("Downloads")))
+        .ok_or_else(|| "Could not locate the Downloads folder.".to_string())?;
+    let dir = downloads.join("Aether Hub Samples");
+    fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+
+    let base = sanitize_filename(&filename, "aether-sample.wav");
+    let mut target = dir.join(&base);
+    if target.exists() {
+        let stem = std::path::Path::new(&base)
+            .file_stem()
+            .map(|value| value.to_string_lossy().into_owned())
+            .unwrap_or_else(|| "aether-sample".to_string());
+        let ext = std::path::Path::new(&base)
+            .extension()
+            .map(|value| value.to_string_lossy().into_owned())
+            .unwrap_or_else(|| "wav".to_string());
+        for index in 1..1000 {
+            let candidate = dir.join(format!("{stem} ({index}).{ext}"));
+            if !candidate.exists() {
+                target = candidate;
+                break;
+            }
+        }
+    }
+
+    download_to_file(&url, &target).await?;
+    Ok(target.display().to_string())
+}
+
+/// A small native drag image. Embedding it avoids depending on Vite's public
+/// folder being present next to the installed app bundle.
+#[tauri::command]
+fn sample_drag_icon(app: AppHandle) -> Result<String, String> {
+    const ICON: &[u8] = include_bytes!("../icons/128x128.png");
+    let dir = sample_cache_dir(&app)?;
+    let path = dir.join("aether-drag-icon.png");
+    if !path.is_file() {
+        fs::write(&path, ICON).map_err(|e| e.to_string())?;
+    }
+    Ok(path.display().to_string())
+}
+
+/// Reads a local file as base64 for waveform analysis in the WebView.
+#[tauri::command]
+fn read_file_base64(path: String, max_bytes: Option<u64>) -> Result<String, String> {
+    use base64::{engine::general_purpose::STANDARD, Engine as _};
+
+    let metadata = std::fs::metadata(&path).map_err(|e| format!("Cannot read {path}: {e}"))?;
+    let limit = max_bytes.unwrap_or(96 * 1024 * 1024);
+    if metadata.len() > limit {
+        return Err("File is too large for waveform analysis.".into());
+    }
+    let bytes = std::fs::read(&path).map_err(|e| format!("Cannot read {path}: {e}"))?;
+    Ok(STANDARD.encode(bytes))
 }
 
 #[tauri::command]
@@ -383,6 +565,69 @@ async fn cloud_upload(
     }))
 }
 
+/// Community uploads use the public anon key and the `aether-samples` bucket.
+/// Streams the file directly from disk so large WAV loops never sit in JS memory.
+#[tauri::command]
+async fn cloud_upload_public(
+    config: CloudConfig,
+    request: UploadRequest,
+) -> Result<Value, String> {
+    let url = config.url.trim_end_matches('/');
+    if url.is_empty() || config.anon_key.is_empty() {
+        return Err("Cloud is not configured.".into());
+    }
+    if request.bucket != "aether-samples" {
+        return Err("Public uploads are limited to aether-samples.".into());
+    }
+
+    let file = tokio::fs::File::open(&request.local_path)
+        .await
+        .map_err(|e| format!("Cannot read {}: {e}", request.local_path))?;
+    let total = file
+        .metadata()
+        .await
+        .map(|m| m.len())
+        .unwrap_or(0);
+    let body = reqwest::Body::wrap_stream(tokio_util::io::ReaderStream::new(file));
+
+    let content_type = request
+        .content_type
+        .unwrap_or_else(|| "application/octet-stream".to_string());
+
+    let client = reqwest::Client::new();
+    let mut upload = client
+        .post(format!(
+            "{url}/storage/v1/object/{}/{}",
+            request.bucket, request.storage_path
+        ))
+        .header("apikey", &config.anon_key)
+        .header("Content-Type", &content_type)
+        .header("x-upsert", "true")
+        .header("Content-Length", total.to_string())
+        .body(body);
+
+    if !is_publishable_key(&config.anon_key) {
+        upload = upload.bearer_auth(&config.anon_key);
+    }
+
+    let response = upload
+        .send()
+        .await
+        .map_err(|e| format!("Sample upload failed: {e}"))?;
+
+    if !response.status().is_success() {
+        let status = response.status();
+        let text = response.text().await.unwrap_or_default();
+        return Err(format!("Sample upload failed ({status}): {text}"));
+    }
+
+    Ok(serde_json::json!({
+        "publicUrl": format!("{url}/storage/v1/object/public/{}/{}", request.bucket, request.storage_path),
+        "storagePath": request.storage_path,
+        "bucket": request.bucket,
+    }))
+}
+
 #[tauri::command]
 fn frontend_log(app: AppHandle, level: String, message: String) -> Result<(), String> {
     let dir = app
@@ -424,6 +669,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_drag::init())
         .invoke_handler(tauri::generate_handler![
             machine_id,
             admin_status,
@@ -444,6 +690,11 @@ pub fn run() {
             open_url,
             cloud_admin_api,
             cloud_upload,
+            cloud_upload_public,
+            cache_sample_file,
+            save_sample_file,
+            sample_drag_icon,
+            read_file_base64,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Aether Hub");

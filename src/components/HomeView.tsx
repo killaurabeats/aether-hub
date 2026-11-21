@@ -182,6 +182,9 @@ export function HomeView({
                       ? "Drumkit"
                       : "Presets"}
                 </span>
+                {featured.tier === "beta" ? (
+                  <span className="chip beta">BETA</span>
+                ) : null}
                 {featured.badge ? <span className="chip gold">{featured.badge}</span> : null}
                 <span className="rating-pill">
                   <Star size={10} /> {featured.ratingAvg.toFixed(1)}

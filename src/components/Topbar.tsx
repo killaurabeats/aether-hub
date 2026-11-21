@@ -11,6 +11,7 @@ import type { View } from "../types";
 import { CATEGORY_META } from "../types";
 import { useStore } from "../lib/store";
 import { stopIntro } from "../lib/sound";
+import { NotificationBell } from "./NotificationBell";
 
 interface Props {
   view: View;
@@ -18,6 +19,7 @@ interface Props {
   onQuery: (value: string) => void;
   onOpenProfile: () => void;
   onRefresh: () => void;
+  onNavigate: (view: View) => void;
   refreshing?: boolean;
 }
 
@@ -41,6 +43,8 @@ function headingFor(
       };
     case "search":
       return { eyebrow: "Aether Hub", title: t("Поиск") };
+    case "samples":
+      return { eyebrow: "Aether Hub · community", title: "Samples & Loops" };
     case "admin":
       return { eyebrow: "Creator mode · private", title: t("Публикация") };
     case "keygen":
@@ -52,7 +56,15 @@ function headingFor(
   }
 }
 
-export function Topbar({ view, query, onQuery, onOpenProfile, onRefresh, refreshing }: Props) {
+export function Topbar({
+  view,
+  query,
+  onQuery,
+  onOpenProfile,
+  onRefresh,
+  onNavigate,
+  refreshing,
+}: Props) {
   const { profile, adminVisible, settings, updateSettings, t } = useStore();
   const heading = headingFor(view, profile.nickname.split(" ")[0] || "aether", t);
 
@@ -103,6 +115,8 @@ export function Topbar({ view, query, onQuery, onOpenProfile, onRefresh, refresh
       >
         <RefreshCw size={15} className={refreshing ? "spin" : ""} />
       </button>
+
+      <NotificationBell onNavigate={onNavigate} />
 
       <button className="profile-chip" onClick={onOpenProfile} aria-label={t("Профиль")}>
         <span className="avatar s32">

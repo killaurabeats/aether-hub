@@ -26,6 +26,9 @@ import type {
   Release,
   Settings,
   Toast,
+  CommunitySample,
+  SubmitSampleInput,
+  AppNotification,
 } from "../types";
 import {
   addComment as cloudAddComment,
@@ -37,12 +40,19 @@ import {
   fetchComments,
   fetchMyLicenses,
   fetchFreeLicenseKey,
+  fetchBetaLicenseKey,
   fetchMyRequests,
+  fetchMySamples,
+  fetchPublicSamples,
+  fetchBetaStatus,
   hasAdminToken,
   loadCatalog,
+  likeCommunitySample,
+  markSampleDownloaded,
   rateRelease as cloudRate,
   requestLicense as cloudRequestLicense,
   resetDemoCatalog,
+  submitCommunitySample,
   storeAdminToken,
   upsertProfile,
   verifyAdminToken,
@@ -58,6 +68,8 @@ export const isTauri =
 
 const PROFILE_KEY = "aether.profile.v1";
 const SETTINGS_KEY = "aether.settings.v1";
+const NOTIF_READ_KEY = "aether.notifications.read.v1";
+const LICENSE_WRITTEN_KEY = "aether.licenses.written.v1";
 
 const defaultSettings: Settings = {
   language: "ru",
@@ -138,6 +150,13 @@ interface StoreValue {
   myRatings: Record<string, number>;
   requests: LicenseRequest[];
   licenses: License[];
+  betaTester: boolean;
+  betaLoading: boolean;
+  samples: CommunitySample[];
+  mySamples: CommunitySample[];
+  samplesLoading: boolean;
+  notifications: AppNotification[];
+  unreadNotifications: number;
   toasts: Toast[];
   adminOverview: AdminOverview | null;
   install: (release: Release) => Promise<void>;
@@ -154,6 +173,12 @@ interface StoreValue {
   refreshAdminData: () => Promise<AdminOverview | null>;
   resetDemo: () => Promise<void>;
   requestKey: (release: Release) => Promise<void>;
+  activateLicense: (release: Release, key: string) => Promise<void>;
+  refreshSamples: () => Promise<void>;
+  submitSample: (input: SubmitSampleInput) => Promise<CommunitySample | null>;
+  likeSample: (sample: CommunitySample) => Promise<void>;
+  trackSampleDownload: (sample: CommunitySample) => Promise<void>;
+  markNotificationsRead: () => void;
   pickFolder: (kind: "presetDir" | "drumkitDir") => Promise<void>;
   toast: (toast: Omit<Toast, "id">) => void;
   dismissToast: (id: string) => void;
@@ -185,6 +210,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [myRatings, setMyRatings] = useState<Record<string, number>>({});
   const [requests, setRequests] = useState<LicenseRequest[]>([]);
   const [licenses, setLicenses] = useState<License[]>([]);
+  const [betaTester, setBetaTester] = useState(false);
+  const [betaLoading, setBetaLoading] = useState(true);
+  const [samples, setSamples] = useState<CommunitySample[]>([]);
+  const [mySamples, setMySamples] = useState<CommunitySample[]>([]);
+  const [samplesLoading, setSamplesLoading] = useState(true);
+  const [notifRead, setNotifRead] = useState<string[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem(NOTIF_READ_KEY) ?? "[]") as string[];
+    } catch {
+      return [];
+    }
+  });
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [adminData, setAdminData] = useState<AdminOverview | null>(null);
 
@@ -217,6 +254,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const timers = useRef<number[]>([]);
   const machineRef = useRef(machine);
   machineRef.current = machine;
+  const notifIdsRef = useRef<string[]>([]);
+  const writtenLicenses = useRef<Set<string>>(
+    (() => {
+      try {
+        const raw = localStorage.getItem(LICENSE_WRITTEN_KEY);
+        return new Set<string>(raw ? (JSON.parse(raw) as string[]) : []);
+      } catch {
+        return new Set<string>();
+      }
+    })(),
+  );
 
   const dismissToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
@@ -275,16 +323,31 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (!licensingMachineId) return;
 
     try {
-      const [nextRequests, nextLicenses] = await Promise.all([
+      const [nextRequests, nextLicenses, nextBeta, nextMySamples] = await Promise.all([
         fetchMyRequests(licensingMachineId),
         fetchMyLicenses(licensingMachineId),
+        fetchBetaStatus(licensingMachineId),
+        fetchMySamples(licensingMachineId),
       ]);
       setRequests(nextRequests);
       setLicenses(nextLicenses);
+      setBetaTester(nextBeta);
+      setMySamples(nextMySamples);
     } catch {
       // Offline or cloud not configured — keep the local UI usable.
+    } finally {
+      setBetaLoading(false);
     }
   }, [licensingMachineId]);
+
+  const refreshSamples = useCallback(async () => {
+    setSamplesLoading(true);
+    try {
+      setSamples(await fetchPublicSamples());
+    } finally {
+      setSamplesLoading(false);
+    }
+  }, []);
 
   const refreshAdminData = useCallback(async () => {
     if (cloudEnabled && !hasAdminToken()) return null;
@@ -398,6 +461,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setReady(true);
       void refreshCatalog();
       void refreshCloudUser();
+      void refreshSamples();
       if (nextAdmin.enabled || hasAdminToken()) void refreshAdminData();
 
       if (cloudEnabled) {
@@ -425,7 +489,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         }).catch(() => undefined);
       }
     })();
-  }, [refreshAdminData, refreshCatalog, refreshCloudUser]);
+  }, [refreshAdminData, refreshCatalog, refreshCloudUser, refreshSamples]);
 
   // Install progress events -------------------------------------------------
   useEffect(() => {
@@ -458,6 +522,70 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     };
   }, [ready, refreshCloudUser]);
 
+  // Zero-copy PRO activation: as soon as a licence is approved (manually or by
+  // selective auto-approval), drop license.aether into the plugin's system
+  // licence folder. The webview never asks the user to copy anything.
+  useEffect(() => {
+    if (!ready || !isTauri) return;
+
+    const candidates: Array<{ key: string; productTag: string; title: string }> = [];
+    for (const license of licenses) {
+      if (license.key) {
+        candidates.push({
+          key: license.key,
+          productTag: license.productTag,
+          title: license.pluginTitle || license.productTag,
+        });
+      }
+    }
+    for (const request of requests) {
+      if (request.status === "approved" && request.key) {
+        candidates.push({
+          key: request.key,
+          productTag: request.productTag,
+          title: request.pluginTitle || request.productTag,
+        });
+      }
+    }
+
+    for (const candidate of candidates) {
+      const tag = candidate.productTag.toUpperCase();
+      const release = releases.find(
+        (item) => (item.productTag || "").toUpperCase() === tag,
+      );
+      const tier = release?.tier ?? "free";
+      if (tier !== "pro" && tier !== "beta") continue;
+
+      const writeId = `${tag}:${candidate.key}`;
+      if (writtenLicenses.current.has(writeId)) continue;
+      writtenLicenses.current.add(writeId);
+      localStorage.setItem(
+        LICENSE_WRITTEN_KEY,
+        JSON.stringify([...writtenLicenses.current].slice(-200)),
+      );
+
+      void invoke<string>("write_license_file", {
+        key: candidate.key,
+        productTag: candidate.productTag,
+      })
+        .then((path) => {
+          toast({
+            kind: "success",
+            title: t("Лицензия записана автоматически"),
+            message: t("{name} · {path}", { name: candidate.title, path }),
+          });
+        })
+        .catch((error) => {
+          writtenLicenses.current.delete(writeId);
+          toast({
+            kind: "error",
+            title: t("Не удалось записать лицензию"),
+            message: String(error),
+          });
+        });
+    }
+  }, [licenses, ready, releases, requests, t, toast]);
+
   const install = useCallback(
     async (release: Release) => {
       const file = getFileForOS(release);
@@ -475,6 +603,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
       if (!isTauri) {
         toast({ kind: "info", title: t("Установка доступна в приложении"), message: t("Запустите Aether Hub.app.") });
+        return;
+      }
+
+      if ((release.tier ?? "free") === "beta" && !betaTester) {
+        toast({
+          kind: "info",
+          title: t("В разработке • Доступно только Beta-тестерам"),
+          message: t("Активируйте Beta-инвайт в профиле, чтобы открыть установку."),
+        });
         return;
       }
 
@@ -524,24 +661,40 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         // FREE plugins are licensed automatically: issue a machine-bound key
         // on the server and drop it into the plugin's Application Support
         // folder, so the user never has to request/activate anything manually.
-        if (release.category === "plugins" && (release.tier ?? "free") === "free") {
+        const tier = release.tier ?? "free";
+        if (release.category === "plugins" && (tier === "free" || (tier === "beta" && betaTester))) {
           void (async () => {
             const productTag = release.productTag || "AETHER-VOCAL-STRIP";
-            const key = await fetchFreeLicenseKey(
-              licensingMachineId,
-              productTag,
-              profile.nickname,
-            );
-            await invoke("write_license_file", { key, productTag });
+            const key =
+              tier === "beta"
+                ? await fetchBetaLicenseKey(
+                    licensingMachineId,
+                    productTag,
+                    profile.nickname,
+                  )
+                : await fetchFreeLicenseKey(
+                    licensingMachineId,
+                    productTag,
+                    profile.nickname,
+                  );
+            const path = await invoke<string>("write_license_file", { key, productTag });
+            writtenLicenses.current.add(`${productTag.toUpperCase()}:${key}`);
             toast({
               kind: "success",
-              title: t("FREE-лицензия активирована"),
-              message: t("Ключ записан локально — плагин готов к работе."),
+              title:
+                tier === "beta"
+                  ? t("BETA-лицензия активирована")
+                  : t("FREE-лицензия активирована"),
+              message: t("Ключ записан в {path}", { path }),
             });
+            await refreshCloudUser();
           })().catch((error) => {
             toast({
               kind: "error",
-              title: t("Не удалось активировать FREE-лицензию"),
+              title:
+                tier === "beta"
+                  ? t("Не удалось активировать BETA-лицензию")
+                  : t("Не удалось активировать FREE-лицензию"),
               message: String(error),
             });
           });
@@ -560,10 +713,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       }
     },
     [
+      betaTester,
       getFileForOS,
       licensingMachineId,
       machine.platformLabel,
       profile.nickname,
+      refreshCloudUser,
       settings.drumkitDir,
       settings.presetDir,
       toast,
@@ -740,6 +895,106 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     [licensingMachineId, profile.avatarUrl, profile.nickname, refreshCloudUser, toast, t],
   );
 
+  const activateLicense = useCallback(
+    async (release: Release, key: string) => {
+      const productTag = release.productTag || "AETHER-VOCAL-STRIP";
+      try {
+        const path = await invoke<string>("write_license_file", {
+          key,
+          productTag,
+        });
+        writtenLicenses.current.add(`${productTag.toUpperCase()}:${key}`);
+        localStorage.setItem(
+          LICENSE_WRITTEN_KEY,
+          JSON.stringify([...writtenLicenses.current].slice(-200)),
+        );
+        toast({
+          kind: "success",
+          title: t("Лицензия активирована"),
+          message: t("Файл license.aether записан в {path}", { path }),
+        });
+      } catch (error) {
+        toast({
+          kind: "error",
+          title: t("Не удалось записать лицензию"),
+          message: String(error),
+        });
+      }
+    },
+    [toast, t],
+  );
+
+  const submitSample = useCallback(
+    async (input: SubmitSampleInput) => {
+      try {
+        const sample = await submitCommunitySample(input);
+        setMySamples((prev) => [sample, ...prev.filter((item) => item.id !== sample.id)]);
+        toast({
+          kind: "success",
+          title: t("Сэмпл отправлен на модерацию"),
+          message: t("Он появится в разделе после одобрения."),
+        });
+        return sample;
+      } catch (error) {
+        toast({
+          kind: "error",
+          title: t("Не удалось загрузить сэмпл"),
+          message: String(error),
+        });
+        return null;
+      }
+    },
+    [toast, t],
+  );
+
+  const likeSample = useCallback(
+    async (sample: CommunitySample) => {
+      try {
+        const likes = await likeCommunitySample(sample.id);
+        setSamples((prev) =>
+          prev.map((item) =>
+            item.id === sample.id
+              ? { ...item, likesCount: likes || item.likesCount + 1 }
+              : item,
+          ),
+        );
+      } catch (error) {
+        toast({ kind: "error", title: t("Не удалось поставить лайк"), message: String(error) });
+      }
+    },
+    [toast, t],
+  );
+
+  const trackSampleDownload = useCallback(async (sample: CommunitySample) => {
+    try {
+      const count = await markSampleDownloaded(sample.id);
+      setSamples((prev) =>
+        prev.map((item) =>
+          item.id === sample.id
+            ? { ...item, downloadsCount: count || item.downloadsCount + 1 }
+            : item,
+        ),
+      );
+    } catch {
+      // Download counting is best-effort.
+    }
+  }, []);
+
+  const markNotificationsRead = useCallback(() => {
+    setNotifRead((prev) => {
+      const next = [...prev];
+      for (const id of notifIdsRef.current) {
+        if (!next.includes(id)) next.push(id);
+      }
+      try {
+        localStorage.setItem(NOTIF_READ_KEY, JSON.stringify(next.slice(-500)));
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  }, []);
+
   const pickFolder = useCallback(
     async (kind: "presetDir" | "drumkitDir") => {
       if (!isTauri) return;
@@ -767,6 +1022,98 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setComments({});
     toast({ kind: "info", title: t("Демо-каталог восстановлен") });
   }, [toast, t]);
+
+  const notifications = useMemo<AppNotification[]>(() => {
+    const items: AppNotification[] = [];
+    const now = Date.now();
+    const recentCutoff = now - 30 * 24 * 3600_000;
+
+    for (const release of releases) {
+      const created = release.createdAt ? Date.parse(release.createdAt) : NaN;
+      if (!Number.isFinite(created) || created < recentCutoff) continue;
+      const isBeta = (release.tier ?? "free") === "beta";
+      items.push({
+        id: `release:${release.id}:${release.version}`,
+        kind: isBeta ? "beta" : "release",
+        title: isBeta
+          ? t("BETA-обновление · {name}", { name: release.title })
+          : t("Новый релиз · {name}", { name: release.title }),
+        message: isBeta
+          ? t("Версия {version} · ранний доступ для Beta-тестеров.", {
+              version: release.version,
+            })
+          : t("Версия {version} уже в каталоге Aether Hub.", {
+              version: release.version,
+            }),
+        createdAt: release.createdAt!,
+        action: "plugins",
+      });
+    }
+
+    for (const request of requests) {
+      if (request.status === "approved") {
+        items.push({
+          id: `license:${request.id}`,
+          kind: "license",
+          title: t("PRO-лицензия одобрена"),
+          message: t("{name} · ключ записан автоматически.", {
+            name: request.pluginTitle,
+          }),
+          createdAt: request.resolvedAt || request.createdAt,
+          action: "plugins",
+        });
+      } else if (request.status === "rejected") {
+        items.push({
+          id: `license:${request.id}`,
+          kind: "license",
+          title: t("Заявка на PRO-лицензию отклонена"),
+          message: request.pluginTitle,
+          createdAt: request.resolvedAt || request.createdAt,
+          action: "plugins",
+        });
+      }
+    }
+
+    for (const sample of mySamples) {
+      if (sample.status === "approved") {
+        items.push({
+          id: `sample:${sample.id}:approved`,
+          kind: "sample",
+          title: t("Сэмпл одобрен"),
+          message: t("{name} опубликован в Samples & Loops.", { name: sample.title }),
+          createdAt: sample.createdAt,
+          action: "samples",
+        });
+      } else if (sample.status === "rejected") {
+        items.push({
+          id: `sample:${sample.id}:rejected`,
+          kind: "sample",
+          title: t("Сэмпл отклонён модерацией"),
+          message: sample.title,
+          createdAt: sample.createdAt,
+          action: "samples",
+        });
+      }
+    }
+
+    if (betaTester) {
+      items.push({
+        id: "beta:tester-active",
+        kind: "beta",
+        title: t("Beta-доступ активен"),
+        message: t("Установка BETA-плагинов открыта в один клик."),
+        createdAt: new Date(now - 60_000).toISOString(),
+        action: "plugins",
+      });
+    }
+
+    return items.sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 40);
+  }, [betaTester, mySamples, releases, requests, t]);
+
+  notifIdsRef.current = notifications.map((item) => item.id);
+  const unreadNotifications = notifications.filter(
+    (item) => !notifRead.includes(item.id),
+  ).length;
 
   const value = useMemo<StoreValue>(
     () => ({
@@ -796,6 +1143,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       myRatings,
       requests,
       licenses,
+      betaTester,
+      betaLoading,
+      samples,
+      mySamples,
+      samplesLoading,
+      notifications,
+      unreadNotifications,
       toasts,
       adminOverview: adminData,
       install,
@@ -812,6 +1166,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       refreshAdminData,
       resetDemo,
       requestKey,
+      activateLicense,
+      refreshSamples,
+      submitSample,
+      likeSample,
+      trackSampleDownload,
+      markNotificationsRead,
       pickFolder,
       toast,
       dismissToast,
@@ -842,6 +1202,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       myRatings,
       requests,
       licenses,
+      betaTester,
+      betaLoading,
+      samples,
+      mySamples,
+      samplesLoading,
+      notifications,
+      unreadNotifications,
       toasts,
       adminData,
       install,
@@ -858,6 +1225,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       refreshAdminData,
       resetDemo,
       requestKey,
+      activateLicense,
+      refreshSamples,
+      submitSample,
+      likeSample,
+      trackSampleDownload,
+      markNotificationsRead,
       pickFolder,
       toast,
       dismissToast,

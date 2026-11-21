@@ -13,6 +13,7 @@ import {
   Ticket,
   Globe2,
   LockKeyhole,
+  Waves,
 } from "lucide-react";
 import type { Category, View } from "../types";
 import { useStore } from "../lib/store";
@@ -45,6 +46,7 @@ export function Sidebar({ view, onNavigate, onOpenSettings, onOpenSupport }: Pro
     installs,
     requests,
     profile,
+    samples,
     toast,
     t,
   } = useStore();
@@ -105,6 +107,15 @@ export function Sidebar({ view, onNavigate, onOpenSettings, onOpenSupport }: Pro
             </button>
           );
         })}
+        <button
+          className={`nav-item ${view.name === "samples" ? "active" : ""}`}
+          onClick={() => onNavigate({ name: "samples" })}
+        >
+          <Waves size={17} />
+          <span>Samples & Loops</span>
+          {samples.length ? <span className="nav-count">{samples.length}</span> : null}
+          <span className="nav-badge gold">NEW</span>
+        </button>
       </div>
 
       {adminVisible ? (
@@ -213,7 +224,7 @@ export function Sidebar({ view, onNavigate, onOpenSettings, onOpenSupport }: Pro
           </div>
         ) : null}
         <div className="hint" style={{ color: "var(--muted)" }}>
-          {installedCount ? `${t("{count} установлено", { count: installedCount })} · ` : ""}v1.2.2
+          {installedCount ? `${t("{count} установлено", { count: installedCount })} · ` : ""}v1.3.0
         </div>
       </div>
 

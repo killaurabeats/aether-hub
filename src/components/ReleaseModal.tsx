@@ -10,11 +10,13 @@ import {
   FolderOpen,
   KeyRound,
   Loader2,
+  LockKeyhole,
   MessageSquare,
   Monitor,
   Send,
   Pencil,
   ShieldCheck,
+  Sparkles,
   Star,
   Trash2,
   X,
@@ -31,13 +33,17 @@ import { InstallButton } from "./InstallButton";
 export function ReleaseModal({
   release,
   onClose,
+  onOpenProfile,
 }: {
   release: Release;
   onClose: () => void;
+  onOpenProfile?: () => void;
 }) {
   const {
     machine,
+    betaTester,
     licensingMachineId,
+    activateLicense,
     updateSettings,
     refreshCloudUser,
     comments,
@@ -101,6 +107,8 @@ export function ReleaseModal({
   }, [license?.key, refreshCloudUser]);
 
   const meta = CATEGORY_META[release.category];
+  const tier = release.tier ?? "free";
+  const betaLocked = tier === "beta" && !betaTester;
   const file = release.files[machine.os === "windows" ? "windows" : "macos"];
   const otherFile = release.files[machine.os === "windows" ? "macos" : "windows"];
 
@@ -189,6 +197,13 @@ export function ReleaseModal({
               <div className="titles">
                 <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
                   <span className="chip violet">{meta.singular}</span>
+                  {tier === "beta" ? (
+                    <span className="chip beta">
+                      <Sparkles size={9} /> BETA
+                    </span>
+                  ) : tier === "pro" ? (
+                    <span className="chip gold">PRO</span>
+                  ) : null}
                   {release.badge ? <span className="chip gold">{release.badge}</span> : null}
                   {record ? (
                     <span className="chip green">
@@ -237,6 +252,33 @@ export function ReleaseModal({
                       </span>
                     </div>
 
+                    {betaLocked ? (
+                      <div className="beta-lock-panel">
+                        <span className="beta-lock-icon">
+                          <LockKeyhole size={18} />
+                        </span>
+                        <div className="beta-lock-copy">
+                          <b>{t("В разработке • Доступно только Beta-тестерам")}</b>
+                          <span>
+                            {t(
+                              "Активируйте одноразовый Beta-инвайт в профиле — и установка откроется в один клик.",
+                            )}
+                          </span>
+                        </div>
+                        {onOpenProfile ? (
+                          <button
+                            className="btn btn-sm beta-lock-action"
+                            onClick={() => {
+                              onClose();
+                              onOpenProfile();
+                            }}
+                          >
+                            <Sparkles size={12} /> {t("Ввести инвайт")}
+                          </button>
+                        ) : null}
+                      </div>
+                    ) : null}
+
                     <div className="platform-grid">
                       {(["macos", "windows"] as const).map((os) => {
                         const platformFile = release.files[os];
@@ -276,9 +318,9 @@ export function ReleaseModal({
 
                             <button
                               className={`btn ${isCurrent && !isInstalled ? "btn-primary" : "btn-ghost"} btn-sm platform-button`}
-                              disabled={!platformFile || busy || Boolean(isInstalled)}
+                              disabled={!platformFile || busy || Boolean(isInstalled) || betaLocked}
                               onClick={() => {
-                                if (!platformFile) return;
+                                if (!platformFile || betaLocked) return;
                                 if (isCurrent) {
                                   if (!isInstalled) void install(release);
                                 } else {
@@ -286,14 +328,18 @@ export function ReleaseModal({
                                 }
                               }}
                             >
-                              {busy ? (
+                              {betaLocked ? (
+                                <LockKeyhole size={12} />
+                              ) : busy ? (
                                 <Loader2 size={12} className="spin" />
                               ) : isInstalled ? (
                                 <Check size={12} />
                               ) : isCurrent && isUpdating ? null : (
                                 <Download size={12} />
                               )}
-                              {!platformFile
+                              {betaLocked
+                                ? t("Доступ по инвайту")
+                                : !platformFile
                                 ? t("Нет сборки")
                                 : busy
                                   ? isCurrent
@@ -426,15 +472,23 @@ export function ReleaseModal({
                 </div>
               </div>
 
-              {release.category === "plugins" && (release.tier ?? "free") === "pro" ? (
-                <div className="license-card">
+              {release.category === "plugins" && (tier === "pro" || tier === "beta") ? (
+                <div className={`license-card ${tier === "beta" ? "beta" : ""}`}>
                   <h3>
-                    <KeyRound size={14} /> {t("Лицензия Aether")}
+                    <KeyRound size={14} />{" "}
+                    {tier === "beta"
+                      ? t("BETA-лицензия тестера")
+                      : t("Лицензия Aether")}
+                    {tier === "beta" ? <span className="chip beta">BETA</span> : null}
                   </h3>
                   <p className="hint">
-                    {t(
-                      "Ключ подписывает Machine ID этого компьютера. Он не переносится на другое устройство и проверяется плагином каждые 7 секунд.",
-                    )}
+                    {tier === "beta"
+                      ? t(
+                          "Для Beta-тестеров лицензия выдаётся автоматически при установке. Zero-Copy записывает ключ в системную папку плагина.",
+                        )
+                      : t(
+                          "Ключ подписывает Machine ID этого компьютера. После одобрения он записывается в папку плагина автоматически — копировать вручную не нужно.",
+                        )}
                   </p>
 
                   {idEditing ? (
@@ -490,19 +544,36 @@ export function ReleaseModal({
                     <div className="license-active">
                       <div className="top">
                         <ShieldCheck size={12} /> {t("Лицензия активна")}
+                        <span className="chip green" style={{ marginLeft: "auto" }}>
+                          ZERO-COPY
+                        </span>
                       </div>
                       <div className="key-box">{activeKey}</div>
                       <div className="license-actions">
+                        <button
+                          className="btn btn-primary btn-sm"
+                          onClick={async () => {
+                            await activateLicense(release, activeKey);
+                            if (!record) await install(release);
+                          }}
+                        >
+                          <ShieldCheck size={11} />
+                          {record
+                            ? t("Активировать")
+                            : t("Активировать и установить")}
+                        </button>
                         <button
                           className="btn btn-soft btn-sm"
                           onClick={() => void copy(activeKey, t("Ключ скопирован"))}
                         >
                           <Copy size={11} /> {t("Скопировать ключ")}
                         </button>
-                        <span style={{ fontSize: 9.5, color: "var(--dim)", alignSelf: "center" }}>
-                          {t("Вставьте его в окно активации плагина")}
-                        </span>
                       </div>
+                      <span className="license-note">
+                        {t(
+                          "license.aether уже записан в системную папку лицензий плагина.",
+                        )}
+                      </span>
                     </div>
                   ) : (
                     <>
@@ -513,17 +584,39 @@ export function ReleaseModal({
                         </div>
                       ) : null}
 
-                      <div className="license-actions">
-                        <button
-                          className="btn btn-soft btn-sm"
-                          onClick={() => void requestKey(release)}
-                          disabled={Boolean(pending)}
-                        >
-                          <KeyRound size={11} />
-                          {pending ? t("Заявка на рассмотрении") : t("Запросить ключ активации")}
-                        </button>
-                      </div>
-                      {profile.nickname ? (
+                      {tier === "beta" && !betaTester ? (
+                        <div className="beta-inline-lock">
+                          <LockKeyhole size={12} />
+                          <span>{t("Нужен активированный Beta-инвайт в профиле.")}</span>
+                          {onOpenProfile ? (
+                            <button
+                              className="ghost-link"
+                              onClick={() => {
+                                onClose();
+                                onOpenProfile();
+                              }}
+                            >
+                              {t("Открыть профиль")}
+                            </button>
+                          ) : null}
+                        </div>
+                      ) : (
+                        <div className="license-actions">
+                          <button
+                            className="btn btn-soft btn-sm"
+                            onClick={() => void requestKey(release)}
+                            disabled={Boolean(pending) || tier === "beta"}
+                          >
+                            <KeyRound size={11} />
+                            {pending
+                              ? t("Заявка на рассмотрении")
+                              : tier === "beta"
+                                ? t("BETA-ключ выдаётся при установке")
+                                : t("Запросить ключ активации")}
+                          </button>
+                        </div>
+                      )}
+                      {profile.nickname && tier === "pro" ? (
                         <p style={{ margin: "10px 0 0", fontSize: 9.5, color: "var(--dim)" }}>
                           {t("Заявка уйдёт от имени {name}.", { name: profile.nickname })}
                         </p>

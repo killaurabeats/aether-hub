@@ -1,5 +1,7 @@
 export type Category = "plugins" | "drumkits" | "presets";
 export type OSKey = "macos" | "windows";
+export type Tier = "free" | "pro" | "beta";
+export const TIER_ORDER: Tier[] = ["free", "pro", "beta"];
 
 export const CATEGORY_META: Record<
   Category,
@@ -47,11 +49,51 @@ export interface Release {
   ratingAvg: number;
   ratingCount: number;
   productTag?: string | null;
-  tier?: "free" | "pro";
+  tier?: Tier;
   featured?: boolean;
   badge?: string | null;
   previews?: PreviewSound[];
   createdAt?: string | null;
+}
+
+export type SampleCategory = "loop" | "oneshot";
+export type SampleStatus = "pending" | "approved" | "rejected";
+
+export interface CommunitySample {
+  id: string;
+  title: string;
+  authorHwid: string;
+  authorName: string;
+  category: SampleCategory;
+  bpm: number | null;
+  musicalKey: string | null;
+  fileUrl: string;
+  waveformPeaks: number[];
+  downloadsCount: number;
+  likesCount: number;
+  status: SampleStatus;
+  isFeatured: boolean;
+  createdAt: string;
+}
+
+export interface SubmitSampleInput {
+  title: string;
+  authorHwid: string;
+  authorName: string;
+  category: SampleCategory;
+  bpm: number | null;
+  musicalKey: string | null;
+  fileUrl: string;
+  waveformPeaks: number[];
+}
+
+export interface AppNotification {
+  id: string;
+  kind: "release" | "beta" | "license" | "sample";
+  title: string;
+  message: string;
+  createdAt: string;
+  action?: "plugins" | "samples" | "profile";
 }
 
 export interface Comment {
@@ -197,6 +239,7 @@ export interface Settings {
 export type View =
   | { name: "home" }
   | { name: "category"; category: Category }
+  | { name: "samples" }
   | { name: "admin" }
   | { name: "keygen" }
   | { name: "tickets" }

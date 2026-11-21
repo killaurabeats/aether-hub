@@ -72,6 +72,7 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
     if (result.ok) {
       setBetaTester(true);
       setInviteCode("");
+      await refreshCloudUser();
       toast({ kind: "success", title: t("BETA TESTER активирован") });
     } else {
       toast({
@@ -153,7 +154,7 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
                 <Avatar name={nickname || "aether"} src={avatar} size={96} />
                 {betaTester ? (
                   <span
-                    className="chip violet"
+                    className="chip beta"
                     style={{
                       position: "absolute",
                       bottom: -11,
@@ -162,7 +163,6 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
                       zIndex: 3,
                       fontSize: 8,
                       letterSpacing: "0.12em",
-                      background: "rgba(24,19,42,.92)",
                     }}
                   >
                     BETA
@@ -188,7 +188,7 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
                     {t("Никнейм")}
                     {betaTester ? (
                       <span
-                        className="chip violet"
+                        className="chip beta"
                         style={{ letterSpacing: "0.12em", fontWeight: 700 }}
                       >
                         <ShieldCheck size={9} /> BETA TESTER
@@ -402,7 +402,7 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
                 <span className="chip">
                   <Stars value={5} size={9} /> AETHER
                 </span>
-                <span className="chip violet">v1.2.2</span>
+                <span className="chip violet">v1.3.0</span>
                 <span className="chip green">HWID ver.</span>
               </div>
             </div>

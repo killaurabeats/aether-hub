@@ -1,4 +1,4 @@
-import { Check, Download, Loader2, RotateCw } from "lucide-react";
+import { Check, Download, Loader2, LockKeyhole, RotateCw } from "lucide-react";
 import type { Release } from "../types";
 import { useStore } from "../lib/store";
 
@@ -11,12 +11,28 @@ export function InstallButton({
   size?: "sm" | "md" | "lg";
   className?: string;
 }) {
-  const { installs, progress, install, getFileForOS, machine, t } = useStore();
+  const { installs, progress, install, getFileForOS, machine, betaTester, t } =
+    useStore();
   const record = installs[release.slug];
   const job = progress[release.slug];
   const file = getFileForOS(release);
+  const betaLocked = (release.tier ?? "free") === "beta" && !betaTester;
 
   const sizeClass = size === "sm" ? "btn-sm" : size === "lg" ? "btn-lg" : "";
+
+  if (betaLocked) {
+    return (
+      <button
+        className={`install-btn locked ${sizeClass} ${className}`}
+        onClick={(event) => event.stopPropagation()}
+        title={t("В разработке • Доступно только Beta-тестерам")}
+        aria-label={t("В разработке • Доступно только Beta-тестерам")}
+      >
+        <LockKeyhole size={13} />
+        {t("BETA · по инвайту")}
+      </button>
+    );
+  }
 
   if (job) {
     return (

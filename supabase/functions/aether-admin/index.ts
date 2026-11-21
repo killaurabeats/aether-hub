@@ -125,7 +125,7 @@ const mapRelease = (row: Record<string, any>) => ({
   ratingAvg: Number(row.rating_avg ?? 0),
   ratingCount: Number(row.rating_count ?? 0),
   productTag: row.product_tag,
-  tier: row.tier === "pro" ? "pro" : "free",
+  tier: row.tier === "pro" ? "pro" : row.tier === "beta" ? "beta" : "free",
   featured: Boolean(row.featured),
   badge: row.badge,
   previews: row.previews ?? [],
@@ -164,6 +164,23 @@ const mapTicketMessage = (row: Record<string, any>) => ({
   senderName: row.sender_name,
   senderAvatar: row.sender_avatar,
   message: row.message,
+  createdAt: row.created_at,
+});
+
+const mapSample = (row: Record<string, any>) => ({
+  id: String(row.id),
+  title: row.title,
+  authorHwid: row.author_hwid,
+  authorName: row.author_name,
+  category: row.category,
+  bpm: row.bpm == null ? null : Number(row.bpm),
+  musicalKey: row.musical_key,
+  fileUrl: row.file_url,
+  waveformPeaks: Array.isArray(row.waveform_peaks) ? row.waveform_peaks : [],
+  downloadsCount: Number(row.downloads_count ?? 0),
+  likesCount: Number(row.likes_count ?? 0),
+  status: row.status,
+  isFeatured: Boolean(row.is_featured),
   createdAt: row.created_at,
 });
 
@@ -289,6 +306,54 @@ Deno.serve(async (request) => {
     if (!releaseRow || releaseRow.tier !== "free") {
       return json({ error: "This product requires a licence" }, 403);
     }
+
+    try {
+      const key = issueLicenseKey(machine, productTag);
+      const now = new Date().toISOString();
+      const { error: licenseError } = await supabase.from("licenses").upsert(
+        {
+          machine_id: machine,
+          product_tag: productTag,
+          plugin_title: releaseRow.title,
+          key,
+          nickname: String(payload.nickname ?? "aether user").slice(0, 40),
+          issued_at: now,
+        },
+        { onConflict: "machine_id,product_tag" },
+      );
+      if (licenseError) return json({ error: licenseError.message }, 400);
+      return json({ key, productTag });
+    } catch (error) {
+      return json({ error: String(error) }, 500);
+    }
+  }
+
+  // BETA products are free for invited testers. The invite is bound to the
+  // Machine ID, so the same HWID check that unlocks the UI also gates the key.
+  if (action === "beta_license") {
+    const productTag = sanitiseTag(payload.productTag);
+    const machine = normaliseMachineId(payload.machineId);
+    if (machine.length !== 32) return json({ error: "Invalid Machine ID" }, 400);
+
+    const { data: releaseRow, error: releaseError } = await supabase
+      .from("releases")
+      .select("tier, title")
+      .eq("product_tag", productTag)
+      .eq("published", true)
+      .limit(1)
+      .maybeSingle();
+    if (releaseError) return json({ error: releaseError.message }, 400);
+    if (!releaseRow || releaseRow.tier !== "beta") {
+      return json({ error: "This product is not in beta" }, 403);
+    }
+
+    const { data: invite } = await supabase
+      .from("beta_invites")
+      .select("code")
+      .eq("used_by_hwid", machine)
+      .limit(1)
+      .maybeSingle();
+    if (!invite) return json({ error: "Beta invite required" }, 403);
 
     try {
       const key = issueLicenseKey(machine, productTag);
@@ -500,10 +565,64 @@ Deno.serve(async (request) => {
         return json({ deleted: (data ?? []).length });
       }
 
+      // ----------------------------------------------------- community samples
+      case "samples_list": {
+        const status = ["pending", "approved", "rejected"].includes(String(payload.status))
+          ? String(payload.status)
+          : null;
+        let query = supabase
+          .from("community_samples")
+          .select("*")
+          .order("created_at", { ascending: false })
+          .limit(300);
+        if (status) query = query.eq("status", status);
+        const { data, error } = await query;
+        if (error) return json({ error: error.message }, 400);
+        return json((data ?? []).map(mapSample));
+      }
+
+      case "sample_moderate": {
+        const id = String(payload.id ?? "");
+        const actionName = String(payload.mode ?? payload.sampleAction ?? "");
+        if (!id) return json({ error: "id required" }, 400);
+
+        if (actionName === "delete") {
+          const { error } = await supabase.from("community_samples").delete().eq("id", id);
+          if (error) return json({ error: error.message }, 400);
+          return json({ ok: true, deleted: true });
+        }
+
+        const patch: Record<string, any> = {};
+        if (actionName === "approve") {
+          patch.status = "approved";
+        } else if (actionName === "reject") {
+          patch.status = "rejected";
+          patch.is_featured = false;
+        } else if (actionName === "feature") {
+          patch.is_featured = true;
+          patch.status = "approved";
+        } else if (actionName === "unfeature") {
+          patch.is_featured = false;
+        } else {
+          return json({ error: "Unknown moderation action" }, 400);
+        }
+
+        const { data, error } = await supabase
+          .from("community_samples")
+          .update(patch)
+          .eq("id", id)
+          .select("*")
+          .single();
+        if (error) return json({ error: error.message }, 400);
+        return json(mapSample(data));
+      }
+
       // ---------------------------------------------------------- uploads ----
       case "sign_upload": {
         const bucket = String(payload.bucket ?? "aether-assets");
-        if (bucket !== "aether-assets") return json({ error: "Bucket not allowed" }, 403);
+        if (bucket !== "aether-assets" && bucket !== "aether-samples") {
+          return json({ error: "Bucket not allowed" }, 403);
+        }
 
         const path = String(payload.path ?? "").replace(/^\/+/, "");
         if (!path || path.includes("..") || path.length > 300) {
@@ -554,7 +673,7 @@ Deno.serve(async (request) => {
           cover_url: release.coverUrl ?? null,
           files,
           product_tag: release.productTag ? String(release.productTag).slice(0, 64) : null,
-          tier: release.tier === "pro" ? "pro" : "free",
+          tier: release.tier === "pro" ? "pro" : release.tier === "beta" ? "beta" : "free",
           featured: Boolean(release.featured),
           badge: release.badge ? String(release.badge).slice(0, 16) : null,
           previews: Array.isArray(release.previews) ? release.previews.slice(0, 12) : [],

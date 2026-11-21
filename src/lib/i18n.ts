@@ -557,7 +557,7 @@ const en: Record<string, string> = {
 
   // -------------------------------------------------------------------- misc
   "Aether Plugins · by. @killaurabeats": "Aether Plugins · by. @killaurabeats",
-  "AETHER HUB · 1.2.2 · CINEMATIC INTRO": "AETHER HUB · 1.2.2 · CINEMATIC INTRO",
+  "AETHER HUB · 1.3.0 · CINEMATIC INTRO": "AETHER HUB · 1.3.0 · CINEMATIC INTRO",
   "Эффекты стекла": "Glass effects",
   "Размытие": "Blur",
   "Включено": "On",
@@ -585,7 +585,7 @@ const en: Record<string, string> = {
   "Включить звук заставки": "Enable the startup sound",
   "Русский": "Russian",
   "не задан": "not set",
-  "Aether Hub · 1.2.2 · CINEMATIC INTRO": "AETHER HUB · 1.2.2 · CINEMATIC INTRO",
+  "Aether Hub · 1.3.0 · CINEMATIC INTRO": "AETHER HUB · 1.3.0 · CINEMATIC INTRO",
   "Чат с создателем": "Creator chat",
   "Скоро здесь появится встроенная поддержка.":
     "Built-in support is coming soon.",
@@ -696,6 +696,138 @@ const en: Record<string, string> = {
   "Редактировать": "Edit",
   "Что внутри, для кого, чем отличается версия…":
     "What's inside, who it's for and what changed…",
+
+  // ------------------------------------------------------------ v1.3.0 UI
+  "Уведомления": "Notifications",
+  "Всё прочитано": "All caught up",
+  "{count} новых": "{count} new",
+  "Пока нет событий. Релизы и модерация появятся здесь.":
+    "No events yet. Releases and moderation updates will appear here.",
+  "Новый релиз · {name}": "New release · {name}",
+  "BETA-обновление · {name}": "BETA update · {name}",
+  "Версия {version} · ранний доступ для Beta-тестеров.":
+    "Version {version} · early access for Beta testers.",
+  "Версия {version} уже в каталоге Aether Hub.":
+    "Version {version} is now in the Aether Hub catalog.",
+  "PRO-лицензия одобрена": "PRO licence approved",
+  "{name} · ключ записан автоматически.": "{name} · key written automatically.",
+  "Заявка на PRO-лицензию отклонена": "PRO licence request rejected",
+  "Сэмпл одобрен": "Sample approved",
+  "{name} опубликован в Samples & Loops.": "{name} is live in Samples & Loops.",
+  "Сэмпл отклонён модерацией": "Sample rejected by moderation",
+  "Beta-доступ активен": "Beta access active",
+  "Установка BETA-плагинов открыта в один клик.":
+    "One-click install for BETA plugins is unlocked.",
+  "Лицензия записана автоматически": "Licence written automatically",
+  "Не удалось записать лицензию": "Couldn't write the licence",
+  "Лицензия активирована": "Licence activated",
+  "Файл license.aether записан в {path}": "license.aether written to {path}",
+  "BETA-лицензия активирована": "BETA licence activated",
+  "Ключ записан в {path}": "Key written to {path}",
+  "Не удалось активировать BETA-лицензию": "Couldn't activate the BETA licence",
+  "В разработке • Доступно только Beta-тестерам":
+    "In Development • Beta Testers Only",
+  "Активируйте одноразовый Beta-инвайт в профиле — и установка откроется в один клик.":
+    "Activate a one-time Beta invite in your profile and one-click install unlocks.",
+  "Активируйте Beta-инвайт в профиле, чтобы открыть установку.":
+    "Activate a Beta invite in your profile to unlock installation.",
+  "Ввести инвайт": "Enter invite",
+  "Доступ по инвайту": "Invite only",
+  "BETA · по инвайту": "BETA · invite only",
+  "Активировать и установить": "Activate & install",
+  "BETA-лицензия тестера": "Tester BETA licence",
+  "Для Beta-тестеров лицензия выдаётся автоматически при установке. Zero-Copy записывает ключ в системную папку плагина.":
+    "Beta testers get a licence automatically on install. Zero-Copy writes the key into the plugin's system folder.",
+  "Ключ подписывает Machine ID этого компьютера. После одобрения он записывается в папку плагина автоматически — копировать вручную не нужно.":
+    "The key signs this computer's Machine ID. Once approved it is written into the plugin folder automatically — no manual copying.",
+  "license.aether уже записан в системную папку лицензий плагина.":
+    "license.aether is already in the plugin's system licence folder.",
+  "Нужен активированный Beta-инвайт в профиле.":
+    "An activated Beta invite is required in your profile.",
+  "Открыть профиль": "Open profile",
+  "BETA-ключ выдаётся при установке": "BETA key is issued on install",
+  "Ранний доступ: установка только для HWID с активированным Beta-инвайтом, лицензия выдаётся автоматически.":
+    "Early access: installs only for HWIDs with an activated Beta invite; the licence is issued automatically.",
+
+  // --------------------------------------------------------------- samples
+  "Звуки": "Sounds",
+  "комьюнити.": "by the community.",
+  "Загрузить сэмпл": "Upload sample",
+  "Библиотека обновлена": "Library refreshed",
+  "сэмплов": "samples",
+  "выбор комьюнити": "community picks",
+  "мгновенный preview": "instant preview",
+  "Топ недели": "Top of the week",
+  "Выбор комьюнити": "Community picks",
+  "Лупы": "Loops",
+  "Ваншоты": "One-shots",
+  "Любая тональность": "Any key",
+  "Любой BPM": "Any BPM",
+  "Под эти фильтры пока ничего нет": "Nothing matches these filters yet",
+  "Сбросьте фильтры или загрузите свой первый луп — после премодерации он появится здесь.":
+    "Reset the filters or upload your first loop — it will appear here after moderation.",
+  "Все загрузки проходят премодерацию. Перетаскивание работает в установленном Aether Hub: файл кэшируется локально и передаётся в DAW как обычный WAV.":
+    "Every upload is moderated. Dragging works in the installed Aether Hub: the file is cached locally and handed to the DAW as a regular WAV.",
+  "Перетащите в FL Studio или прослушайте": "Drag into FL Studio or preview",
+  "Локальный файл доступен только в приложении":
+    "Local files are available in the desktop app only",
+  "Файл готов — потяните карточку в FL Studio":
+    "File ready — drag the card into FL Studio",
+  "Локальный кэш: {path}": "Local cache: {path}",
+  "Не удалось начать перетаскивание": "Couldn't start the drag",
+  "Сэмпл сохранён": "Sample saved",
+  "Не удалось скачать": "Couldn't download",
+  "Лайк": "Like",
+  "Не удалось поставить лайк": "Couldn't like the sample",
+  "Нужен файл .wav или .mp3": "A .wav or .mp3 file is required",
+  "Введите название сэмпла": "Enter a sample title",
+  "Выберите .wav или .mp3 файл": "Choose a .wav or .mp3 file",
+  "Перетащите или выберите .wav / .mp3": "Drop or choose a .wav / .mp3",
+  "Максимум 96 МБ · WAV 24-bit или MP3 320":
+    "Up to 96 MB · 24-bit WAV or 320 kbps MP3",
+  "Анализируем волновую форму…": "Analysing the waveform…",
+  "Волновая форма готова": "Waveform ready",
+  "Название сэмпла": "Sample title",
+  "Тип": "Type",
+  "Луп": "Loop",
+  "Ваншот": "One-shot",
+  "Тональность": "Key",
+  "Без тональности": "No key",
+  "Загрузка появится в разделе только после одобрения модератором.":
+    "The upload appears in the section only after moderator approval.",
+  "Отправить на модерацию": "Submit for moderation",
+  "Сэмпл отправлен на модерацию": "Sample submitted for moderation",
+  "Он появится в разделе после одобрения.": "It will appear after approval.",
+  "Не удалось загрузить сэмпл": "Couldn't upload the sample",
+  "Загрузка не удалась": "Upload failed",
+
+  // ------------------------------------------------------- sample moderation
+  "Модерация сэмплов": "Sample moderation",
+  "Модерация Samples & Loops": "Samples & Loops moderation",
+  "Прослушайте загрузку и одобрите её, добавьте в выбор комьюнити или отклоните.":
+    "Preview the upload and approve it, feature it for the community or reject it.",
+  "На модерации": "Pending",
+  "Одобренные": "Approved",
+  "Отклонённые": "Rejected",
+  "Одобрить": "Approve",
+  "В выбор комьюнити": "Feature",
+  "Убрать из выбора": "Unfeature",
+  "Сэмпл отклонён": "Sample rejected",
+  "Добавлено в выбор комьюнити": "Added to community picks",
+  "Убрано из выбора комьюнити": "Removed from community picks",
+  "Сэмпл удалён": "Sample deleted",
+  "Действие не выполнено": "Action failed",
+  "Не удалось загрузить сэмплы": "Couldn't load samples",
+  "Очередь пуста": "The queue is empty",
+  "Новые загрузки комьюнити появятся здесь для премодерации.":
+    "New community uploads will appear here for pre-moderation.",
+  "ЛУП": "LOOP",
+  "ВАНШОТ": "ONE-SHOT",
+  "ОДОБРЕН": "APPROVED",
+  "ОТКЛОНЁН": "REJECTED",
+  "ОЖИДАЕТ": "PENDING",
+  "Прослушать": "Preview",
+  "ВЫБОР КОМЬЮНИТИ": "COMMUNITY PICK",
 };
 
 export function translate(

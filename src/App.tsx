@@ -10,6 +10,7 @@ import { Topbar } from "./components/Topbar";
 import { Splash } from "./components/Splash";
 import { HomeView } from "./components/HomeView";
 import { CategoryView, SearchResults } from "./components/CategoryView";
+import { SamplesView } from "./components/SamplesView";
 import { ReleaseModal } from "./components/ReleaseModal";
 import { ProfileModal } from "./components/ProfileModal";
 import {
@@ -30,6 +31,7 @@ function initialView(): View {
   if (hash === "plugins" || hash === "drumkits" || hash === "presets") {
     return { name: "category", category: hash };
   }
+  if (hash === "samples") return { name: "samples" };
   if (hash === "admin") return { name: "admin" };
   if (hash === "keygen") return { name: "keygen" };
   return { name: "home" };
@@ -227,6 +229,8 @@ function Shell() {
         );
       case "search":
         return <SearchResults query={effectiveView.query} onOpenRelease={openRelease} />;
+      case "samples":
+        return <SamplesView />;
       case "admin":
         return adminVisible ? <AdminStudio /> : null;
       case "keygen":
@@ -262,6 +266,7 @@ function Shell() {
             onQuery={setQuery}
             onOpenProfile={() => setProfileOpen(true)}
             onRefresh={() => void refresh()}
+            onNavigate={navigate}
             refreshing={refreshing || catalogLoading}
           />
 
@@ -283,7 +288,12 @@ function Shell() {
 
       <AnimatePresence>
         {selected ? (
-          <ReleaseModal key="release" release={selected} onClose={() => setSelectedId(null)} />
+          <ReleaseModal
+            key="release"
+            release={selected}
+            onClose={() => setSelectedId(null)}
+            onOpenProfile={() => setProfileOpen(true)}
+          />
         ) : null}
       </AnimatePresence>
 

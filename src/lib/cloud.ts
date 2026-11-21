@@ -25,6 +25,11 @@ import type {
   TicketMessage,
   Release,
   ReleaseFile,
+  Tier,
+  CommunitySample,
+  SampleCategory,
+  SampleStatus,
+  SubmitSampleInput,
 } from "../types";
 
 const env = import.meta.env as Record<string, string | undefined>;
@@ -336,6 +341,7 @@ interface DemoState {
   licenses: License[];
   tickets: SupportTicket[];
   ticketMessages: Record<string, TicketMessage[]>;
+  samples?: CommunitySample[];
 }
 
 function demoState(): DemoState {
@@ -361,6 +367,7 @@ function demoState(): DemoState {
           licenses: parsed.licenses ?? [],
           tickets,
           ticketMessages: parsed.ticketMessages ?? seedTicketMessages(),
+          samples: parsed.samples ?? [],
         };
 
         if (releases.length !== parsed.releases.length || comments.length !== (parsed.comments ?? []).length) {
@@ -384,6 +391,7 @@ function demoState(): DemoState {
     licenses: [],
     tickets: seedSupportTickets(),
     ticketMessages: seedTicketMessages(),
+    samples: [],
   };
   saveDemo(state);
   return state;
@@ -513,7 +521,7 @@ export function mapRelease(row: Row): Release {
     ratingAvg: numeric(row.rating_avg),
     ratingCount: numeric(row.rating_count),
     productTag: row.product_tag ?? null,
-    tier: row.tier === "pro" ? "pro" : "free",
+    tier: row.tier === "pro" ? "pro" : row.tier === "beta" ? "beta" : "free",
     featured: Boolean(row.featured),
     badge: row.badge ?? null,
     previews: parseJson(row.previews, []),
@@ -558,6 +566,30 @@ function mapLicense(row: Row): License {
     key: row.key,
     nickname: row.nickname ?? null,
     issuedAt: row.issued_at ?? row.created_at ?? new Date().toISOString(),
+  };
+}
+
+export function mapCommunitySample(row: Row): CommunitySample {
+  const peaks = parseJson<unknown>(row.waveform_peaks, []);
+  return {
+    id: String(row.id),
+    title: row.title ?? "Untitled",
+    authorHwid: row.author_hwid ?? "",
+    authorName: row.author_name ?? "aether user",
+    category: row.category === "oneshot" ? "oneshot" : "loop",
+    bpm: row.bpm == null ? null : numeric(row.bpm),
+    musicalKey: row.musical_key ?? null,
+    fileUrl: row.file_url ?? "",
+    waveformPeaks: Array.isArray(peaks)
+      ? peaks.map((value) => Math.max(0, Math.min(1, Number(value) || 0)))
+      : [],
+    downloadsCount: numeric(row.downloads_count),
+    likesCount: numeric(row.likes_count),
+    status: (["pending", "approved", "rejected"].includes(String(row.status))
+      ? row.status
+      : "pending") as SampleStatus,
+    isFeatured: Boolean(row.is_featured),
+    createdAt: row.created_at ?? new Date().toISOString(),
   };
 }
 
@@ -817,6 +849,188 @@ export async function fetchMyLicenses(machineId: string): Promise<License[]> {
   }
 
   return demoState().licenses.filter((l) => l.machineId === machineId);
+}
+
+// ---------------------------------------------------------------------------
+// Community samples
+// ---------------------------------------------------------------------------
+
+export async function fetchPublicSamples(): Promise<CommunitySample[]> {
+  if (cloudEnabled) {
+    try {
+      const rows = await rest<Row[]>(
+        "community_samples?select=*&status=eq.approved&order=is_featured.desc,created_at.desc&limit=200",
+      );
+      return rows.map(mapCommunitySample);
+    } catch {
+      return demoState().samples?.filter((s) => s.status === "approved") ?? [];
+    }
+  }
+  return demoState().samples?.filter((s) => s.status === "approved") ?? [];
+}
+
+export async function fetchMySamples(machineId: string): Promise<CommunitySample[]> {
+  if (cloudEnabled) {
+    try {
+      const rows = await rpc<Row[]>("aether_my_samples", { p_machine_id: machineId });
+      return (rows ?? []).map(mapCommunitySample);
+    } catch {
+      return [];
+    }
+  }
+  return (demoState().samples ?? []).filter(
+    (sample) => sample.authorHwid.replace(/[^0-9A-F]/gi, "").toUpperCase() ===
+      machineId.replace(/[^0-9A-F]/gi, "").toUpperCase(),
+  );
+}
+
+export async function submitCommunitySample(
+  input: SubmitSampleInput,
+): Promise<CommunitySample> {
+  if (cloudEnabled) {
+    const row = await rpc<Row>("aether_submit_sample", {
+      p_title: input.title,
+      p_author_hwid: input.authorHwid,
+      p_author_name: input.authorName,
+      p_category: input.category,
+      p_bpm: input.bpm,
+      p_musical_key: input.musicalKey,
+      p_file_url: input.fileUrl,
+      p_waveform_peaks: input.waveformPeaks,
+    });
+    return mapCommunitySample(row);
+  }
+
+  const state = demoState();
+  const sample: CommunitySample = {
+    id: uid("sample"),
+    title: input.title,
+    authorHwid: input.authorHwid,
+    authorName: input.authorName,
+    category: input.category,
+    bpm: input.bpm,
+    musicalKey: input.musicalKey,
+    fileUrl: input.fileUrl,
+    waveformPeaks: input.waveformPeaks,
+    downloadsCount: 0,
+    likesCount: 0,
+    status: "pending",
+    isFeatured: false,
+    createdAt: new Date().toISOString(),
+  };
+  state.samples = [sample, ...(state.samples ?? [])];
+  saveDemo(state);
+  return sample;
+}
+
+export async function likeCommunitySample(id: string): Promise<number> {
+  if (cloudEnabled && isCloudReleaseId(id)) {
+    const count = await rpc<number>("aether_like_sample", { p_id: id });
+    return numeric(count);
+  }
+  const state = demoState();
+  const sample = (state.samples ?? []).find((item) => item.id === id);
+  if (sample) sample.likesCount += 1;
+  saveDemo(state);
+  return sample?.likesCount ?? 0;
+}
+
+export async function markSampleDownloaded(id: string): Promise<number> {
+  if (cloudEnabled && isCloudReleaseId(id)) {
+    const count = await rpc<number>("aether_sample_downloaded", { p_id: id });
+    return numeric(count);
+  }
+  const state = demoState();
+  const sample = (state.samples ?? []).find((item) => item.id === id);
+  if (sample) sample.downloadsCount += 1;
+  saveDemo(state);
+  return sample?.downloadsCount ?? 0;
+}
+
+export async function uploadSampleFile(input: {
+  localPath: string;
+  storagePath: string;
+  contentType: string;
+}): Promise<{ publicUrl: string; storagePath: string }> {
+  if (!cloudEnabled) throw new Error("Cloud is not configured.");
+  const { invoke } = await import("@tauri-apps/api/core");
+  return invoke("cloud_upload_public", {
+    config: cloudConfig,
+    request: {
+      localPath: input.localPath,
+      bucket: "aether-samples",
+      storagePath: input.storagePath,
+      contentType: input.contentType,
+    },
+  });
+}
+
+export async function cacheSamplePath(url: string, filename: string): Promise<string> {
+  const { invoke } = await import("@tauri-apps/api/core");
+  return invoke<string>("cache_sample_file", { url, filename });
+}
+
+export async function saveSamplePath(url: string, filename: string): Promise<string> {
+  const { invoke } = await import("@tauri-apps/api/core");
+  return invoke<string>("save_sample_file", { url, filename });
+}
+
+export async function readLocalFileBase64(
+  path: string,
+  maxBytes?: number,
+): Promise<string> {
+  const { invoke } = await import("@tauri-apps/api/core");
+  return invoke<string>("read_file_base64", { path, maxBytes });
+}
+
+export async function sampleDragIconPath(): Promise<string> {
+  const { invoke } = await import("@tauri-apps/api/core");
+  return invoke<string>("sample_drag_icon");
+}
+
+export async function listSamplesForModeration(
+  status: SampleStatus | "all" = "all",
+): Promise<CommunitySample[]> {
+  if (cloudEnabled) {
+    const rows = await adminApi<CommunitySample[]>("samples_list", {
+      status: status === "all" ? null : status,
+    });
+    return rows;
+  }
+  const samples = demoState().samples ?? [];
+  return (status === "all" ? samples : samples.filter((s) => s.status === status)).sort(
+    (a, b) => b.createdAt.localeCompare(a.createdAt),
+  );
+}
+
+export async function moderateSample(
+  id: string,
+  mode: "approve" | "reject" | "feature" | "unfeature" | "delete",
+): Promise<void> {
+  if (cloudEnabled) {
+    await adminApi("sample_moderate", { id, mode });
+    return;
+  }
+
+  const state = demoState();
+  const samples = state.samples ?? [];
+  const sample = samples.find((item) => item.id === id);
+  if (!sample) return;
+
+  if (mode === "delete") {
+    state.samples = samples.filter((item) => item.id !== id);
+  } else if (mode === "approve") {
+    sample.status = "approved";
+  } else if (mode === "reject") {
+    sample.status = "rejected";
+    sample.isFeatured = false;
+  } else if (mode === "feature") {
+    sample.status = "approved";
+    sample.isFeatured = true;
+  } else if (mode === "unfeature") {
+    sample.isFeatured = false;
+  }
+  saveDemo(state);
 }
 
 // ---------------------------------------------------------------------------
@@ -1088,6 +1302,35 @@ export async function fetchFreeLicenseKey(
   return String(data.key);
 }
 
+/** Issues a machine-bound licence for a BETA plugin, but only if the HWID has
+ *  an activated Beta invite. This makes beta installs truly one-click. */
+export async function fetchBetaLicenseKey(
+  machineId: string,
+  productTag: string,
+  nickname?: string,
+): Promise<string> {
+  if (!cloudEnabled) throw new Error("Cloud is not configured.");
+  const headers: Record<string, string> = {
+    apikey: cloudConfig.anonKey,
+    "Content-Type": "application/json",
+  };
+  if (!usesPublishableKey) headers.Authorization = `Bearer ${cloudConfig.anonKey}`;
+
+  const response = await fetch(`${cloudConfig.url}/functions/v1/aether-admin`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      action: "beta_license",
+      payload: { machineId, productTag, nickname },
+    }),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || !data.key) {
+    throw new Error(data.error || `Beta licence failed (${response.status})`);
+  }
+  return String(data.key);
+}
+
 export async function adminOverview(): Promise<AdminOverview> {
   if (cloudEnabled) {
     return adminApi<AdminOverview>("overview");
@@ -1182,7 +1425,7 @@ export interface PublishPayload {
   coverUrl?: string | null;
   files: Release["files"];
   productTag?: string | null;
-  tier?: "free" | "pro";
+  tier?: Tier;
   featured?: boolean;
   badge?: string | null;
   previews?: Release["previews"];

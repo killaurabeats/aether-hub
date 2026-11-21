@@ -127,9 +127,13 @@ export function ReleaseCard({
         <div className="cover-top">
           <span className="chip violet">{meta.singular}</span>
           {release.category === "plugins" ? (
-            <span className={`chip ${release.tier === "pro" ? "gold" : "green"}`}>
-              {release.tier === "pro" ? "PRO" : "FREE"}
-            </span>
+            release.tier === "beta" ? (
+              <span className="chip beta">BETA</span>
+            ) : (
+              <span className={`chip ${release.tier === "pro" ? "gold" : "green"}`}>
+                {release.tier === "pro" ? "PRO" : "FREE"}
+              </span>
+            )
           ) : null}
           {release.badge ? <span className="chip gold">{release.badge}</span> : null}
           <span className="spacer" />
@@ -207,6 +211,7 @@ export function FeaturedRelease({
       <div className="featured-body">
         <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
           <span className="chip violet">{meta.singular}</span>
+          {release.tier === "beta" ? <span className="chip beta">BETA</span> : null}
           {release.badge ? <span className="chip gold">{release.badge}</span> : null}
           <span className="rating-pill" style={{ marginLeft: 2 }}>
             <Star size={10} /> {release.ratingAvg.toFixed(1)}
