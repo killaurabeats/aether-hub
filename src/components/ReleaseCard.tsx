@@ -155,9 +155,11 @@ export function ReleaseCard({
             <span className="chip gold">{release.badge}</span>
           ) : null}
           <span className="spacer" />
-          <span className="rating-pill" title={t("{count} оценок", { count: release.ratingCount })}>
-            <Star size={10} /> {release.ratingAvg.toFixed(1)}
-          </span>
+          {release.tier !== "beta" ? (
+            <span className="rating-pill" title={t("{count} оценок", { count: release.ratingCount })}>
+              <Star size={10} /> {release.ratingAvg.toFixed(1)}
+            </span>
+          ) : null}
         </div>
 
         {record ? (
@@ -239,9 +241,11 @@ export function FeaturedRelease({
           {release.badge && release.tier !== "beta" ? (
             <span className="chip gold">{release.badge}</span>
           ) : null}
-          <span className="rating-pill" style={{ marginLeft: 2 }}>
-            <Star size={10} /> {release.ratingAvg.toFixed(1)}
-          </span>
+          {release.tier !== "beta" ? (
+            <span className="rating-pill" style={{ marginLeft: 2 }}>
+              <Star size={10} /> {release.ratingAvg.toFixed(1)}
+            </span>
+          ) : null}
         </div>
         <h3>{release.title}</h3>
         <p>{descriptionFor(release, language)}</p>

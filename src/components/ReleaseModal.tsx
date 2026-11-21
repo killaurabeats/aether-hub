@@ -271,7 +271,7 @@ export function ReleaseModal({
                           <LockKeyhole size={18} />
                         </span>
                         <div className="beta-lock-copy">
-                          <b>{t("В разработке · Доступно только тестировщикам")}</b>
+                          <b>{t("Доступно только тестировщикам")}</b>
                           <span>{t("Закрытый ранний доступ")}</span>
                         </div>
                         {onOpenProfile ? (

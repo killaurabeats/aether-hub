@@ -437,7 +437,7 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
                 >
                   <Mail size={11} /> @whofriends1
                 </button>
-                <span className="chip violet">v1.3.2</span>
+                <span className="chip violet">v1.3.3</span>
               </div>
             </div>
           </div>

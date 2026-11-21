@@ -163,9 +163,11 @@ export function HomeView({
                 {featured.badge && featured.tier !== "beta" ? (
                   <span className="chip gold">{featured.badge}</span>
                 ) : null}
-                <span className="rating-pill">
-                  <Star size={10} /> {featured.ratingAvg.toFixed(1)}
-                </span>
+                {featured.tier !== "beta" ? (
+                  <span className="rating-pill">
+                    <Star size={10} /> {featured.ratingAvg.toFixed(1)}
+                  </span>
+                ) : null}
               </div>
               <h3>{featured.title}</h3>
               <p>{descriptionFor(featured, language)}</p>
