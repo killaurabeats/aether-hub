@@ -38,16 +38,10 @@ export function Sidebar({ view, onNavigate, onOpenSettings, onOpenSupport }: Pro
   const {
     releases,
     admin,
-    adminView,
     adminVisible,
     adminTokenReady,
-    setAdminView,
-    catalogSource,
-    installs,
     requests,
-    profile,
     samples,
-    toast,
     t,
   } = useStore();
 
@@ -58,7 +52,6 @@ export function Sidebar({ view, onNavigate, onOpenSettings, onOpenSupport }: Pro
   };
 
   const pending = requests.filter((r) => r.status === "pending").length;
-  const installedCount = Object.keys(installs).length;
 
   const isActive = (key: string) => {
     if (key === "home") return view.name === "home";
@@ -107,6 +100,7 @@ export function Sidebar({ view, onNavigate, onOpenSettings, onOpenSupport }: Pro
             </button>
           );
         })}
+        <div className="nav-divider" role="separator" aria-hidden />
         <button
           className={`nav-item ${view.name === "samples" ? "active" : ""}`}
           onClick={() => onNavigate({ name: "samples" })}
@@ -156,77 +150,6 @@ export function Sidebar({ view, onNavigate, onOpenSettings, onOpenSupport }: Pro
       ) : null}
 
       <div className="sidebar-spacer" />
-
-      <div className="side-status">
-        <div className="row">
-          <span
-            className={`status-dot ${
-              admin.enabled || adminTokenReady
-                ? adminView === "admin"
-                  ? "admin"
-                  : "user"
-                : catalogSource === "cloud" || cloudEnabled
-                  ? ""
-                  : "offline"
-            }`}
-          />
-          {admin.enabled || adminTokenReady
-            ? adminView === "admin"
-              ? "Creator mode"
-              : t("Режим пользователя")
-            : catalogSource === "cloud"
-              ? "Cloud linked"
-              : cloudEnabled
-                ? "Cloud ready"
-                : "Local demo"}
-          <span style={{ marginLeft: "auto", color: "var(--dim)", letterSpacing: "0.05em" }}>
-            {profile.nickname.split(" ")[0]}
-          </span>
-        </div>
-        <div className="hint">
-          {admin.enabled
-            ? adminView === "admin"
-              ? t("Приватный ключ найден. Панель создателя активна.")
-              : t("Интерфейс как у пользователя. Вернуть админ-режим можно здесь.")
-            : adminTokenReady
-              ? adminView === "admin"
-                ? t("Admin Token активен на этом ПК — панель создателя открыта.")
-                : t("Интерфейс как у пользователя. Вернуть админ-режим можно здесь.")
-              : catalogSource === "cloud"
-                ? t("Каталог синхронизирован с облаком.")
-                : cloudEnabled
-                  ? t("Облако подключено, но каталог пуст — показан демо-набор.")
-                  : t("Облако не подключено — каталог работает локально.")}
-        </div>
-        {admin.enabled || adminTokenReady ? (
-          <div className="view-mode">
-            <div className="view-mode-label">{t("Вид:")}</div>
-            <div className="view-toggle">
-              <button
-                className={adminView === "admin" ? "active" : ""}
-                onClick={() => {
-                  setAdminView("admin");
-                  toast({ kind: "info", title: t("Режим админа включён") });
-                }}
-              >
-                {t("Админ")}
-              </button>
-              <button
-                className={adminView === "user" ? "active" : ""}
-                onClick={() => {
-                  setAdminView("user");
-                  toast({ kind: "info", title: t("Режим пользователя включён") });
-                }}
-              >
-                {t("Юзер")}
-              </button>
-            </div>
-          </div>
-        ) : null}
-        <div className="hint" style={{ color: "var(--muted)" }}>
-          {installedCount ? `${t("{count} установлено", { count: installedCount })} · ` : ""}v1.3.0
-        </div>
-      </div>
 
       <div className="side-actions">
         <button className="side-action" onClick={onOpenSettings}>

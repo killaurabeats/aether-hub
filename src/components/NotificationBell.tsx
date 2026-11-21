@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
+  ArrowRight,
   Bell,
   BadgeCheck,
   KeyRound,
   Sparkles,
   Waves,
+  X,
 } from "lucide-react";
 import type { AppNotification, View } from "../types";
 import { useStore } from "../lib/store";
@@ -18,9 +20,16 @@ const kindIcon = {
   sample: Waves,
 } as const;
 
-export function NotificationBell({ onNavigate }: { onNavigate: (view: View) => void }) {
+export function NotificationBell({
+  onNavigate,
+  onOpenRelease,
+}: {
+  onNavigate: (view: View) => void;
+  onOpenRelease: (slug: string) => void;
+}) {
   const { notifications, unreadNotifications, markNotificationsRead, t } = useStore();
   const [open, setOpen] = useState(false);
+  const [selected, setSelected] = useState<AppNotification | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -46,10 +55,20 @@ export function NotificationBell({ onNavigate }: { onNavigate: (view: View) => v
 
   const openNotification = (item: AppNotification) => {
     setOpen(false);
-    if (item.action === "samples") onNavigate({ name: "samples" });
+    setSelected(item);
+  };
+
+  const followNotification = () => {
+    if (!selected) return;
+    const item = selected;
+    setSelected(null);
+    if (item.releaseSlug) onOpenRelease(item.releaseSlug);
+    else if (item.action === "samples") onNavigate({ name: "samples" });
     else if (item.action === "profile") onNavigate({ name: "home" });
     else onNavigate({ name: "category", category: "plugins" });
   };
+
+  const SelectedIcon = selected ? kindIcon[selected.kind] : Sparkles;
 
   return (
     <div className="notif-root" ref={rootRef}>
@@ -117,6 +136,62 @@ export function NotificationBell({ onNavigate }: { onNavigate: (view: View) => v
                 </div>
               )}
             </div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {selected ? (
+          <motion.div
+            className="modal-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onMouseDown={(event) => {
+              if (event.target === event.currentTarget) setSelected(null);
+            }}
+          >
+            <motion.div
+              className="modal narrow notif-detail-modal"
+              initial={{ opacity: 0, y: 16, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 10, scale: 0.98 }}
+              transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <div className="notif-detail-head">
+                <span className={`notif-icon ${selected.kind}`}>
+                  <SelectedIcon size={14} />
+                </span>
+                <div>
+                  <span className="eyebrow">{t("Уведомление Aether")}</span>
+                  <h2>{selected.title}</h2>
+                  <span className="notif-detail-time">{timeAgo(selected.createdAt)}</span>
+                </div>
+                <button
+                  className="modal-close"
+                  onClick={() => setSelected(null)}
+                  aria-label={t("Закрыть")}
+                >
+                  <X size={15} />
+                </button>
+              </div>
+              <div className="notif-detail-body">
+                <p>{selected.details || selected.message}</p>
+              </div>
+              <div className="notif-detail-foot">
+                <button className="btn btn-ghost" onClick={() => setSelected(null)}>
+                  {t("Закрыть")}
+                </button>
+                <button className="btn btn-primary" onClick={followNotification}>
+                  {selected.releaseSlug
+                    ? t("Перейти к плагину")
+                    : selected.action === "samples"
+                      ? t("Открыть Samples & Loops")
+                      : t("Перейти в библиотеку")}
+                  <ArrowRight size={12} />
+                </button>
+              </div>
+            </motion.div>
           </motion.div>
         ) : null}
       </AnimatePresence>

@@ -83,7 +83,10 @@ if (windows) {
 
 const manifest = {
   version,
+  // Tauri reads `notes`; `releaseBody` is kept as an explicit alias for tools
+  // that consume the same manifest outside the updater.
   notes,
+  releaseBody: notes,
   pub_date: new Date().toISOString(),
   platforms,
 };

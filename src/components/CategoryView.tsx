@@ -23,6 +23,10 @@ export function CategoryView({
 
   const meta = CATEGORY_META[category];
   const categoryTotal = releases.filter((release) => release.category === category).length;
+  const showFilters = !(
+    (category === "drumkits" || category === "presets") &&
+    categoryTotal === 0
+  );
 
   const items = useMemo(() => {
     let list = releases.filter((release) => release.category === category);
@@ -49,6 +53,7 @@ export function CategoryView({
           </p>
         </div>
 
+        {showFilters ? (
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <div className="filter-row">
             <button
@@ -108,6 +113,7 @@ export function CategoryView({
             </button>
           </div>
         </div>
+        ) : null}
       </div>
 
       {(category === "drumkits" || category === "presets") && categoryTotal === 0 ? (

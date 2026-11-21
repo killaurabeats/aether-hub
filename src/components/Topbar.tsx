@@ -20,6 +20,7 @@ interface Props {
   onOpenProfile: () => void;
   onRefresh: () => void;
   onNavigate: (view: View) => void;
+  onOpenRelease: (slug: string) => void;
   refreshing?: boolean;
 }
 
@@ -63,17 +64,20 @@ export function Topbar({
   onOpenProfile,
   onRefresh,
   onNavigate,
+  onOpenRelease,
   refreshing,
 }: Props) {
   const { profile, adminVisible, settings, updateSettings, t } = useStore();
   const heading = headingFor(view, profile.nickname.split(" ")[0] || "aether", t);
 
   return (
-    <header className="topbar">
-      <div className="page-heading">
-        <span className="eyebrow">{heading.eyebrow}</span>
-        <h1>{heading.title}</h1>
-      </div>
+    <header className={`topbar ${view.name === "samples" ? "compact" : ""}`}>
+      {view.name !== "samples" ? (
+        <div className="page-heading">
+          <span className="eyebrow">{heading.eyebrow}</span>
+          <h1>{heading.title}</h1>
+        </div>
+      ) : null}
 
       <div className="topbar-spacer" />
 
@@ -116,7 +120,7 @@ export function Topbar({
         <RefreshCw size={15} className={refreshing ? "spin" : ""} />
       </button>
 
-      <NotificationBell onNavigate={onNavigate} />
+      <NotificationBell onNavigate={onNavigate} onOpenRelease={onOpenRelease} />
 
       <button className="profile-chip" onClick={onOpenProfile} aria-label={t("Профиль")}>
         <span className="avatar s32">

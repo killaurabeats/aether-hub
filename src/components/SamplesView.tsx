@@ -17,6 +17,7 @@ import {
   Flame,
   GripVertical,
   Heart,
+  HelpCircle,
   Info,
   Loader2,
   Music2,
@@ -31,6 +32,7 @@ import {
   X,
 } from "lucide-react";
 import type { CommunitySample, SampleCategory } from "../types";
+import { SAMPLE_CATEGORY_META } from "../types";
 import { isTauri, useStore } from "../lib/store";
 import {
   cacheSamplePath,
@@ -67,6 +69,10 @@ const MUSICAL_KEYS = [
   "Fm",
   "Gm",
 ];
+
+const SAMPLE_CATEGORY_OPTIONS = Object.entries(SAMPLE_CATEGORY_META) as Array<
+  [SampleCategory, { label: string; short: string }]
+>;
 
 const BPM_FILTERS: Array<{ id: string; label: string; test: (bpm: number | null) => boolean }> = [
   { id: "all", label: "Любой BPM", test: () => true },
@@ -318,8 +324,16 @@ function SampleCard({
       title={t("Перетащите в FL Studio или прослушайте")}
     >
       <div className="sample-card-top">
-        <span className={`chip ${sample.category === "loop" ? "violet" : "green"}`}>
-          {sample.category === "loop" ? t("ЛУП") : t("ВАНШОТ")}
+        <span
+          className={`chip ${
+            sample.category === "loop"
+              ? "violet"
+              : sample.category === "oneshot"
+                ? "green"
+                : ""
+          }`}
+        >
+          {t(SAMPLE_CATEGORY_META[sample.category]?.short ?? "СЭМПЛ")}
         </span>
         {sample.isFeatured ? (
           <span className="chip beta">
@@ -467,6 +481,20 @@ export function SamplesView() {
             <button className="btn btn-primary btn-lg" onClick={() => setUploadOpen(true)}>
               <Upload size={15} /> {t("Загрузить сэмпл")}
             </button>
+            <span className="samples-help-wrap">
+              <button
+                className="samples-help"
+                aria-label={t("Подсказка по Samples & Loops")}
+                title={t("Подсказка по Samples & Loops")}
+              >
+                <HelpCircle size={15} />
+              </button>
+              <span className="samples-help-tip">
+                {t(
+                  "Все загрузки проходят премодерацию. Перетаскивание работает в установленном Aether Hub: файл кэшируется локально и передаётся в DAW.",
+                )}
+              </span>
+            </span>
             <button
               className="btn btn-ghost btn-lg"
               onClick={() => {
@@ -520,25 +548,20 @@ export function SamplesView() {
         </div>
 
         <div className="samples-filters">
-          <div className="filter-row">
-            <button
-              className={`filter-pill ${typeFilter === "all" ? "active" : ""}`}
-              onClick={() => setTypeFilter("all")}
+          <div className="sample-select sample-category-select">
+            <Sparkles size={11} />
+            <select
+              value={typeFilter}
+              onChange={(event) => setTypeFilter(event.target.value as TypeFilter)}
+              aria-label={t("Категория сэмпла")}
             >
-              {t("Все")}
-            </button>
-            <button
-              className={`filter-pill ${typeFilter === "loop" ? "active" : ""}`}
-              onClick={() => setTypeFilter("loop")}
-            >
-              {t("Лупы")}
-            </button>
-            <button
-              className={`filter-pill ${typeFilter === "oneshot" ? "active" : ""}`}
-              onClick={() => setTypeFilter("oneshot")}
-            >
-              {t("Ваншоты")}
-            </button>
+              <option value="all">{t("Все категории")}</option>
+              {SAMPLE_CATEGORY_OPTIONS.map(([id, meta]) => (
+                <option key={id} value={id}>
+                  {t(meta.label)}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="sample-select">
@@ -599,15 +622,6 @@ export function SamplesView() {
           </button>
         </div>
       )}
-
-      <div className="samples-note">
-        <Info size={13} />
-        <span>
-          {t(
-            "Все загрузки проходят премодерацию. Перетаскивание работает в установленном Aether Hub: файл кэшируется локально и передаётся в DAW как обычный WAV.",
-          )}
-        </span>
-      </div>
 
       <AnimatePresence>
         {uploadOpen ? (
@@ -894,23 +908,17 @@ function UploadSampleModal({
               />
             </div>
             <div className="field">
-              <label>{t("Тип")}</label>
-              <div className="segmented" style={{ margin: 0 }}>
-                <button
-                  type="button"
-                  className={category === "loop" ? "active" : ""}
-                  onClick={() => setCategory("loop")}
-                >
-                  {t("Луп")}
-                </button>
-                <button
-                  type="button"
-                  className={category === "oneshot" ? "active" : ""}
-                  onClick={() => setCategory("oneshot")}
-                >
-                  {t("Ваншот")}
-                </button>
-              </div>
+              <label>{t("Категория")}</label>
+              <select
+                value={category}
+                onChange={(event) => setCategory(event.target.value as SampleCategory)}
+              >
+                {SAMPLE_CATEGORY_OPTIONS.map(([id, meta]) => (
+                  <option key={id} value={id}>
+                    {t(meta.label)}
+                  </option>
+                ))}
+              </select>
             </div>
             <div className="field">
               <label>BPM</label>

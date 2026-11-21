@@ -3,22 +3,14 @@ import { motion } from "framer-motion";
 import {
   ArrowRight,
   Boxes,
-  Check,
   Cloud,
-  Copy,
-  HardDriveDownload,
-  KeyRound,
-  Music4,
-  Settings2,
-  ShieldCheck,
-  Sparkles,
   Star,
   Unplug,
 } from "lucide-react";
 import type { Release, View } from "../types";
 import { useStore } from "../lib/store";
-import { copyText, descriptionFor, formatBytes } from "../lib/format";
-import { openExternal, TELEGRAM_CHANNEL_URL, TELEGRAM_URL } from "../lib/desktop";
+import { descriptionFor, formatBytes } from "../lib/format";
+import { openExternal, TELEGRAM_CHANNEL_URL } from "../lib/desktop";
 import { cloudEnabled } from "../lib/cloud";
 import { ReleaseCard } from "./ReleaseCard";
 import { InstallButton } from "./InstallButton";
@@ -36,11 +28,7 @@ export function HomeView({
     releases,
     installs,
     machine,
-    licensingMachineId,
-    settings,
-    profile,
     licenses,
-    toast,
     catalogError,
     language,
     t,
@@ -48,22 +36,10 @@ export function HomeView({
 
   const featured = releases.find((r) => r.featured) ?? releases[0];
   const latest = useMemo(() => releases.slice(0, 6), [releases]);
-  const installedList = useMemo(
-    () => releasesWithInstalls(releases, installs),
-    [releases, installs],
-  );
 
   const avgRating = releases.length
     ? releases.reduce((total, r) => total + r.ratingAvg, 0) / releases.length
     : 0;
-
-  const copyMachine = async () => {
-    const ok = await copyText(licensingMachineId);
-    toast({
-      kind: ok ? "success" : "error",
-      title: ok ? t("Machine ID скопирован") : t("Не удалось скопировать"),
-    });
-  };
 
   return (
     <div className="page">
@@ -159,7 +135,6 @@ export function HomeView({
           <div className="section-head">
             <div>
               <h2>{t("Избранный релиз")}</h2>
-              <div className="sub">{t("Ручной выбор команды Aether")}</div>
             </div>
             <button className="link" onClick={() => onOpenRelease(featured)}>
               {t("Открыть")} <ArrowRight size={12} />
@@ -216,7 +191,6 @@ export function HomeView({
       <div className="section-head">
         <div>
           <h2>{t("Свежие дропы")}</h2>
-          <div className="sub">{t("Обновляется из облака при каждом запуске")}</div>
         </div>
         <button
           className="link"
@@ -244,146 +218,6 @@ export function HomeView({
 
       <div
         style={{
-          display: "grid",
-          gridTemplateColumns: "1.05fr 0.95fr",
-          gap: 18,
-          marginTop: 30,
-        }}
-      >
-        <div className="glass" style={{ padding: 22 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 14 }}>
-            <span className="icon" style={{ width: 32, height: 32, borderRadius: 10, display: "grid", placeItems: "center", background: "rgba(232,121,249,.12)", color: "var(--pink)" }}>
-              <KeyRound size={15} />
-            </span>
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 600 }}>{t("Активация лицензии")}</div>
-              <div style={{ fontSize: 10.5, color: "var(--dim)" }}>
-                {settings.licenseMachineId
-                  ? t("Machine ID для лицензий · из плагина")
-                  : t("Machine ID для лицензий этого компьютера")}
-              </div>
-            </div>
-            <span className="chip green" style={{ marginLeft: "auto" }}>
-              <ShieldCheck size={9} /> HWID
-            </span>
-          </div>
-          <div className="id-box">
-            <span>{licensingMachineId}</span>
-            <button onClick={() => void copyMachine()} title={t("Скопировать Machine ID")}>
-              <Copy size={13} />
-            </button>
-          </div>
-          <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
-            <button
-              className="btn btn-soft btn-sm"
-              onClick={() => {
-                if (featured?.category === "plugins") onOpenRelease(featured);
-                else {
-                  const plugin = releases.find((r) => r.category === "plugins");
-                  if (plugin) onOpenRelease(plugin);
-                  else onOpenSettings();
-                }
-              }}
-            >
-              <KeyRound size={12} /> {t("Запросить ключ")}
-            </button>
-            <button className="btn btn-ghost btn-sm" onClick={() => void openExternal(TELEGRAM_URL)}>
-              @whofriends1
-            </button>
-          </div>
-          <p style={{ margin: "12px 0 0", fontSize: 10.5, color: "var(--dim)", lineHeight: 1.55 }}>
-            {t(
-              "Ключ подписывает именно этот Machine ID. Пока админ не одобрит заявку, ключ появится в профиле со статусом «ожидает».",
-            )}
-          </p>
-        </div>
-
-        <div className="glass" style={{ padding: 22 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 12 }}>
-            <span
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: 10,
-                display: "grid",
-                placeItems: "center",
-                background: "rgba(94,234,212,.1)",
-                color: "var(--green)",
-              }}
-            >
-              <HardDriveDownload size={15} />
-            </span>
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 600 }}>
-                {t(machine.os === "macos" ? "Установлено на этом Mac" : "Установлено на этом ПК")}
-              </div>
-              <div style={{ fontSize: 10.5, color: "var(--dim)" }}>
-                {t("{count} из {total} релизов", {
-                  count: Object.keys(installs).length,
-                  total: releases.length,
-                })}
-              </div>
-            </div>
-            <button className="ghost-link" style={{ marginLeft: "auto", fontSize: 11 }} onClick={onOpenSettings}>
-              <Settings2 size={12} /> {t("Пути")}
-            </button>
-          </div>
-
-          {installedList.length ? (
-            <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-              {installedList.slice(0, 4).map((release) => (
-                <button
-                  key={release.id}
-                  onClick={() => onOpenRelease(release)}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                    padding: "9px 10px",
-                    borderRadius: 10,
-                    border: "1px solid var(--line)",
-                    background: "rgba(255,255,255,.02)",
-                    textAlign: "left",
-                  }}
-                >
-                  <span style={{ color: "var(--green)" }}>
-                    <Check size={13} />
-                  </span>
-                  <span style={{ flex: 1, fontSize: 11.5 }}>{release.title}</span>
-                  <span style={{ fontSize: 9.5, color: "var(--dim)" }}>
-                    v{installs[release.slug]?.version}
-                  </span>
-                  <ArrowRight size={12} style={{ color: "var(--dim)" }} />
-                </button>
-              ))}
-            </div>
-          ) : (
-            <div style={{ padding: "18px 0 8px", fontSize: 11.5, color: "var(--dim)", lineHeight: 1.6 }}>
-              {t(
-                "Пока ничего не установлено. Откройте любой релиз и нажмите «Установить» — файлы встанут в системные папки автоматически.",
-              )}
-            </div>
-          )}
-
-          <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
-            <button
-              className="btn btn-ghost btn-sm"
-              onClick={() => onNavigate({ name: "category", category: "drumkits" })}
-            >
-              <Music4 size={12} /> {t("Драм-киты")}
-            </button>
-            <button
-              className="btn btn-ghost btn-sm"
-              onClick={() => onNavigate({ name: "category", category: "presets" })}
-            >
-              <Sparkles size={12} /> {t("Пресеты")}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div
-        style={{
           marginTop: 26,
           display: "flex",
           alignItems: "center",
@@ -401,15 +235,7 @@ export function HomeView({
         />
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 11.5, fontWeight: 600 }}>Aether Plugins · by. @killaurabeats</div>
-          <div style={{ fontSize: 10, color: "var(--dim)", marginTop: 2 }}>
-            {t(
-              "Обновления каталога приходят из облака. Сам лаунчер переустанавливать не нужно.",
-            )}
-          </div>
         </div>
-        <span className="chip">
-          <ShieldCheck size={9} /> {profile.nickname}
-        </span>
         <button
           className="btn btn-soft btn-sm"
           onClick={() => void openExternal(TELEGRAM_CHANNEL_URL)}
@@ -420,8 +246,4 @@ export function HomeView({
       </div>
     </div>
   );
-}
-
-function releasesWithInstalls(releases: Release[], installs: Record<string, unknown>) {
-  return releases.filter((release) => Boolean(installs[release.slug]));
 }

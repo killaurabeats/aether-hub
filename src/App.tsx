@@ -220,7 +220,7 @@ function Shell() {
           <HomeView
             onNavigate={navigate}
             onOpenRelease={openRelease}
-            onOpenSettings={() => openSettings("cloud")}
+            onOpenSettings={() => openSettings(adminVisible ? "cloud" : "general")}
           />
         );
       case "category":
@@ -244,9 +244,9 @@ function Shell() {
 
   return (
     <div
-      className={`app-shell ${settings.reduceEffects ? "reduce-effects" : ""} ${
-        settings.glassBlur ? "" : "no-blur"
-      }`}
+      className={`app-shell theme-${settings.theme} ${
+        settings.reduceEffects ? "reduce-effects" : ""
+      } ${settings.glassBlur ? "" : "no-blur"}`}
     >
       <Background />
       <WindowChrome />
@@ -267,6 +267,10 @@ function Shell() {
             onOpenProfile={() => setProfileOpen(true)}
             onRefresh={() => void refresh()}
             onNavigate={navigate}
+            onOpenRelease={(slug) => {
+              const release = releases.find((item) => item.slug === slug);
+              if (release) openRelease(release);
+            }}
             refreshing={refreshing || catalogLoading}
           />
 

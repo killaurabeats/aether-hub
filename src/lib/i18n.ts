@@ -557,7 +557,7 @@ const en: Record<string, string> = {
 
   // -------------------------------------------------------------------- misc
   "Aether Plugins · by. @killaurabeats": "Aether Plugins · by. @killaurabeats",
-  "AETHER HUB · 1.3.0 · CINEMATIC INTRO": "AETHER HUB · 1.3.0 · CINEMATIC INTRO",
+  "AETHER HUB · 1.3.1 · CINEMATIC INTRO": "AETHER HUB · 1.3.1 · CINEMATIC INTRO",
   "Эффекты стекла": "Glass effects",
   "Размытие": "Blur",
   "Включено": "On",
@@ -585,7 +585,7 @@ const en: Record<string, string> = {
   "Включить звук заставки": "Enable the startup sound",
   "Русский": "Russian",
   "не задан": "not set",
-  "Aether Hub · 1.3.0 · CINEMATIC INTRO": "AETHER HUB · 1.3.0 · CINEMATIC INTRO",
+  "Aether Hub · 1.3.1 · CINEMATIC INTRO": "AETHER HUB · 1.3.1 · CINEMATIC INTRO",
   "Чат с создателем": "Creator chat",
   "Скоро здесь появится встроенная поддержка.":
     "Built-in support is coming soon.",
@@ -697,7 +697,7 @@ const en: Record<string, string> = {
   "Что внутри, для кого, чем отличается версия…":
     "What's inside, who it's for and what changed…",
 
-  // ------------------------------------------------------------ v1.3.0 UI
+  // ------------------------------------------------------------ v1.3.1 UI
   "Уведомления": "Notifications",
   "Всё прочитано": "All caught up",
   "{count} новых": "{count} new",
@@ -828,6 +828,55 @@ const en: Record<string, string> = {
   "ОЖИДАЕТ": "PENDING",
   "Прослушать": "Preview",
   "ВЫБОР КОМЬЮНИТИ": "COMMUNITY PICK",
+
+  // ------------------------------------------------------------ v1.3.1 UI
+  "В разработке": "In development",
+  "Уведомление Aether": "Aether notification",
+  "Перейти к плагину": "Open plugin",
+  "Открыть Samples & Loops": "Open Samples & Loops",
+  "Перейти в библиотеку": "Go to library",
+  "Режим интерфейса": "Interface mode",
+  "только для админа": "admin only",
+  "Режим «Юзер» прячет Admin Studio и показывает хаб глазами обычного пользователя.":
+    "User mode hides Admin Studio and shows the hub through a regular user's eyes.",
+  "Тема оформления": "Appearance theme",
+  "Меняет фон, панели, текст и свечение всего приложения. Выбор сохраняется в localStorage.":
+    "Changes the background, panels, text and glow across the app. The choice is saved in localStorage.",
+  "3 темы": "3 themes",
+  "Aether Purple": "Aether Purple",
+  "Фиолетовая": "Purple",
+  "Pitch Black": "Pitch Black",
+  "Чёрная": "Black",
+  "Clean Light": "Clean Light",
+  "Светлая": "Light",
+  "Фирменный фиолетовый градиент и неоновое свечение.":
+    "The signature purple gradient and neon glow.",
+  "Глубокий чёрный интерфейс с минимальным свечением.":
+    "A deep black interface with minimal glow.",
+  "Светлая тема для работы при ярком свете.":
+    "A light theme for working in bright environments.",
+  "Тема применяется мгновенно ко всем экранам. Для максимального FPS дополнительно отключите «Эффекты стекла» на вкладке «Общие».":
+    "The theme applies instantly to every screen. For maximum FPS, also turn off “Glass Blur” on the General tab.",
+  "Подсказка по Samples & Loops": "Samples & Loops help",
+  "Все категории": "All categories",
+  "Категория сэмпла": "Sample category",
+  "Лупы (Loops)": "Loops",
+  "Ваншоты (One-Shots)": "One-Shots",
+  "Вокал (Vox)": "Vocal (Vox)",
+  "Ударные (Drums)": "Drums",
+  "Бас / 808": "Bass / 808",
+  "Мелодии (Melodies)": "Melodies",
+  "СЭМПЛ": "SAMPLE",
+  "PRO-лицензия для {name} одобрена. license.aether записан в системную папку плагина автоматически.":
+    "PRO licence for {name} approved. license.aether was written into the plugin's system folder automatically.",
+  "Заявка на PRO-лицензию для {name} отклонена. Можно отправить новую заявку из карточки плагина.":
+    "The PRO licence request for {name} was rejected. You can send a new request from the plugin card.",
+  "{name} от {author} прошёл модерацию и уже доступен в разделе Samples & Loops.":
+    "{name} by {author} passed moderation and is now live in Samples & Loops.",
+  "{name} не прошёл премодерацию. Проверьте формат, качество и соответствие правилам комьюнити, затем загрузите новую версию.":
+    "{name} did not pass pre-moderation. Check the format, quality and community rules, then upload a new version.",
+  "Ваш Machine ID привязан к Beta-инвайту. BETA-плагины устанавливаются в один клик, а лицензия записывается автоматически.":
+    "Your Machine ID is linked to a Beta invite. BETA plugins install in one click and the licence is written automatically.",
 };
 
 export function translate(

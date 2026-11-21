@@ -16,7 +16,6 @@ import { copyText, formatDate, timeAgo } from "../lib/format";
 import { openExternal, TELEGRAM_URL } from "../lib/desktop";
 import { cloudEnabled, fetchBetaStatus, redeemBetaInvite } from "../lib/cloud";
 import { Avatar } from "./Avatar";
-import { Stars } from "./Stars";
 import { AvatarCropper } from "./AvatarCropper";
 
 export function ProfileModal({ onClose }: { onClose: () => void }) {
@@ -26,7 +25,11 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
     licensingMachineId,
     licenses,
     requests,
+    admin,
+    adminView,
+    adminTokenReady,
     adminVisible,
+    setAdminView,
     saveProfile,
     updateSettings,
     refreshCloudUser,
@@ -300,15 +303,43 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
                   })}
                 </span>
               ) : null}
-              <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
-                <button
-                  className="btn btn-ghost btn-sm"
-                  onClick={() => void copy(licensingMachineId, t("Machine ID скопирован"))}
-                >
-                  <Copy size={11} /> {t("Скопировать ID")}
-                </button>
-              </div>
             </div>
+
+            {admin.enabled || adminTokenReady ? (
+              <div className="profile-section">
+                <div className="profile-section-head">
+                  <h3>
+                    <ShieldCheck size={13} /> {t("Режим интерфейса")}
+                  </h3>
+                  <span>{t("только для админа")}</span>
+                </div>
+                <div className="segmented profile-mode-switch">
+                  <button
+                    className={adminView === "admin" ? "active" : ""}
+                    onClick={() => {
+                      setAdminView("admin");
+                      toast({ kind: "info", title: t("Режим админа включён") });
+                    }}
+                  >
+                    {t("Админ")}
+                  </button>
+                  <button
+                    className={adminView === "user" ? "active" : ""}
+                    onClick={() => {
+                      setAdminView("user");
+                      toast({ kind: "info", title: t("Режим пользователя включён") });
+                    }}
+                  >
+                    {t("Юзер")}
+                  </button>
+                </div>
+                <span className="hint">
+                  {t(
+                    "Режим «Юзер» прячет Admin Studio и показывает хаб глазами обычного пользователя.",
+                  )}
+                </span>
+              </div>
+            ) : null}
 
             <div className="profile-section">
               <div className="profile-section-head">
@@ -392,18 +423,16 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
                 </h3>
               </div>
               <p style={{ margin: 0, fontSize: 11, color: "var(--dim)", lineHeight: 1.6 }}>
-                {t("Вопросы по лицензии, приватные дропы и поддержка — Telegram")}{" "}
-                <button className="ghost-link" onClick={() => void openExternal(TELEGRAM_URL)}>
-                  @whofriends1
-                </button>
-                .
+                {t("Вопросы по лицензии, приватные дропы и поддержка — Telegram")}
               </p>
-              <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-                <span className="chip">
-                  <Stars value={5} size={9} /> AETHER
-                </span>
-                <span className="chip violet">v1.3.0</span>
-                <span className="chip green">HWID ver.</span>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12 }}>
+                <button
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => void openExternal(TELEGRAM_URL)}
+                >
+                  <Mail size={11} /> @whofriends1
+                </button>
+                <span className="chip violet">v1.3.1</span>
               </div>
             </div>
           </div>

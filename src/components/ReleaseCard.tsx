@@ -1,6 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Boxes, Check, Dumbbell, Music4, Play, SlidersHorizontal, Star } from "lucide-react";
+import {
+  Boxes,
+  Check,
+  Dumbbell,
+  LockKeyhole,
+  Music4,
+  Play,
+  SlidersHorizontal,
+  Star,
+} from "lucide-react";
 import type { Category, Release } from "../types";
 import { CATEGORY_META } from "../types";
 import { descriptionFor, formatBytes } from "../lib/format";
@@ -106,7 +115,7 @@ export function ReleaseCard({
       whileHover={{ y: -3 }}
       layout={false}
     >
-      <div className="release-cover">
+      <div className={`release-cover ${release.tier === "beta" ? "beta" : ""}`}>
         {release.coverUrl ? (
           <img src={release.coverUrl} alt={release.title} loading="lazy" draggable={false} />
         ) : (
@@ -123,6 +132,13 @@ export function ReleaseCard({
             <Icon size={54} style={{ opacity: 0.4, color: "var(--lav)" }} />
           </div>
         )}
+
+        {release.tier === "beta" ? (
+          <div className="beta-cover-lock">
+            <LockKeyhole size={18} />
+            <span>BETA • {t("В разработке")}</span>
+          </div>
+        ) : null}
 
         <div className="cover-top">
           <span className="chip violet">{meta.singular}</span>
@@ -191,7 +207,7 @@ export function FeaturedRelease({
   release: Release;
   onOpen: (release: Release) => void;
 }) {
-  const { machine, language } = useStore();
+  const { machine, language, t } = useStore();
   const meta = CATEGORY_META[release.category];
 
   return (
@@ -201,12 +217,18 @@ export function FeaturedRelease({
       whileHover={{ y: -2 }}
       style={{ cursor: "pointer" }}
     >
-      <div className="featured-cover">
+      <div className={`featured-cover ${release.tier === "beta" ? "beta" : ""}`}>
         {release.coverUrl ? (
           <img src={release.coverUrl} alt={release.title} draggable={false} />
         ) : (
           <div style={{ height: "100%", background: "linear-gradient(140deg,#24163f,#0b0815)" }} />
         )}
+        {release.tier === "beta" ? (
+          <div className="beta-cover-lock">
+            <LockKeyhole size={18} />
+            <span>BETA • {t("В разработке")}</span>
+          </div>
+        ) : null}
       </div>
       <div className="featured-body">
         <div style={{ display: "flex", alignItems: "center", gap: 7 }}>

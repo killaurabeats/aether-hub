@@ -73,6 +73,7 @@ const LICENSE_WRITTEN_KEY = "aether.licenses.written.v1";
 
 const defaultSettings: Settings = {
   language: "ru",
+  theme: "purple",
   soundEnabled: true,
   soundVolume: 0.6,
   glassBlur: true,
@@ -1032,6 +1033,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const created = release.createdAt ? Date.parse(release.createdAt) : NaN;
       if (!Number.isFinite(created) || created < recentCutoff) continue;
       const isBeta = (release.tier ?? "free") === "beta";
+      const details =
+        (settings.language === "ru" ? release.descriptionRu : release.descriptionEn) ||
+        release.descriptionEn ||
+        release.descriptionRu ||
+        release.description ||
+        "";
       items.push({
         id: `release:${release.id}:${release.version}`,
         kind: isBeta ? "beta" : "release",
@@ -1045,7 +1052,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           : t("Версия {version} уже в каталоге Aether Hub.", {
               version: release.version,
             }),
+        details,
         createdAt: release.createdAt!,
+        releaseSlug: release.slug,
         action: "plugins",
       });
     }
@@ -1059,7 +1068,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           message: t("{name} · ключ записан автоматически.", {
             name: request.pluginTitle,
           }),
+          details: t(
+            "PRO-лицензия для {name} одобрена. license.aether записан в системную папку плагина автоматически.",
+            { name: request.pluginTitle },
+          ),
           createdAt: request.resolvedAt || request.createdAt,
+          releaseSlug: request.pluginSlug,
           action: "plugins",
         });
       } else if (request.status === "rejected") {
@@ -1068,7 +1082,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           kind: "license",
           title: t("Заявка на PRO-лицензию отклонена"),
           message: request.pluginTitle,
+          details: t(
+            "Заявка на PRO-лицензию для {name} отклонена. Можно отправить новую заявку из карточки плагина.",
+            { name: request.pluginTitle },
+          ),
           createdAt: request.resolvedAt || request.createdAt,
+          releaseSlug: request.pluginSlug,
           action: "plugins",
         });
       }
@@ -1081,6 +1100,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           kind: "sample",
           title: t("Сэмпл одобрен"),
           message: t("{name} опубликован в Samples & Loops.", { name: sample.title }),
+          details: t(
+            "{name} от {author} прошёл модерацию и уже доступен в разделе Samples & Loops.",
+            { name: sample.title, author: sample.authorName },
+          ),
           createdAt: sample.createdAt,
           action: "samples",
         });
@@ -1090,6 +1113,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           kind: "sample",
           title: t("Сэмпл отклонён модерацией"),
           message: sample.title,
+          details: t(
+            "{name} не прошёл премодерацию. Проверьте формат, качество и соответствие правилам комьюнити, затем загрузите новую версию.",
+            { name: sample.title },
+          ),
           createdAt: sample.createdAt,
           action: "samples",
         });
@@ -1102,13 +1129,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         kind: "beta",
         title: t("Beta-доступ активен"),
         message: t("Установка BETA-плагинов открыта в один клик."),
+        details: t(
+          "Ваш Machine ID привязан к Beta-инвайту. BETA-плагины устанавливаются в один клик, а лицензия записывается автоматически.",
+        ),
         createdAt: new Date(now - 60_000).toISOString(),
         action: "plugins",
       });
     }
 
     return items.sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 40);
-  }, [betaTester, mySamples, releases, requests, t]);
+  }, [betaTester, mySamples, releases, requests, settings.language, t]);
 
   notifIdsRef.current = notifications.map((item) => item.id);
   const unreadNotifications = notifications.filter(

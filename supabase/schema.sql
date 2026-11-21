@@ -45,7 +45,7 @@ create table if not exists public.community_samples (
   title           text not null,
   author_hwid     text not null,
   author_name     text not null default 'aether user',
-  category        text not null check (category in ('loop', 'oneshot')),
+  category        text not null check (category in ('loop', 'oneshot', 'fx', 'vocal', 'drums', 'bass', 'melody')),
   bpm             integer check (bpm is null or (bpm between 20 and 400)),
   musical_key     text,
   file_url        text not null,
@@ -56,6 +56,10 @@ create table if not exists public.community_samples (
   is_featured     boolean not null default false,
   created_at      timestamptz not null default now()
 );
+
+alter table public.community_samples drop constraint if exists community_samples_category_check;
+alter table public.community_samples add constraint community_samples_category_check
+  check (category in ('loop', 'oneshot', 'fx', 'vocal', 'drums', 'bass', 'melody'));
 
 alter table public.community_samples add column if not exists waveform_peaks jsonb not null default '[]'::jsonb;
 alter table public.community_samples add column if not exists downloads_count integer not null default 0;
@@ -477,7 +481,7 @@ begin
   if v_title = '' then
     raise exception 'title is required';
   end if;
-  if v_category not in ('loop', 'oneshot') then
+  if v_category not in ('loop', 'oneshot', 'fx', 'vocal', 'drums', 'bass', 'melody') then
     raise exception 'invalid category';
   end if;
   if v_url = '' or (v_url not like 'http://%' and v_url not like 'https://%' and v_url not like 'local:%') then

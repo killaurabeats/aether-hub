@@ -56,8 +56,30 @@ export interface Release {
   createdAt?: string | null;
 }
 
-export type SampleCategory = "loop" | "oneshot";
+export type SampleCategory =
+  | "loop"
+  | "oneshot"
+  | "fx"
+  | "vocal"
+  | "drums"
+  | "bass"
+  | "melody";
 export type SampleStatus = "pending" | "approved" | "rejected";
+
+export const SAMPLE_CATEGORY_META: Record<
+  SampleCategory,
+  { label: string; short: string }
+> = {
+  loop: { label: "Лупы (Loops)", short: "ЛУП" },
+  oneshot: { label: "Ваншоты (One-Shots)", short: "ВАНШОТ" },
+  fx: { label: "FX", short: "FX" },
+  vocal: { label: "Вокал (Vox)", short: "VOX" },
+  drums: { label: "Ударные (Drums)", short: "DRUMS" },
+  bass: { label: "Бас / 808", short: "808" },
+  melody: { label: "Мелодии (Melodies)", short: "MELODY" },
+};
+
+export const SAMPLE_CATEGORIES = Object.keys(SAMPLE_CATEGORY_META) as SampleCategory[];
 
 export interface CommunitySample {
   id: string;
@@ -92,7 +114,9 @@ export interface AppNotification {
   kind: "release" | "beta" | "license" | "sample";
   title: string;
   message: string;
+  details?: string;
   createdAt: string;
+  releaseSlug?: string;
   action?: "plugins" | "samples" | "profile";
 }
 
@@ -222,9 +246,11 @@ export interface CloudConfig {
 }
 
 export type Language = "ru" | "en";
+export type Theme = "purple" | "black" | "light";
 
 export interface Settings {
   language: Language;
+  theme: Theme;
   soundEnabled: boolean;
   soundVolume: number;
   glassBlur: boolean;

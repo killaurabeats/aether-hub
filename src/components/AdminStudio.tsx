@@ -28,6 +28,7 @@ import {
   Zap,
 } from "lucide-react";
 import type { Category, Comment, Release, CommunitySample, SampleStatus } from "../types";
+import { SAMPLE_CATEGORY_META } from "../types";
 import { CATEGORY_META } from "../types";
 import { useStore } from "../lib/store";
 import {
@@ -1413,7 +1414,9 @@ export function AdminStudio() {
                     <div className="admin-sample-title">
                       <b>{sample.title}</b>
                       <span className={`chip ${sample.isFeatured ? "beta" : ""}`}>
-                        {sample.isFeatured ? t("FEATURED") : sample.category === "loop" ? t("ЛУП") : t("ВАНШОТ")}
+                        {sample.isFeatured
+                          ? t("FEATURED")
+                          : t(SAMPLE_CATEGORY_META[sample.category]?.short ?? "СЭМПЛ")}
                       </span>
                       <span className={`chip ${sample.status === "approved" ? "green" : sample.status === "rejected" ? "" : "gold"}`}>
                         {sample.status === "approved"

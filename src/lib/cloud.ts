@@ -31,6 +31,7 @@ import type {
   SampleStatus,
   SubmitSampleInput,
 } from "../types";
+import { SAMPLE_CATEGORIES } from "../types";
 
 const env = import.meta.env as Record<string, string | undefined>;
 
@@ -571,12 +572,15 @@ function mapLicense(row: Row): License {
 
 export function mapCommunitySample(row: Row): CommunitySample {
   const peaks = parseJson<unknown>(row.waveform_peaks, []);
+  const category = SAMPLE_CATEGORIES.includes(row.category as SampleCategory)
+    ? (row.category as SampleCategory)
+    : "loop";
   return {
     id: String(row.id),
     title: row.title ?? "Untitled",
     authorHwid: row.author_hwid ?? "",
     authorName: row.author_name ?? "aether user",
-    category: row.category === "oneshot" ? "oneshot" : "loop",
+    category,
     bpm: row.bpm == null ? null : numeric(row.bpm),
     musicalKey: row.musical_key ?? null,
     fileUrl: row.file_url ?? "",

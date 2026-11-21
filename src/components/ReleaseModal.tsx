@@ -182,12 +182,19 @@ export function ReleaseModal({
         transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
       >
         <div className="modal-scroll">
-          <div className="detail-hero">
+          <div className={`detail-hero ${tier === "beta" ? "beta" : ""}`}>
             {release.coverUrl ? (
               <img src={release.coverUrl} alt={release.title} draggable={false} />
             ) : (
               <div style={{ height: "100%", background: "linear-gradient(140deg,#22163c,#0a0714)" }} />
             )}
+
+            {tier === "beta" ? (
+              <div className="beta-cover-lock detail">
+                <LockKeyhole size={22} />
+                <span>BETA • {t("В разработке")}</span>
+              </div>
+            ) : null}
 
             <button className="modal-close" onClick={onClose} aria-label={t("Закрыть")} style={{ position: "absolute", top: 14, right: 14, zIndex: 5, background: "rgba(10,7,18,.55)", backdropFilter: "blur(10px)" }}>
               <X size={15} />
@@ -444,51 +451,45 @@ export function ReleaseModal({
                 ) : null}
               </div>
 
-              <div className="rating-block">
-                <h3>{t("Оценка релиза")}</h3>
-                <p>
-                  {myRating
-                    ? t("Спасибо — ваша оценка уже учтена.")
-                    : t("Поставьте от 1 до 5 звёзд, чтобы поддержать релиз.")}
-                </p>
-                <div className="rating-row">
-                  <span className="rating-score">
-                    {avgLabel}
-                    <span>★</span>
-                  </span>
-                  <Stars
-                    value={myRating}
-                    onChange={(value) => void rate(release, value)}
-                    size={19}
-                  />
-                  <span style={{ fontSize: 10.5, color: "var(--dim)" }}>
+              {tier !== "beta" ? (
+                <div className="rating-block">
+                  <h3>{t("Оценка релиза")}</h3>
+                  <p>
                     {myRating
-                      ? t("{count} оценок · ваша {mine} ★", {
-                          count: release.ratingCount,
-                          mine: myRating,
-                        })
-                      : t("{count} оценок", { count: release.ratingCount })}
-                  </span>
+                      ? t("Спасибо — ваша оценка уже учтена.")
+                      : t("Поставьте от 1 до 5 звёзд, чтобы поддержать релиз.")}
+                  </p>
+                  <div className="rating-row">
+                    <span className="rating-score">
+                      {avgLabel}
+                      <span>★</span>
+                    </span>
+                    <Stars
+                      value={myRating}
+                      onChange={(value) => void rate(release, value)}
+                      size={19}
+                    />
+                    <span style={{ fontSize: 10.5, color: "var(--dim)" }}>
+                      {myRating
+                        ? t("{count} оценок · ваша {mine} ★", {
+                            count: release.ratingCount,
+                            mine: myRating,
+                          })
+                        : t("{count} оценок", { count: release.ratingCount })}
+                    </span>
+                  </div>
                 </div>
-              </div>
+              ) : null}
 
-              {release.category === "plugins" && (tier === "pro" || tier === "beta") ? (
-                <div className={`license-card ${tier === "beta" ? "beta" : ""}`}>
+              {release.category === "plugins" && tier === "pro" ? (
+                <div className="license-card">
                   <h3>
-                    <KeyRound size={14} />{" "}
-                    {tier === "beta"
-                      ? t("BETA-лицензия тестера")
-                      : t("Лицензия Aether")}
-                    {tier === "beta" ? <span className="chip beta">BETA</span> : null}
+                    <KeyRound size={14} /> {t("Лицензия Aether")}
                   </h3>
                   <p className="hint">
-                    {tier === "beta"
-                      ? t(
-                          "Для Beta-тестеров лицензия выдаётся автоматически при установке. Zero-Copy записывает ключ в системную папку плагина.",
-                        )
-                      : t(
-                          "Ключ подписывает Machine ID этого компьютера. После одобрения он записывается в папку плагина автоматически — копировать вручную не нужно.",
-                        )}
+                    {t(
+                      "Ключ подписывает Machine ID этого компьютера. После одобрения он записывается в папку плагина автоматически — копировать вручную не нужно.",
+                    )}
                   </p>
 
                   {idEditing ? (
@@ -584,39 +585,19 @@ export function ReleaseModal({
                         </div>
                       ) : null}
 
-                      {tier === "beta" && !betaTester ? (
-                        <div className="beta-inline-lock">
-                          <LockKeyhole size={12} />
-                          <span>{t("Нужен активированный Beta-инвайт в профиле.")}</span>
-                          {onOpenProfile ? (
-                            <button
-                              className="ghost-link"
-                              onClick={() => {
-                                onClose();
-                                onOpenProfile();
-                              }}
-                            >
-                              {t("Открыть профиль")}
-                            </button>
-                          ) : null}
-                        </div>
-                      ) : (
-                        <div className="license-actions">
-                          <button
-                            className="btn btn-soft btn-sm"
-                            onClick={() => void requestKey(release)}
-                            disabled={Boolean(pending) || tier === "beta"}
-                          >
-                            <KeyRound size={11} />
-                            {pending
-                              ? t("Заявка на рассмотрении")
-                              : tier === "beta"
-                                ? t("BETA-ключ выдаётся при установке")
-                                : t("Запросить ключ активации")}
-                          </button>
-                        </div>
-                      )}
-                      {profile.nickname && tier === "pro" ? (
+                      <div className="license-actions">
+                        <button
+                          className="btn btn-soft btn-sm"
+                          onClick={() => void requestKey(release)}
+                          disabled={Boolean(pending)}
+                        >
+                          <KeyRound size={11} />
+                          {pending
+                            ? t("Заявка на рассмотрении")
+                            : t("Запросить ключ активации")}
+                        </button>
+                      </div>
+                      {profile.nickname ? (
                         <p style={{ margin: "10px 0 0", fontSize: 9.5, color: "var(--dim)" }}>
                           {t("Заявка уйдёт от имени {name}.", { name: profile.nickname })}
                         </p>

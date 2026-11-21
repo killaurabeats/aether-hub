@@ -12,11 +12,14 @@ import {
   Languages,
   LayoutGrid,
   Loader2,
+  Moon,
+  Palette,
   Play,
   RefreshCw,
   RotateCcw,
   Settings2,
   ShieldCheck,
+  Sun,
   Volume2,
   X,
 } from "lucide-react";
@@ -72,9 +75,11 @@ export function SettingsModal({
     t,
   } = useStore();
 
-  const [section, setSection] = useState<SettingsSection>(initialSection);
+  const [section, setSection] = useState<SettingsSection>(
+    initialSection === "cloud" && !adminVisible ? "general" : initialSection,
+  );
   const [confirmReset, setConfirmReset] = useState(false);
-  const [version, setVersion] = useState("1.3.0");
+  const [version, setVersion] = useState("1.3.1");
   const [health, setHealth] = useState<CloudHealth | null>(null);
   const [checkingCloud, setCheckingCloud] = useState(false);
   const [secretOpen, setSecretOpen] = useState(false);
@@ -82,6 +87,12 @@ export function SettingsModal({
   const [secretBusy, setSecretBusy] = useState(false);
   const [secretError, setSecretError] = useState<string | null>(null);
   const versionClicks = useRef({ count: 0, last: 0 });
+
+  const visibleTabs = TABS.filter((tab) => tab.id !== "cloud" || adminVisible);
+
+  useEffect(() => {
+    if (section === "cloud" && !adminVisible) setSection("general");
+  }, [adminVisible, section]);
 
   const handleVersionClick = () => {
     const now = Date.now();
@@ -176,7 +187,7 @@ export function SettingsModal({
         </div>
 
         <div className="segmented" style={{ margin: "14px 22px 0", flexWrap: "wrap" }}>
-          {TABS.map((tab) => {
+          {visibleTabs.map((tab) => {
             const Icon = tab.icon;
             return (
               <button
@@ -308,67 +319,83 @@ export function SettingsModal({
                   </div>
                 </div>
 
-                <p style={{ margin: "14px 0 0", fontSize: 10, color: "var(--dim)" }}>
-                  {t("Параметры сохраняются автоматически в localStorage.")}
-                </p>
               </>
             ) : null}
 
             {section === "appearance" ? (
               <>
-                <div className="setting-row">
+                <div className="setting-row" style={{ alignItems: "flex-start" }}>
                   <div className="text">
-                    <b>{t("Фон и неон")}</b>
+                    <b>{t("Тема оформления")}</b>
                     <span>
                       {t(
-                        "Глубокий фиолетовый градиент, стеклянные панели и мягкое свечение — фирменный стиль Aether.",
+                        "Меняет фон, панели, текст и свечение всего приложения. Выбор сохраняется в localStorage.",
                       )}
                     </span>
                   </div>
-                  <span className="chip violet">#0A0812 · #8B5CF6</span>
-                </div>
-                <div className="setting-row">
-                  <div className="text">
-                    <b>{t("Плотность библиотеки")}</b>
-                    <span>{t("Сетка карточек автоматически подстраивается под ширину окна.")}</span>
-                  </div>
-                  <span className="chip">adaptive</span>
+                  <span className="chip violet">{t("3 темы")}</span>
                 </div>
 
-                <div
-                  style={{
-                    marginTop: 18,
-                    display: "grid",
-                    gridTemplateColumns: "repeat(4, 1fr)",
-                    gap: 8,
-                  }}
-                >
-                  {["#0A0812", "#120E22", "#8B5CF6", "#C4B5FD"].map((color) => (
-                    <div
-                      key={color}
-                      style={{
-                        height: 54,
-                        borderRadius: 10,
-                        background: color,
-                        border: "1px solid rgba(255,255,255,.1)",
-                        display: "grid",
-                        placeItems: "end center",
-                        paddingBottom: 7,
-                        fontSize: 8,
-                        letterSpacing: ".08em",
-                        color: color === "#C4B5FD" ? "#241a3d" : "rgba(255,255,255,.6)",
-                      }}
-                    >
-                      {color}
-                    </div>
-                  ))}
+                <div className="theme-grid">
+                  {(
+                    [
+                      {
+                        id: "purple" as const,
+                        title: t("Aether Purple"),
+                        subtitle: t("Фиолетовая"),
+                        description: t("Фирменный фиолетовый градиент и неоновое свечение."),
+                        icon: Palette,
+                      },
+                      {
+                        id: "black" as const,
+                        title: t("Pitch Black"),
+                        subtitle: t("Чёрная"),
+                        description: t("Глубокий чёрный интерфейс с минимальным свечением."),
+                        icon: Moon,
+                      },
+                      {
+                        id: "light" as const,
+                        title: t("Clean Light"),
+                        subtitle: t("Светлая"),
+                        description: t("Светлая тема для работы при ярком свете."),
+                        icon: Sun,
+                      },
+                    ]
+                  ).map((theme) => {
+                    const Icon = theme.icon;
+                    const active = settings.theme === theme.id;
+                    return (
+                      <button
+                        key={theme.id}
+                        className={`theme-card ${active ? "active" : ""}`}
+                        onClick={() => updateSettings({ theme: theme.id })}
+                        aria-pressed={active}
+                      >
+                        <span className={`theme-swatch ${theme.id}`}>
+                          <i />
+                          <i />
+                          <i />
+                        </span>
+                        <span className="theme-card-copy">
+                          <b>
+                            <Icon size={13} /> {theme.title}
+                          </b>
+                          <em>{theme.subtitle}</em>
+                          <span>{theme.description}</span>
+                        </span>
+                        {active ? (
+                          <CheckCircle2 size={16} className="theme-check" />
+                        ) : null}
+                      </button>
+                    );
+                  })}
                 </div>
 
                 <div className="notice violet" style={{ marginTop: 18, marginBottom: 0 }}>
                   <Info size={14} />
                   <div>
                     {t(
-                      "Для максимального FPS отключите «Эффекты стекла» на вкладке «Общие» — интерфейс заменит blur на плотные тёмные градиенты.",
+                      "Тема применяется мгновенно ко всем экранам. Для максимального FPS дополнительно отключите «Эффекты стекла» на вкладке «Общие».",
                     )}
                   </div>
                 </div>
