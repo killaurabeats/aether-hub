@@ -115,6 +115,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # Full history + tags so annotated tag messages can back up CHANGELOG.md.
+          fetch-depth: 0
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -126,6 +129,20 @@ jobs:
         with:
           path: artifacts
 
+      - name: Build release body from CHANGELOG.md
+        shell: bash
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          VERSION="${TAG#v}"
+          node scripts/extract-changelog.mjs \
+            --file CHANGELOG.md \
+            --version "$VERSION" \
+            --tag "$TAG" \
+            --fallback "Aether Hub ${TAG}" \
+            --out release-body.md
+          echo "--- release-body.md ---"
+          cat release-body.md
+
       - name: Build latest.json
         shell: bash
         run: |
@@ -135,14 +152,16 @@ jobs:
             --root artifacts \
             --version "$VERSION" \
             --base-url "https://github.com/killaurabeats/aether-hub-releases/releases/download/${TAG}" \
-            --notes "Aether Hub ${TAG}: native auto-update, FREE/PRO plugins, Beta Tester invites." \
+            --notes-file release-body.md \
             --out latest.json
 
       - name: Upload updater manifest artifact
         uses: actions/upload-artifact@v4
         with:
           name: updater-manifest
-          path: latest.json
+          path: |
+            latest.json
+            release-body.md
 
       - name: Publish signed release
         env:
@@ -157,7 +176,11 @@ jobs:
           REPO="killaurabeats/aether-hub-releases"
           if ! gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then
             gh release create "$TAG" --repo "$REPO" --title "Aether Hub $TAG" \
-              --notes "Aether Hub $TAG" --latest
+              --notes-file release-body.md --latest
+          else
+            # Re-runs keep the published release body in sync with CHANGELOG.md.
+            gh release edit "$TAG" --repo "$REPO" \
+              --notes-file release-body.md
           fi
           find artifacts -type f \( \
             -name '*.dmg' -o -name '*.app.tar.gz' -o -name '*.app.tar.gz.sig' \

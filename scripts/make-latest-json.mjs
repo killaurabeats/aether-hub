@@ -6,7 +6,7 @@
  *   node scripts/make-latest-json.mjs \
  *     --root artifacts --version 1.2.0 \
  *     --base-url https://github.com/killaurabeats/aether-hub-releases/releases/download/v1.2.0 \
- *     --notes "Aether Hub v1.2.0" --out latest.json
+ *     --notes-file release-body.md --out latest.json
  */
 import { readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
@@ -20,7 +20,11 @@ const arg = (name, fallback = "") => {
 const root = path.resolve(arg("root", "artifacts"));
 const version = arg("version", "").replace(/^v/, "");
 const baseUrl = arg("base-url", "").replace(/\/$/, "");
-const notes = arg("notes", `Aether Hub v${version}`);
+const notesFile = arg("notes-file", "");
+const notesFromFile = notesFile
+  ? readFileSync(path.resolve(notesFile), "utf8").trim()
+  : "";
+const notes = (notesFromFile || arg("notes", "")).trim() || `Aether Hub v${version}`;
 const out = path.resolve(arg("out", "latest.json"));
 
 if (!version) throw new Error("--version is required");
