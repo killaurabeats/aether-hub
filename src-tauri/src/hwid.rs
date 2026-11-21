@@ -231,7 +231,7 @@ mod mac {
 
     const CF_STRING_ENCODING_UTF8: u32 = 0x0800_0100;
 
-    /// Reads IOPlatformUUID through IOKit — exactly the call JUCE makes in
+    /// Reads IOPlatformUUID through IOKit - exactly the call JUCE makes in
     /// `SystemStats::getUniqueDeviceID()`. No shelling out, so the value is
     /// identical regardless of how the app was launched.
     pub fn platform_uuid() -> Option<String> {

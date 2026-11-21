@@ -29,7 +29,7 @@ Aether Hub (React)                       Supabase
 - **Файлы** загружаются по signed upload URL, выданному функцией; приватный
   service role key никогда не покидает Supabase.
 
-## Шаг 1 — проект
+## Шаг 1 - проект
 
 1. [supabase.com](https://supabase.com) → **New project** (Free tier достаточно).
 2. Запомните пароль БД.
@@ -38,7 +38,7 @@ Aether Hub (React)                       Supabase
    - `anon public` → `VITE_SUPABASE_ANON_KEY`
 4. **Project Settings → API → JWT Settings** не меняйте без необходимости.
 
-## Шаг 2 — схема
+## Шаг 2 - схема
 
 **SQL Editor → New query** → вставьте весь `supabase/schema.sql` → **Run**.
 
@@ -58,12 +58,12 @@ Aether Hub (React)                       Supabase
 
 RLS:
 
-- `releases` — select только `published = true`; поля `description_ru` /
+- `releases` - select только `published = true`; поля `description_ru` /
   `description_en` хранят двуязычное описание;
-- `comments` — select + insert с ограничением длины;
-- `ratings`, `profiles`, `license_requests`, `licenses` — **никакого** прямого
+- `comments` - select + insert с ограничением длины;
+- `ratings`, `profiles`, `license_requests`, `licenses` - **никакого** прямого
   доступа у anon; только SECURITY DEFINER RPC;
-- Storage — публичное чтение, запись только service role.
+- Storage - публичное чтение, запись только service role.
 
 RPC:
 
@@ -76,7 +76,7 @@ RPC:
 | `aether_my_requests` | заявки текущего HWID |
 | `aether_my_licenses` | выданные ключи текущего HWID |
 
-## Шаг 3 — Edge Function
+## Шаг 3 - Edge Function
 
 Локально:
 
@@ -110,7 +110,7 @@ curl -s -X POST "https://<project>.supabase.co/functions/v1/aether-admin" \
 
 Неверный токен → HTTP 401.
 
-## Шаг 4 — .env
+## Шаг 4 - .env
 
 ```bash
 cp .env.example .env
@@ -125,16 +125,16 @@ VITE_AETHER_ADMIN_TOKEN=<ADMIN_TOKEN>
 - Подходит и новый ключ `sb_publishable_…`, и старый `anon` JWT. Новый ключ
   отправляется только в заголовке `apikey`; JWT дополнительно идёт в
   `Authorization: Bearer`.
-- `VITE_AETHER_ADMIN_TOKEN` — **только на Mac создателя**. Публичные сборки
+- `VITE_AETHER_ADMIN_TOKEN` - **только на Mac создателя**. Публичные сборки
   должны иметь пустое значение; GitHub Actions его не получает.
 - Значения Vite вшиваются в JS-бандл на этапе сборки. После изменения `.env`
   перезапустите `npm run tauri:dev` или пересоберите приложение.
 - Проверка подключения: **Настройки → Облако → Таблицы и Storage → Проверить**.
-  Публичные таблицы показываются как `доступна`, закрытые — `защищена · RPC`.
+  Публичные таблицы показываются как `доступна`, закрытые - `защищена · RPC`.
   Статус `не найдена` у bucket означает, что `schema.sql` не выполнялся после
   создания проекта.
 
-## Шаг 5 — первая публикация
+## Шаг 5 - первая публикация
 
 1. Запустите лаунчер на Mac с приватным ключом в
    `~/PRIVATE_KEYGEN_DO_NOT_SHARE/private_key`.
@@ -145,14 +145,14 @@ VITE_AETHER_ADMIN_TOKEN=<ADMIN_TOKEN>
 
 Проверьте в Supabase:
 
-- **Table Editor → releases** — появилась строка;
-- **Storage → aether-assets** — `releases/<slug>/…` и `covers/<slug>/…`.
+- **Table Editor → releases** - появилась строка;
+- **Storage → aether-assets** - `releases/<slug>/…` и `covers/<slug>/…`.
 
-## Шаг 6 — модерация и ключи
+## Шаг 6 - модерация и ключи
 
 - **Admin Studio → Модерация** удаляет комментарии через service role.
 - **Support Tickets → Обращения пользователей** читает `support_tickets`,
-  закрывает/удаляет тикеты и очищает закрытые. Обновление — каждые 8 секунд.
+  закрывает/удаляет тикеты и очищает закрытые. Обновление - каждые 8 секунд.
 - **Чат по тикету** читает/пишет `ticket_messages`; ответы создателя получают
   роль `admin`, сохраняются с ником и аватаром `/logo.png`. Сообщения
   обновляются каждые 5 секунд.
@@ -179,7 +179,7 @@ VITE_AETHER_ADMIN_TOKEN=<ADMIN_TOKEN>
 
 ## Ограничения текущей модели
 
-- Нет OAuth: профиль — локальный id + снимок в комментариях/заявках. Это
+- Нет OAuth: профиль - локальный id + снимок в комментариях/заявках. Это
   осознанный компромисс для лаунчера без регистрации.
 - HWID не является секретом, но и не публикуется: таблицы закрыты RLS, доступ
   только по точному ID через RPC.
@@ -199,7 +199,7 @@ VITE_AETHER_ADMIN_TOKEN=<ADMIN_TOKEN>
 | 404 при загрузке файла | bucket `aether-assets` не создан или path с `..` |
 | `Could not sign upload` | функция не задеплоена / нет service role |
 | Каталог пуст, но релизы есть | `published = false` |
-| Показан демо-каталог | в облаке ещё нет опубликованных релизов — опубликуйте первый |
+| Показан демо-каталог | в облаке ещё нет опубликованных релизов - опубликуйте первый |
 | Комментарии не видны | релиз не опубликован (RLS) |
 
 Логи: **Supabase → Edge Functions → aether-admin → Logs**, **Storage → Logs**.

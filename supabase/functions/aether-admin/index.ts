@@ -1,5 +1,5 @@
 // ============================================================================
-//  Aether Hub — admin Edge Function
+//  Aether Hub - admin Edge Function
 //  Deploy:  supabase functions deploy aether-admin --no-verify-jwt
 //  Secret:  supabase secrets set ADMIN_TOKEN=<long-random-string>
 //

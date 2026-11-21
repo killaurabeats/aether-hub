@@ -33,6 +33,7 @@ import type {
   SubmitSampleInput,
 } from "../types";
 import { SAMPLE_CATEGORIES } from "../types";
+import { createClient } from "@supabase/supabase-js";
 
 const env = import.meta.env as Record<string, string | undefined>;
 
@@ -57,6 +58,12 @@ export const cloudConfig: CloudConfig = {
 };
 
 export const cloudEnabled = Boolean(cloudConfig.url && cloudConfig.anonKey);
+
+// Supabase Realtime still authenticates with a JWT role token. Projects that
+// use the newer publishable keys can provide the public legacy anon JWT here;
+// REST/RPC calls keep using the publishable key above.
+const realtimeKey =
+  (env.VITE_SUPABASE_REALTIME_KEY || "").trim() || cloudConfig.anonKey;
 
 export function hasAdminToken(): boolean {
   return Boolean(cloudConfig.adminToken);
@@ -131,11 +138,11 @@ export function seedReleases(): Release[] {
       title: "AetherSaturator",
       version: "1.1.0-beta",
       description:
-        "Liquid-glass saturation rebuild: 0 to +28 dB drive, four characters, working warmth, mono-maker, RMS auto-gain and a reactive cyan neon ring. VST3 + AU for macOS, VST3 for Windows. FREE beta.",
+        "A liquid-glass saturation plugin that goes from gentle warmth to aggressive drive. Four characters, controllable warmth and auto-gain for a dense, mix-ready sound.",
       descriptionEn:
-        "Liquid-glass saturation rebuild: 0 to +28 dB drive, four characters (TUBE, TAPE, VALVE, 808), working warmth, mono-maker, RMS auto-gain and a reactive cyan neon ring. VST3 + AU for macOS, VST3 for Windows. FREE beta.",
+        "A liquid-glass saturation plugin that goes from gentle warmth to aggressive drive. Four characters, controllable warmth and auto-gain for a dense, mix-ready sound.",
       descriptionRu:
-        "Пересобранный сатуратор в стиле liquid glass: DRIVE от 0 до +28 dB, четыре характера (TUBE, TAPE, VALVE, 808), рабочая WARMTH, mono-maker, RMS auto-gain и реактивное циановое неоновое кольцо. VST3 + AU для macOS, VST3 для Windows. Бесплатная бета.",
+        "Сатуратор в стиле liquid glass: от мягкого нагрева до агрессивного драйва. Четыре характера, управляемая теплота и авто-громкость для плотного, готового к миксу звука.",
       coverUrl: "/covers/aether-saturator.jpg",
       files: {
         macos: {
@@ -165,11 +172,11 @@ export function seedReleases(): Release[] {
       title: "AetherVocal Strip",
       version: "1.1",
       description:
-        "A complete vocal channel strip: gate, 7-band air EQ, FET 1176, LA-2A, tube saturation and a −0.3 dBFS limiter. Zero-latency by default, 4× oversampling in Studio mode. VST3 + AU, universal macOS build and Windows x64.",
+        "A vocal channel strip for clean, release-ready vocals. It combines an airy EQ, two compressors, tube saturation and an output limiter.",
       descriptionEn:
-        "A complete vocal channel strip: gate, 7-band air EQ, FET 1176, LA-2A, tube saturation and a −0.3 dBFS limiter. Zero-latency by default, 4× oversampling in Studio mode. VST3 + AU, universal macOS build and Windows x64.",
+        "A vocal channel strip for clean, release-ready vocals. It combines an airy EQ, two compressors, tube saturation and an output limiter.",
       descriptionRu:
-        "Полноценный вокальный комбайн: гейт, 7-полосный эквалайзер Precision Air EQ, ламповый сатуратор, компрессоры 1176 FET и LA-2A, а также лимитер с потолком -0.3 dBFS. Нулевая задержка по умолчанию, оверсэмплинг 4× в режиме Studio. Форматы VST3 и AU для macOS и Windows x64.",
+        "Вокальный комбайн для чистого, готового к релизу вокала. Эквалайзер с воздушным верхом, два компрессора, ламповая сатурация и лимитер на выходе.",
       coverUrl: "/covers/aether-vocal-strip-v1-1.jpg",
       files: {
         macos: {
@@ -1218,6 +1225,48 @@ export async function fetchLauncherNotice(): Promise<LauncherNotice | null> {
   } catch {
     return null;
   }
+}
+
+let launcherRealtime: ReturnType<typeof createClient> | null = null;
+
+/** Subscribes to `app_config` changes so a new launcher version appears without
+ *  relaunching the app. Returns an unsubscribe callback, or null in local mode. */
+export function subscribeLauncherNotice(
+  onNotice: (notice: LauncherNotice) => void,
+): (() => void) | null {
+  if (!cloudEnabled) return null;
+
+  if (!launcherRealtime) {
+    launcherRealtime = createClient(cloudConfig.url, realtimeKey, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
+      },
+    });
+  }
+
+  const channel = launcherRealtime
+    .channel("aether-launcher-config")
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "app_config" },
+      (payload) => {
+        const row = (payload.new ?? {}) as Record<string, unknown>;
+        onNotice({
+          latestVersion: row.latest_launcher_version
+            ? String(row.latest_launcher_version)
+            : null,
+          notice: row.update_notice ? String(row.update_notice) : null,
+          url: row.update_url ? String(row.update_url) : null,
+        });
+      },
+    )
+    .subscribe();
+
+  return () => {
+    void launcherRealtime?.removeChannel(channel);
+  };
 }
 
 export async function fetchAppConfig(): Promise<AppConfig> {

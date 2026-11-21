@@ -446,7 +446,7 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
                   </svg>
                   @whofriends1
                 </button>
-                <span className="chip violet">v1.3.9</span>
+                <span className="chip violet">v1.3.10</span>
               </div>
             </div>
           </div>

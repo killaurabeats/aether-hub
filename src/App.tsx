@@ -32,7 +32,7 @@ import {
   type UpdateCandidate,
   type UpdateCheckStatus,
 } from "./lib/updater";
-import { fetchLauncherNotice } from "./lib/cloud";
+import { fetchLauncherNotice, subscribeLauncherNotice } from "./lib/cloud";
 
 function initialView(): View {
   const hash = window.location.hash.replace("#", "").toLowerCase();
@@ -252,6 +252,17 @@ function Shell() {
     if (splash || !isUpdaterAvailable()) return;
     const timer = window.setTimeout(() => void checkUpdates(true), 450);
     return () => window.clearTimeout(timer);
+  }, [checkUpdates, splash]);
+
+  // Supabase Realtime: react immediately when an admin publishes a new
+  // `app_config.latest_launcher_version` instead of waiting for a relaunch.
+  useEffect(() => {
+    if (splash || !isUpdaterAvailable()) return;
+    const unsubscribe = subscribeLauncherNotice((notice) => {
+      if (!notice.latestVersion) return;
+      void checkUpdates(true);
+    });
+    return unsubscribe ?? undefined;
   }, [checkUpdates, splash]);
 
   const refresh = async () => {

@@ -1,5 +1,5 @@
 -- ============================================================================
---  Aether Hub — Supabase schema
+--  Aether Hub - Supabase schema
 --  Run this once in Supabase → SQL Editor → New query → Run.
 --  Safe to re-run: everything is idempotent.
 -- ============================================================================
@@ -742,6 +742,34 @@ revoke all on public.community_samples from anon, authenticated;
 grant select on public.releases to anon, authenticated;
 grant select on public.community_samples to anon, authenticated;
 grant select, insert on public.comments to anon, authenticated;
+
+-- Launcher notices are world-readable: the desktop app subscribes to
+-- app_config through Supabase Realtime to pick up a new latest_launcher_version
+-- without a relaunch. Admin writes still go through the service role only.
+drop policy if exists app_config_public_read on public.app_config;
+create policy app_config_public_read on public.app_config
+  for select to anon, authenticated
+  using (true);
+grant select on public.app_config to anon, authenticated;
+
+-- Realtime only streams tables that belong to the supabase_realtime
+-- publication. Keep this idempotent for projects created before v1.3.10.
+do $$
+begin
+  if exists (select 1 from pg_publication where pubname = 'supabase_realtime') then
+    if not exists (
+      select 1 from pg_publication_tables
+      where pubname = 'supabase_realtime'
+        and schemaname = 'public'
+        and tablename = 'app_config'
+    ) then
+      execute 'alter publication supabase_realtime add table public.app_config';
+    end if;
+  else
+    execute 'create publication supabase_realtime for table public.app_config';
+  end if;
+end
+$$;
 
 -- The Edge Function talks to PostgREST with the service role. Keep its grants
 -- explicit so the admin API keeps working even if the project's default

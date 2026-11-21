@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  Aether Hub — universal plugin deploy
+#  Aether Hub - universal plugin deploy
 #
 #  Usage:
 #    deploy-plugin.sh <plugin-dir> <version> <free|pro|beta> [options]
@@ -176,7 +176,7 @@ package_macos_from_build() {
 
 MAC_ZIP="$(find_macos_zip)"
 if [[ -z "$MAC_ZIP" || ! -f "$MAC_ZIP" ]]; then
-  echo "▸ No macOS ZIP in dist/ — packaging from build artefacts…"
+  echo "▸ No macOS ZIP in dist/ - packaging from build artefacts…"
   MAC_ZIP="$(package_macos_from_build)"
 fi
 if [[ -z "$MAC_ZIP" || ! -f "$MAC_ZIP" ]]; then
@@ -208,7 +208,7 @@ if [[ -z "$COVER" ]]; then
 fi
 
 if [[ -z "$DESCRIPTION_RU" ]]; then
-  DESCRIPTION_RU="$TITLE $VERSION — плагин Aether Plugins. Установка в один клик, VST3/AU, автоматическая лицензия."
+  DESCRIPTION_RU="$TITLE $VERSION - плагин Aether Plugins. Установка в один клик, VST3/AU, автоматическая лицензия."
 fi
 if [[ -z "$DESCRIPTION_EN" ]]; then
   DESCRIPTION_EN="$TITLE $VERSION by Aether Plugins. One-click install, VST3/AU, automatic licence."
@@ -335,7 +335,7 @@ jq . <<<"$RELEASE_PAYLOAD"
 echo "▸ SHA256 (macOS): $MAC_SHA"
 
 if [[ "$DRY_RUN" == "true" ]]; then
-  echo "✓ Dry run complete — nothing uploaded."
+  echo "✓ Dry run complete - nothing uploaded."
   exit 0
 fi
 

@@ -651,28 +651,32 @@ fn elevated_copy_bundle(source: &Path, destination: &Path) -> Result<(), String>
     let parent = destination
         .parent()
         .ok_or_else(|| "Invalid VST3 destination".to_string())?;
-    let stage_root = std::env::temp_dir().join("aether_vst_install");
+    let tag = uuid::Uuid::new_v4();
+    let stage_root = std::env::temp_dir().join(format!("aether-vst-install-{tag}"));
     fs::create_dir_all(&stage_root).map_err(|e| e.to_string())?;
 
     let bundle_name = source
         .file_name()
         .ok_or_else(|| "Invalid VST3 bundle name".to_string())?;
     let staged = stage_root.join(bundle_name);
-    if staged.exists() {
-        let _ = fs::remove_dir_all(&staged);
+    let backup = stage_root.join(format!(".aether-backup-{tag}"));
+    if let Err(error) = copy_dir_contents(source, &staged) {
+        let _ = fs::remove_dir_all(&stage_root);
+        return Err(error);
     }
-    copy_dir_contents(source, &staged)?;
 
-    let script_path = stage_root.join(format!("copy-{}.ps1", uuid::Uuid::new_v4()));
+    let script_path = stage_root.join(format!("copy-{tag}.ps1"));
     let script = format!(
-        "$ErrorActionPreference='Stop'\ntry {{\n  New-Item -ItemType Directory -Force -Path '{}' | Out-Null\n  if (Test-Path -LiteralPath '{}') {{ Remove-Item -LiteralPath '{}' -Recurse -Force }}\n  Copy-Item -LiteralPath '{}' -Destination '{}' -Recurse -Force\n  exit 0\n}} catch {{ Write-Error $_; exit 1 }}\n",
-        ps_escape(&parent.display().to_string()),
-        ps_escape(&destination.display().to_string()),
-        ps_escape(&destination.display().to_string()),
-        ps_escape(&staged.display().to_string()),
-        ps_escape(&destination.display().to_string()),
+        "$ErrorActionPreference='Stop'\n$dest='{dest}'\n$staged='{staged}'\n$backup='{backup}'\ntry {{\n  New-Item -ItemType Directory -Force -Path '{parent}' | Out-Null\n  if (Test-Path -LiteralPath $dest) {{\n    Copy-Item -LiteralPath $dest -Destination $backup -Recurse -Force\n    Remove-Item -LiteralPath $dest -Recurse -Force\n  }}\n  Copy-Item -LiteralPath $staged -Destination $dest -Recurse -Force\n  if (Test-Path -LiteralPath $backup) {{ Remove-Item -LiteralPath $backup -Recurse -Force }}\n  exit 0\n}} catch {{\n  if (Test-Path -LiteralPath $dest) {{ Remove-Item -LiteralPath $dest -Recurse -Force -ErrorAction SilentlyContinue }}\n  if (Test-Path -LiteralPath $backup) {{\n    Copy-Item -LiteralPath $backup -Destination $dest -Recurse -Force -ErrorAction SilentlyContinue\n    Remove-Item -LiteralPath $backup -Recurse -Force -ErrorAction SilentlyContinue\n  }}\n  Write-Error $_\n  exit 1\n}}\n",
+        dest = ps_escape(&destination.display().to_string()),
+        staged = ps_escape(&staged.display().to_string()),
+        backup = ps_escape(&backup.display().to_string()),
+        parent = ps_escape(&parent.display().to_string()),
     );
-    fs::write(&script_path, script).map_err(|e| e.to_string())?;
+    if let Err(error) = fs::write(&script_path, script) {
+        let _ = fs::remove_dir_all(&stage_root);
+        return Err(error.to_string());
+    }
 
     let command = format!(
         "$p = Start-Process -FilePath 'powershell.exe' -Verb RunAs -Wait -PassThru -ArgumentList '-NoProfile','-ExecutionPolicy','Bypass','-File','{}'; if ($p.ExitCode -ne 0) {{ exit $p.ExitCode }}",
@@ -687,6 +691,8 @@ fn elevated_copy_bundle(source: &Path, destination: &Path) -> Result<(), String>
 
     let _ = fs::remove_file(&script_path);
     let _ = fs::remove_dir_all(&staged);
+    let _ = fs::remove_dir_all(&backup);
+    let _ = fs::remove_dir_all(&stage_root);
 
     if !status.success() {
         return Err("Administrator access was cancelled or the elevated copy failed".into());
@@ -996,6 +1002,7 @@ fn copy_dir_contents(source: &Path, destination: &Path) -> Result<(), String> {
 
 /// Copies a bundle next to its destination first, then swaps it in. A failed
 /// copy never destroys a working plugin installation.
+#[cfg(not(target_os = "windows"))]
 fn atomic_replace_dir(source: &Path, destination: &Path) -> Result<(), String> {
     let parent = destination
         .parent()
@@ -1028,6 +1035,56 @@ fn atomic_replace_dir(source: &Path, destination: &Path) -> Result<(), String> {
                 let _ = fs::rename(&backup, destination);
             }
             let _ = fs::remove_dir_all(&temp);
+            Err(format!("Cannot finalise plugin install: {error}"))
+        }
+    }
+}
+
+/// Windows keeps every staging directory and `.aether-backup-*` folder in the
+/// user's `%TEMP%`, never in `Program Files`. FL Studio's scanner (`ilbridge.exe`)
+/// can otherwise trip over backup folders that look like broken VST3 bundles
+/// while it walks the common plug-in directory.
+#[cfg(target_os = "windows")]
+fn atomic_replace_dir(source: &Path, destination: &Path) -> Result<(), String> {
+    let parent = destination
+        .parent()
+        .ok_or_else(|| "Invalid install destination".to_string())?;
+    fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+
+    let tag = uuid::Uuid::new_v4();
+    let stage_root = std::env::temp_dir().join(format!("aether-vst-install-{tag}"));
+    fs::create_dir_all(&stage_root).map_err(|e| e.to_string())?;
+
+    let temp = stage_root.join(format!(".aether-tmp-{tag}"));
+    let backup = stage_root.join(format!(".aether-backup-{tag}"));
+
+    if let Err(error) = copy_dir_contents(source, &temp) {
+        let _ = fs::remove_dir_all(&stage_root);
+        return Err(error);
+    }
+
+    if destination.exists() {
+        if let Err(error) = copy_dir_contents(destination, &backup) {
+            let _ = fs::remove_dir_all(&stage_root);
+            return Err(format!("Cannot back up existing plugin: {error}"));
+        }
+        if let Err(error) = fs::remove_dir_all(destination) {
+            let _ = fs::remove_dir_all(&stage_root);
+            return Err(format!("Cannot replace existing plugin: {error}"));
+        }
+    }
+
+    match copy_dir_contents(&temp, destination) {
+        Ok(()) => {
+            let _ = fs::remove_dir_all(&stage_root);
+            Ok(())
+        }
+        Err(error) => {
+            let _ = fs::remove_dir_all(destination);
+            if backup.exists() {
+                let _ = copy_dir_contents(&backup, destination);
+            }
+            let _ = fs::remove_dir_all(&stage_root);
             Err(format!("Cannot finalise plugin install: {error}"))
         }
     }

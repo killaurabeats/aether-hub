@@ -1,4 +1,4 @@
-//! Licence key issuing — byte-for-byte compatible with AetherVocal Strip.
+//! Licence key issuing - byte-for-byte compatible with AetherVocal Strip.
 //!
 //! The plugin signs with Monocypher's EdDSA construction, which is Ed25519
 //! with BLAKE2b instead of SHA-512. We vendor Monocypher so keys are

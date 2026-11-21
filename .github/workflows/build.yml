@@ -67,6 +67,8 @@ jobs:
           # cannot write to the cloud.
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || 'https://tniqfffgpisajjprjgmi.supabase.co' }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || 'sb_publishable_e7J0bhqynbEsMOD4FR_nXg_Iup0q0lH' }}
+          # Public legacy anon JWT used only for Supabase Realtime. Safe to embed.
+          VITE_SUPABASE_REALTIME_KEY: ${{ secrets.VITE_SUPABASE_REALTIME_KEY }}
           VITE_AETHER_ADMIN_TOKEN: ""
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}

@@ -48,7 +48,7 @@ if [[ -n "$DMGBUILD" ]]; then
   echo "▸ Building DMG with dmgbuild…"
   AETHER_ROOT="$PWD" "$DMGBUILD" -s tools/dmg_settings.py "Aether Hub" "$DMG"
 else
-  echo "▸ dmgbuild not found — using hdiutil fallback"
+  echo "▸ dmgbuild not found - using hdiutil fallback"
   STAGE="$(mktemp -d)"
   cp -R "$APP" "$STAGE/"
   ln -s /Applications "$STAGE/Applications"

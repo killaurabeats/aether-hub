@@ -1431,6 +1431,8 @@ a {
   display: flex;
   flex-direction: column;
   cursor: pointer;
+  border-radius: var(--radius);
+  isolation: isolate;
   transition: border-color 0.35s ease, box-shadow 0.35s ease, transform 0.35s var(--ease);
 }
 
@@ -1446,6 +1448,7 @@ a {
   position: relative;
   aspect-ratio: 16 / 9.6;
   overflow: hidden;
+  border-radius: var(--radius) var(--radius) 0 0;
   background: linear-gradient(140deg, #1a1230, #0c0817);
 }
 
