@@ -664,12 +664,42 @@ pub fn machine_id_string() -> String {
     hwid::machine_info().formatted
 }
 
+#[cfg(target_os = "macos")]
+fn make_webview_transparent(window: &tauri::WebviewWindow) {
+    use objc2::msg_send;
+    use objc2_foundation::{NSNumber, NSString};
+
+    let _ = window.with_webview(|webview| {
+        let view = webview.inner() as *mut objc2_web_kit::WKWebView;
+        if view.is_null() {
+            return;
+        }
+        unsafe {
+            let _: () = msg_send![view, setOpaque: false];
+            let key = NSString::from_str("drawsBackground");
+            let value = NSNumber::numberWithBool(false);
+            let _: () = msg_send![view, setValue: &*value, forKey: &*key];
+        }
+    });
+}
+
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_drag::init())
+        .setup(|app| {
+            if let Some(window) = app.get_webview_window("main") {
+                // Keep transparent pixels outside the CSS border radius on
+                // macOS and disable the native rectangular window shadow.
+                let _ = window.set_background_color(Some(tauri::window::Color(0, 0, 0, 0)));
+                let _ = window.set_shadow(false);
+                #[cfg(target_os = "macos")]
+                make_webview_transparent(&window);
+            }
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             machine_id,
             admin_status,

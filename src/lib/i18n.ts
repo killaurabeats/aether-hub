@@ -891,6 +891,7 @@ const en: Record<string, string> = {
   "Очистить уведомления": "Clear notifications",
   "Уведомления очищены": "Notifications cleared",
   "Обновить сейчас": "Update now",
+  "Восстановить": "Restore",
 };
 
 export function translate(
