@@ -104,7 +104,7 @@ export function WindowChrome() {
         onDoubleClick={() => call((win) => win.toggleMaximize())}
       >
         <span className="chrome-title" data-tauri-drag-region>
-          Aether Hub · {isMac ? "macOS" : "Windows"} · v1.3.4
+          Aether Hub · {isMac ? "macOS" : "Windows"} · v1.3.5
         </span>
       </div>
 
