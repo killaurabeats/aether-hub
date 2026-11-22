@@ -354,7 +354,21 @@ Deno.serve(async (request) => {
       .eq("used_by_hwid", machine)
       .limit(1)
       .maybeSingle();
-    if (!invite) return json({ error: "Beta invite required" }, 403);
+
+    // Creators can install BETA builds without burning an invite. Accept the
+    // admin token from the app, or a HWID listed in the ADMIN_HWIDS secret.
+    const adminHwids = String(Deno.env.get("ADMIN_HWIDS") ?? "")
+      .split(/[,;\s]+/)
+      .map(normaliseMachineId)
+      .filter(Boolean);
+    const isAdminToken = Boolean(
+      payload.adminToken && adminToken && String(payload.adminToken) === adminToken,
+    );
+    const isAdminHwid = adminHwids.includes(machine);
+
+    if (!invite && !isAdminToken && !isAdminHwid) {
+      return json({ error: "Beta invite required" }, 403);
+    }
 
     try {
       const key = issueLicenseKey(machine, productTag);

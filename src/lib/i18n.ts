@@ -557,7 +557,7 @@ const en: Record<string, string> = {
 
   // -------------------------------------------------------------------- misc
   "Aether Plugins · by. @killaurabeats": "Aether Plugins · by. @killaurabeats",
-  "AETHER HUB · 1.3.11 · CINEMATIC INTRO": "AETHER HUB · 1.3.11 · CINEMATIC INTRO",
+  "AETHER HUB · 1.3.12 · CINEMATIC INTRO": "AETHER HUB · 1.3.12 · CINEMATIC INTRO",
   "Эффекты стекла": "Glass effects",
   "Размытие": "Blur",
   "Включено": "On",
@@ -585,7 +585,7 @@ const en: Record<string, string> = {
   "Включить звук заставки": "Enable the startup sound",
   "Русский": "Russian",
   "не задан": "not set",
-  "Aether Hub · 1.3.11 · CINEMATIC INTRO": "AETHER HUB · 1.3.11 · CINEMATIC INTRO",
+  "Aether Hub · 1.3.12 · CINEMATIC INTRO": "AETHER HUB · 1.3.12 · CINEMATIC INTRO",
   "Чат с создателем": "Creator chat",
   "Скоро здесь появится встроенная поддержка.":
     "Built-in support is coming soon.",
@@ -926,6 +926,19 @@ const en: Record<string, string> = {
     "Auto-update is available in the desktop app only",
   "Плагин установлен в {path}. Если FL Studio не видит его, добавьте эту папку в Options - Manage plugins - Plugin search paths.":
     "Plugin installed to {path}. If FL Studio cannot see it, add this folder in Options - Manage plugins - Plugin search paths.",
+  "Доступ создателя": "Creator access",
+  "Не удалось сохранить Admin HWID": "Could not save Admin HWID",
+  "Устройство добавлено в Admin HWID": "Device added to Admin HWID",
+  "BETA-доступ": "BETA access",
+  "Открыт автоматически для {role}. Инвайт-код не требуется.":
+    "Opened automatically for {role}. No invite code required.",
+  "АКТИВЕН": "ACTIVE",
+  "НЕ ДОБАВЛЕН": "NOT ADDED",
+  "Текущий HWID:": "Current HWID:",
+  "Устройства из этого списка открывают BETA-плагины без инвайт-кода.":
+    "Devices in this list open BETA plugins without an invite code.",
+  "Это устройство уже в Admin HWID": "This device is already in Admin HWID",
+  "Добавить это устройство в Admin HWID": "Add this device to Admin HWID",
 };
 
 export function translate(

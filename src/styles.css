@@ -731,6 +731,14 @@ a {
   background: rgba(255, 255, 255, 0.06);
 }
 
+.creator-chip {
+  height: 24px;
+  padding: 0 8px;
+  font-size: 8px;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+}
+
 .profile-chip .nick {
   font-size: 12px;
   font-weight: 550;

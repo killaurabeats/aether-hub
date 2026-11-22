@@ -38,10 +38,15 @@ import { createClient } from "@supabase/supabase-js";
 const env = import.meta.env as Record<string, string | undefined>;
 
 export const ADMIN_TOKEN_STORAGE_KEY = "aether.admin.token.v1";
+export const LEGACY_ADMIN_TOKEN_STORAGE_KEY = "aether_admin_token";
 
 function readStoredAdminToken(): string {
   try {
-    return localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY)?.trim() ?? "";
+    return (
+      localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY)?.trim() ||
+      localStorage.getItem(LEGACY_ADMIN_TOKEN_STORAGE_KEY)?.trim() ||
+      ""
+    );
   } catch {
     return "";
   }
@@ -79,8 +84,13 @@ export function storeAdminToken(token: string | null): void {
   const next = (token ?? "").trim();
   cloudConfig.adminToken = next;
   try {
-    if (next) localStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, next);
-    else localStorage.removeItem(ADMIN_TOKEN_STORAGE_KEY);
+    if (next) {
+      localStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, next);
+      localStorage.setItem(LEGACY_ADMIN_TOKEN_STORAGE_KEY, next);
+    } else {
+      localStorage.removeItem(ADMIN_TOKEN_STORAGE_KEY);
+      localStorage.removeItem(LEGACY_ADMIN_TOKEN_STORAGE_KEY);
+    }
   } catch {
     // localStorage can be unavailable in hardened webviews; keep the token
     // for this session only.
@@ -1380,6 +1390,7 @@ export async function fetchBetaLicenseKey(
   machineId: string,
   productTag: string,
   nickname?: string,
+  adminToken?: string | null,
 ): Promise<string> {
   if (!cloudEnabled) throw new Error("Cloud is not configured.");
   const headers: Record<string, string> = {
@@ -1393,7 +1404,12 @@ export async function fetchBetaLicenseKey(
     headers,
     body: JSON.stringify({
       action: "beta_license",
-      payload: { machineId, productTag, nickname },
+      payload: {
+        machineId,
+        productTag,
+        nickname,
+        adminToken: adminToken?.trim() || undefined,
+      },
     }),
   });
   const data = await response.json().catch(() => ({}));

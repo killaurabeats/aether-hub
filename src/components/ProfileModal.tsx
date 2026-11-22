@@ -28,7 +28,8 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
     admin,
     adminView,
     adminTokenReady,
-    adminVisible,
+    adminHwidMatch,
+    hasBetaAccess,
     setAdminView,
     saveProfile,
     updateSettings,
@@ -49,6 +50,17 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
   const [activating, setActivating] = useState(false);
   const fileRef = useRef<HTMLInputElement | null>(null);
   const cropUrlRef = useRef<string | null>(null);
+  const creatorAccess = admin.enabled || adminTokenReady;
+  const betaAccess = betaTester || hasBetaAccess;
+  const accessLabel = admin.enabled
+    ? "CREATOR"
+    : adminTokenReady
+      ? "ADMIN"
+      : adminHwidMatch
+        ? "ADMIN HWID"
+        : betaTester
+          ? "BETA TESTER"
+          : null;
 
   useEffect(() => {
     return () => {
@@ -155,9 +167,9 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
             <div className="profile-top">
               <div className="avatar-edit" onClick={() => fileRef.current?.click()}>
                 <Avatar name={nickname || "aether"} src={avatar} size={96} />
-                {betaTester ? (
+                {accessLabel ? (
                   <span
-                    className="chip beta"
+                    className={`chip ${creatorAccess || adminHwidMatch ? "gold" : "beta"}`}
                     style={{
                       position: "absolute",
                       bottom: -11,
@@ -168,7 +180,7 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
                       letterSpacing: "0.12em",
                     }}
                   >
-                    BETA
+                    {accessLabel}
                   </span>
                 ) : null}
                 <div className="overlay">
@@ -189,12 +201,12 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
                 <div className="field">
                   <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     {t("Никнейм")}
-                    {betaTester ? (
+                    {accessLabel ? (
                       <span
-                        className="chip beta"
+                        className={`chip ${creatorAccess || adminHwidMatch ? "gold" : "beta"}`}
                         style={{ letterSpacing: "0.12em", fontWeight: 700 }}
                       >
-                        <ShieldCheck size={9} /> BETA TESTER
+                        <ShieldCheck size={9} /> {accessLabel}
                       </span>
                     ) : null}
                   </label>
@@ -211,7 +223,7 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
                   </span>
                 </div>
 
-                {!betaTester && cloudEnabled && !betaLoading ? (
+                {!betaAccess && cloudEnabled && !betaLoading ? (
                   <div className="field" style={{ marginTop: 10 }}>
                     <label>{t("Инвайт-код Beta Tester")}</label>
                     <div style={{ display: "flex", gap: 8 }}>
@@ -239,6 +251,16 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
                       {t("Одноразовый код привязывается к вашему Machine ID.")}
                     </span>
                   </div>
+                ) : betaAccess && !betaTester ? (
+                  <div className="field" style={{ marginTop: 10 }}>
+                    <label>{t("BETA-доступ")}</label>
+                    <span className="hint">
+                      {t(
+                        "Открыт автоматически для {role}. Инвайт-код не требуется.",
+                        { role: accessLabel ?? "CREATOR / ADMIN" },
+                      )}
+                    </span>
+                  </div>
                 ) : null}
               </div>
               <button className="btn btn-primary" onClick={() => void save()} disabled={saving}>
@@ -252,7 +274,11 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
                 <h3>
                   <ShieldCheck size={13} /> Machine ID
                 </h3>
-                {adminVisible ? <span className="chip gold">ADMIN</span> : null}
+                {accessLabel ? (
+                  <span className={`chip ${creatorAccess || adminHwidMatch ? "gold" : "beta"}`}>
+                    {accessLabel}
+                  </span>
+                ) : null}
               </div>
               {idEditing ? (
                 <div className="field">
@@ -446,7 +472,7 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
                   </svg>
                   @whofriends1
                 </button>
-                <span className="chip violet">v1.3.11</span>
+                <span className="chip violet">v1.3.12</span>
               </div>
             </div>
           </div>

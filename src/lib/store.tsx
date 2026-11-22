@@ -34,6 +34,7 @@ import {
   addComment as cloudAddComment,
   adminOverview,
   adminTokenIsBaked,
+  cloudConfig,
   cloudEnabled,
   fetchProfile,
   deleteComment as cloudDeleteComment,
@@ -58,6 +59,7 @@ import {
   verifyAdminToken,
   type AdminOverview,
 } from "./cloud";
+import { isAdminHwid, rememberAdminHwid } from "./adminAccess";
 import { formatBytes } from "./format";
 import { processAvatar } from "./image";
 import { setFormatLanguage } from "./format";
@@ -108,8 +110,8 @@ const defaultSettings: Settings = {
 };
 
 const fallbackMachine: MachineInfo = {
-  canonical: "A4F255039168BE032BEEEE7C450FF6A6",
-  formatted: "A4F2-5503-9168-BE03-2BEE-EE7C-450F-F6A6",
+  canonical: "A46655039168BE032BEEEE7C450FF6A6",
+  formatted: "A466-5503-9168-BE03-2BEE-EE7C-450F-F6A6",
   os: "macos",
   platformLabel: "macOS",
 };
@@ -176,6 +178,10 @@ interface StoreValue {
   licenses: License[];
   betaTester: boolean;
   betaLoading: boolean;
+  hasBetaAccess: boolean;
+  creatorAccess: boolean;
+  adminHwidMatch: boolean;
+  addAdminHwid: (machineId?: string) => boolean;
   samples: CommunitySample[];
   mySamples: CommunitySample[];
   samplesLoading: boolean;
@@ -237,6 +243,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [licenses, setLicenses] = useState<License[]>([]);
   const [betaTester, setBetaTester] = useState(false);
   const [betaLoading, setBetaLoading] = useState(true);
+  const [adminHwidRevision, setAdminHwidRevision] = useState(0);
   const [samples, setSamples] = useState<CommunitySample[]>([]);
   const [mySamples, setMySamples] = useState<CommunitySample[]>([]);
   const [samplesLoading, setSamplesLoading] = useState(true);
@@ -278,6 +285,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   // Either a local private key (full creator mode) or a runtime Cloud admin
   // token unlocks the panel. Keygen additionally requires admin.enabled.
   const adminVisible = (admin.enabled || adminTokenReady) && adminView === "admin";
+  const creatorAccess = admin.enabled || adminTokenReady;
+  const adminHwidMatch = useMemo(
+    () => isAdminHwid(machine.formatted),
+    [machine.formatted, adminHwidRevision],
+  );
+  // One gate for every BETA surface: cover lock, download panel, install button
+  // and automatic licence issuance.
+  const hasBetaAccess = betaTester || creatorAccess || adminHwidMatch;
 
   const setAdminView = useCallback((mode: "admin" | "user") => {
     setAdminViewState(mode);
@@ -316,6 +331,28 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     return () => timers.current.forEach((t) => window.clearTimeout(t));
   }, []);
+
+  const addAdminHwid = useCallback(
+    (value?: string) => {
+      const target = (value ?? machine.formatted).trim();
+      if (!rememberAdminHwid(target)) {
+        toast({
+          kind: "error",
+          title: t("Не удалось сохранить Admin HWID"),
+          message: target,
+        });
+        return false;
+      }
+      setAdminHwidRevision((revision) => revision + 1);
+      toast({
+        kind: "success",
+        title: t("Устройство добавлено в Admin HWID"),
+        message: target,
+      });
+      return true;
+    },
+    [machine.formatted, t, toast],
+  );
 
   const getFileForOS = useCallback(
     (release: Release) => {
@@ -666,7 +703,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      if ((release.tier ?? "free") === "beta" && !betaTester) {
+      if ((release.tier ?? "free") === "beta" && !hasBetaAccess) {
         toast({
           kind: "info",
           title: t("В разработке • Доступно только Beta-тестерам"),
@@ -725,7 +762,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         // on the server and drop it into the plugin's Application Support
         // folder, so the user never has to request/activate anything manually.
         const tier = release.tier ?? "free";
-        if (release.category === "plugins" && (tier === "free" || (tier === "beta" && betaTester))) {
+        if (release.category === "plugins" && (tier === "free" || (tier === "beta" && hasBetaAccess))) {
           void (async () => {
             const productTag = release.productTag || "AETHER-VOCAL-STRIP";
             const key =
@@ -734,6 +771,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
                     licensingMachineId,
                     productTag,
                     profile.nickname,
+                    cloudConfig.adminToken,
                   )
                 : await fetchFreeLicenseKey(
                     licensingMachineId,
@@ -776,8 +814,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       }
     },
     [
-      betaTester,
       getFileForOS,
+      hasBetaAccess,
       licensingMachineId,
       machine.platformLabel,
       profile.nickname,
@@ -1280,6 +1318,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       licenses,
       betaTester,
       betaLoading,
+      hasBetaAccess,
+      creatorAccess,
+      adminHwidMatch,
+      addAdminHwid,
       samples,
       mySamples,
       samplesLoading,
@@ -1340,6 +1382,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       licenses,
       betaTester,
       betaLoading,
+      hasBetaAccess,
+      creatorAccess,
+      adminHwidMatch,
+      addAdminHwid,
       samples,
       mySamples,
       samplesLoading,

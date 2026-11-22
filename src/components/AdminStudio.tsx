@@ -104,10 +104,13 @@ export function AdminStudio() {
   const {
     admin,
     adminTokenReady,
+    adminHwidMatch,
+    machine,
     releases,
     refreshCatalog,
     refreshAdminData,
     adminOverview: overview,
+    addAdminHwid,
     toast,
     removeComment,
     t,
@@ -702,6 +705,43 @@ export function AdminStudio() {
         >
           <RefreshCw size={12} /> {t("Обновить")}
         </button>
+      </div>
+
+      <div
+        className="admin-card glass"
+        style={{ marginBottom: 16, padding: "16px 20px" }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+          <div className="seal" style={{ width: 44, height: 44, borderRadius: 14, flex: "0 0 auto" }}>
+            <ShieldCheck size={18} />
+          </div>
+          <div style={{ flex: 1, minWidth: 220 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <h3 style={{ margin: 0 }}>Admin HWID</h3>
+              <span className={`chip ${adminHwidMatch ? "green" : "gold"}`}>
+                {adminHwidMatch ? t("АКТИВЕН") : t("НЕ ДОБАВЛЕН")}
+              </span>
+            </div>
+            <p className="sub" style={{ margin: "5px 0 0" }}>
+              {t("Текущий HWID:")} <code>{machine.formatted}</code>
+            </p>
+            <p className="sub" style={{ margin: "3px 0 0" }}>
+              {t(
+                "Устройства из этого списка открывают BETA-плагины без инвайт-кода.",
+              )}
+            </p>
+          </div>
+          <button
+            className="btn btn-soft btn-sm"
+            onClick={() => addAdminHwid()}
+            disabled={adminHwidMatch}
+          >
+            <ShieldCheck size={12} />
+            {adminHwidMatch
+              ? t("Это устройство уже в Admin HWID")
+              : t("Добавить это устройство в Admin HWID")}
+          </button>
+        </div>
       </div>
 
       {!adminTokenReady ? (

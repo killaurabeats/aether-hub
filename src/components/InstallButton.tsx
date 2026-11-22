@@ -11,12 +11,12 @@ export function InstallButton({
   size?: "sm" | "md" | "lg";
   className?: string;
 }) {
-  const { installs, progress, install, getFileForOS, machine, betaTester, t } =
+  const { installs, progress, install, getFileForOS, machine, hasBetaAccess, t } =
     useStore();
   const record = installs[release.slug];
   const job = progress[release.slug];
   const file = getFileForOS(release);
-  const betaLocked = (release.tier ?? "free") === "beta" && !betaTester;
+  const betaLocked = (release.tier ?? "free") === "beta" && !hasBetaAccess;
 
   const sizeClass = size === "sm" ? "btn-sm" : size === "lg" ? "btn-lg" : "";
 

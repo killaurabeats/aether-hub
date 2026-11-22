@@ -70,8 +70,24 @@ export function Topbar({
   onOpenRelease,
   refreshing,
 }: Props) {
-  const { profile, adminVisible, settings, updateSettings, t } = useStore();
+  const {
+    profile,
+    admin,
+    adminVisible,
+    adminTokenReady,
+    adminHwidMatch,
+    settings,
+    updateSettings,
+    t,
+  } = useStore();
   const heading = headingFor(view, profile.nickname.split(" ")[0] || "aether", t);
+  const accessLabel = admin.enabled
+    ? "CREATOR"
+    : adminTokenReady
+      ? "ADMIN"
+      : adminHwidMatch
+        ? "ADMIN HWID"
+        : null;
 
   return (
     <header className={`topbar ${view.name === "samples" ? "compact" : ""}`}>
@@ -133,6 +149,12 @@ export function Topbar({
       </button>
 
       <NotificationBell onNavigate={onNavigate} onOpenRelease={onOpenRelease} />
+
+      {accessLabel ? (
+        <span className="chip gold creator-chip" title={t("Доступ создателя")}>
+          <ShieldCheck size={9} /> {accessLabel}
+        </span>
+      ) : null}
 
       <button className="profile-chip" onClick={onOpenProfile} aria-label={t("Профиль")}>
         <span className="avatar s32">

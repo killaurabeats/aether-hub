@@ -41,7 +41,7 @@ export function ReleaseModal({
 }) {
   const {
     machine,
-    betaTester,
+    hasBetaAccess,
     licensingMachineId,
     activateLicense,
     updateSettings,
@@ -108,10 +108,8 @@ export function ReleaseModal({
 
   const meta = CATEGORY_META[release.category];
   const tier = release.tier ?? "free";
-  const betaLocked = tier === "beta" && !betaTester;
-  const hasBetaBuild = Boolean(release.files.macos || release.files.windows);
-  const betaCoverLocked =
-    tier === "beta" && !((betaTester || adminVisible) && hasBetaBuild);
+  const betaLocked = tier === "beta" && !hasBetaAccess;
+  const betaCoverLocked = tier === "beta" && !hasBetaAccess;
   const file = release.files[machine.os === "windows" ? "windows" : "macos"];
   const otherFile = release.files[machine.os === "windows" ? "macos" : "windows"];
 

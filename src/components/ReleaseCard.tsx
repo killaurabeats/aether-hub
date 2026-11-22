@@ -104,8 +104,7 @@ export function ReleaseCard({
     progress,
     getFileForOS,
     language,
-    betaTester,
-    adminVisible,
+    hasBetaAccess,
     t,
   } = useStore();
   const record = installs[release.slug];
@@ -114,10 +113,9 @@ export function ReleaseCard({
   const Icon = categoryIcon[release.category];
   const meta = CATEGORY_META[release.category];
   const hasBetaBuild = Boolean(release.files.macos || release.files.windows);
-  // Beta testers and admins can preview a beta that already has a build.
-  const testReady =
-    release.tier === "beta" && (betaTester || adminVisible) && hasBetaBuild;
-  const betaCoverLocked = release.tier === "beta" && !testReady;
+  // Creators, Admin HWIDs and beta testers unlock every BETA cover.
+  const testReady = release.tier === "beta" && hasBetaAccess && hasBetaBuild;
+  const betaCoverLocked = release.tier === "beta" && !hasBetaAccess;
 
   return (
     <motion.article
@@ -230,12 +228,11 @@ export function FeaturedRelease({
   release: Release;
   onOpen: (release: Release) => void;
 }) {
-  const { machine, language, betaTester, adminVisible, t } = useStore();
+  const { machine, language, hasBetaAccess, t } = useStore();
   const meta = CATEGORY_META[release.category];
   const hasBetaBuild = Boolean(release.files.macos || release.files.windows);
-  const testReady =
-    release.tier === "beta" && (betaTester || adminVisible) && hasBetaBuild;
-  const betaCoverLocked = release.tier === "beta" && !testReady;
+  const testReady = release.tier === "beta" && hasBetaAccess && hasBetaBuild;
+  const betaCoverLocked = release.tier === "beta" && !hasBetaAccess;
 
   return (
     <motion.div
