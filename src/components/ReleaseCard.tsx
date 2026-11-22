@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import {
   Boxes,
-  Check,
   Dumbbell,
   LockKeyhole,
   Music4,
@@ -100,14 +99,12 @@ export function ReleaseCard({
 }) {
   const {
     machine,
-    installs,
     progress,
     getFileForOS,
     language,
     hasBetaAccess,
     t,
   } = useStore();
-  const record = installs[release.slug];
   const job = progress[release.slug];
   const file = getFileForOS(release);
   const Icon = categoryIcon[release.category];
@@ -179,12 +176,6 @@ export function ReleaseCard({
           ) : null}
         </div>
 
-        {record ? (
-          <span className="installed-mark">
-            <Check size={10} /> {t("УСТАНОВЛЕНО")}
-          </span>
-        ) : null}
-
         {release.category === "drumkits" ? <PreviewButton release={release} /> : null}
       </div>
 
@@ -202,7 +193,7 @@ export function ReleaseCard({
               {release.category === "plugins" ? "VST3 / AU" : release.category === "presets" ? "FL / Aether" : "WAV 24-bit"} · {machine.platformLabel}
             </span>
           </div>
-          <InstallButton release={release} size="sm" />
+          <InstallButton release={release} size="sm" hideInstalled />
         </div>
 
         {job ? (
