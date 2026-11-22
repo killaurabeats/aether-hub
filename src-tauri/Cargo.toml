@@ -1,6 +1,6 @@
 [package]
 name = "aether-hub"
-version = "1.4.2"
+version = "1.4.3"
 description = "Aether Hub - plugin, drumkit and preset launcher"
 authors = ["Aether Plugins"]
 edition = "2021"

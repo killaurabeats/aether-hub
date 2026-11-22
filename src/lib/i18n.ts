@@ -557,7 +557,7 @@ const en: Record<string, string> = {
 
   // -------------------------------------------------------------------- misc
   "Aether Plugins · by. @killaurabeats": "Aether Plugins · by. @killaurabeats",
-  "AETHER HUB · 1.4.2 · CINEMATIC INTRO": "AETHER HUB · 1.4.2 · CINEMATIC INTRO",
+  "AETHER HUB · 1.4.3 · CINEMATIC INTRO": "AETHER HUB · 1.4.3 · CINEMATIC INTRO",
   "Эффекты стекла": "Glass effects",
   "Размытие": "Blur",
   "Включено": "On",
@@ -585,7 +585,7 @@ const en: Record<string, string> = {
   "Включить звук заставки": "Enable the startup sound",
   "Русский": "Russian",
   "не задан": "not set",
-  "Aether Hub · 1.4.2 · CINEMATIC INTRO": "AETHER HUB · 1.4.2 · CINEMATIC INTRO",
+  "Aether Hub · 1.4.3 · CINEMATIC INTRO": "AETHER HUB · 1.4.3 · CINEMATIC INTRO",
   "Чат с создателем": "Creator chat",
   "Скоро здесь появится встроенная поддержка.":
     "Built-in support is coming soon.",

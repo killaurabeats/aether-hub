@@ -113,6 +113,11 @@ export function ReleaseCard({
   // Creators, Admin HWIDs and beta testers unlock every BETA cover.
   const testReady = release.tier === "beta" && hasBetaAccess && hasBetaBuild;
   const betaCoverLocked = release.tier === "beta" && !hasBetaAccess;
+  const tierLabel = release.tier === "pro" ? "PRO" : "FREE";
+  const showStatusBadge =
+    Boolean(release.badge) &&
+    release.tier !== "beta" &&
+    String(release.badge).trim().toUpperCase() !== tierLabel;
 
   return (
     <motion.article
@@ -161,13 +166,11 @@ export function ReleaseCard({
               </>
             ) : (
               <span className={`chip ${release.tier === "pro" ? "gold" : "green"}`}>
-                {release.tier === "pro" ? "PRO" : "FREE"}
+                {tierLabel}
               </span>
             )
           ) : null}
-          {release.badge && release.tier !== "beta" ? (
-            <span className="chip gold">{release.badge}</span>
-          ) : null}
+          {showStatusBadge ? <span className="chip gold">{release.badge}</span> : null}
           <span className="spacer" />
           {release.tier !== "beta" ? (
             <span className="rating-pill" title={t("{count} оценок", { count: release.ratingCount })}>
@@ -193,7 +196,7 @@ export function ReleaseCard({
               {release.category === "plugins" ? "VST3 / AU" : release.category === "presets" ? "FL / Aether" : "WAV 24-bit"} · {machine.platformLabel}
             </span>
           </div>
-          <InstallButton release={release} size="sm" hideInstalled />
+          <InstallButton release={release} size="sm" hideMissingBuild />
         </div>
 
         {job ? (

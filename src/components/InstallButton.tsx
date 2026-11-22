@@ -6,13 +6,13 @@ export function InstallButton({
   release,
   size = "md",
   className = "",
-  hideInstalled = false,
+  hideMissingBuild = false,
 }: {
   release: Release;
   size?: "sm" | "md" | "lg";
   className?: string;
-  /** Cards show only the install/update action and stay empty when current. */
-  hideInstalled?: boolean;
+  /** Cards keep their footer clean when the current OS has no build yet. */
+  hideMissingBuild?: boolean;
 }) {
   const { installs, progress, install, getFileForOS, machine, hasBetaAccess, t } =
     useStore();
@@ -42,7 +42,7 @@ export function InstallButton({
   }
 
   if (!file) {
-    if (hideInstalled) return null;
+    if (hideMissingBuild) return null;
     return (
       <button
         className={`install-btn busy ${sizeClass} ${className}`}
@@ -57,7 +57,6 @@ export function InstallButton({
 
   if (record) {
     const isCurrent = record.version === release.version;
-    if (isCurrent && hideInstalled) return null;
     return (
       <button
         className={`install-btn ${isCurrent ? "installed" : "update"} ${sizeClass} ${className}`}
