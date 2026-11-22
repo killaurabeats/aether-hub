@@ -11,6 +11,7 @@ import {
   KeyRound,
   Languages,
   LayoutGrid,
+  Leaf,
   Loader2,
   Moon,
   Palette,
@@ -82,7 +83,7 @@ export function SettingsModal({
     initialSection === "cloud" && !adminVisible ? "general" : initialSection,
   );
   const [confirmReset, setConfirmReset] = useState(false);
-  const [version, setVersion] = useState("1.3.10");
+  const [version, setVersion] = useState("1.3.11");
   const [health, setHealth] = useState<CloudHealth | null>(null);
   const [checkingCloud, setCheckingCloud] = useState(false);
   const [secretOpen, setSecretOpen] = useState(false);
@@ -336,7 +337,7 @@ export function SettingsModal({
                       )}
                     </span>
                   </div>
-                  <span className="chip violet">{t("3 темы")}</span>
+                  <span className="chip violet">{t("4 темы")}</span>
                 </div>
 
                 <div className="theme-grid">
@@ -362,6 +363,15 @@ export function SettingsModal({
                         subtitle: t("Светлая"),
                         description: t("Светлая тема для работы при ярком свете."),
                         icon: Sun,
+                      },
+                      {
+                        id: "green-eminoemo" as const,
+                        title: t("Green Eminoemo"),
+                        subtitle: t("Изумрудно-белая"),
+                        description: t(
+                          "Глубокий тёмно-зелёный стиль с переливающимся белым градиентом.",
+                        ),
+                        icon: Leaf,
                       },
                     ]
                   ).map((theme) => {

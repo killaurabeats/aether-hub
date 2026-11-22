@@ -557,7 +557,7 @@ const en: Record<string, string> = {
 
   // -------------------------------------------------------------------- misc
   "Aether Plugins · by. @killaurabeats": "Aether Plugins · by. @killaurabeats",
-  "AETHER HUB · 1.3.10 · CINEMATIC INTRO": "AETHER HUB · 1.3.10 · CINEMATIC INTRO",
+  "AETHER HUB · 1.3.11 · CINEMATIC INTRO": "AETHER HUB · 1.3.11 · CINEMATIC INTRO",
   "Эффекты стекла": "Glass effects",
   "Размытие": "Blur",
   "Включено": "On",
@@ -585,7 +585,7 @@ const en: Record<string, string> = {
   "Включить звук заставки": "Enable the startup sound",
   "Русский": "Russian",
   "не задан": "not set",
-  "Aether Hub · 1.3.10 · CINEMATIC INTRO": "AETHER HUB · 1.3.10 · CINEMATIC INTRO",
+  "Aether Hub · 1.3.11 · CINEMATIC INTRO": "AETHER HUB · 1.3.11 · CINEMATIC INTRO",
   "Чат с создателем": "Creator chat",
   "Скоро здесь появится встроенная поддержка.":
     "Built-in support is coming soon.",
@@ -843,18 +843,23 @@ const en: Record<string, string> = {
   "Меняет фон, панели, текст и свечение всего приложения. Выбор сохраняется в localStorage.":
     "Changes the background, panels, text and glow across the app. The choice is saved in localStorage.",
   "3 темы": "3 themes",
+  "4 темы": "4 themes",
   "Aether Purple": "Aether Purple",
   "Фиолетовая": "Purple",
   "Pitch Black": "Pitch Black",
   "Чёрная": "Black",
   "Clean Light": "Clean Light",
   "Светлая": "Light",
+  "Green Eminoemo": "Green Eminoemo",
+  "Изумрудно-белая": "Emerald white",
   "Фирменный фиолетовый градиент и неоновое свечение.":
     "The signature purple gradient and neon glow.",
   "Глубокий чёрный интерфейс с минимальным свечением.":
     "A deep black interface with minimal glow.",
   "Светлая тема для работы при ярком свете.":
     "A light theme for working in bright environments.",
+  "Глубокий тёмно-зелёный стиль с переливающимся белым градиентом.":
+    "A deep emerald style with a shimmering white gradient.",
   "Тема применяется мгновенно ко всем экранам. Для максимального FPS дополнительно отключите «Эффекты стекла» на вкладке «Общие».":
     "The theme applies instantly to every screen. For maximum FPS, also turn off “Glass Blur” on the General tab.",
   "Подсказка по Samples & Loops": "Samples & Loops help",

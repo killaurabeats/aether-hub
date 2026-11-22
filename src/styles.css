@@ -5778,7 +5778,7 @@ a {
 /* Settings theme picker */
 .theme-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
   margin-top: 12px;
 }
@@ -5850,6 +5850,53 @@ a {
 
 .theme-swatch.light i {
   background: rgba(53, 35, 94, 0.34);
+}
+
+.theme-swatch.green-eminoemo {
+  position: relative;
+  background:
+    radial-gradient(85% 120% at 100% 0%, rgba(255, 255, 255, 0.2), transparent 58%),
+    radial-gradient(70% 120% at 0% 110%, rgba(52, 211, 153, 0.3), transparent 64%),
+    linear-gradient(135deg, #0e2219, #07130e);
+}
+
+.theme-swatch.green-eminoemo i {
+  background: rgba(244, 255, 251, 0.55);
+}
+
+.theme-swatch.green-eminoemo i:nth-child(1) {
+  background: linear-gradient(90deg, #f4fffb, #6ee7b7 58%, #34d399);
+  box-shadow: 0 0 10px rgba(110, 231, 183, 0.5);
+}
+
+.theme-swatch.green-eminoemo::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    115deg,
+    transparent 18%,
+    rgba(255, 255, 255, 0.2) 46%,
+    rgba(110, 231, 183, 0.12) 56%,
+    transparent 78%
+  );
+  background-size: 220% 100%;
+  animation: theme-swatch-sheen 7s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes theme-swatch-sheen {
+  0% {
+    background-position: 180% 0;
+  }
+  100% {
+    background-position: -80% 0;
+  }
+}
+
+.reduce-effects .theme-swatch.green-eminoemo::after {
+  animation: none;
+  opacity: 0.3;
 }
 
 .theme-card-copy {
@@ -6053,6 +6100,502 @@ a {
 .app-shell.theme-black .modal {
   background: linear-gradient(165deg, rgba(20, 20, 24, 0.98), rgba(5, 5, 7, 0.99));
   border-color: rgba(255, 255, 255, 0.13);
+}
+
+/* Green Eminoemo */
+.app-shell.theme-green-eminoemo {
+  --bg: #07130e;
+  --bg-2: #081711;
+  --bg-3: #0b1c15;
+  --panel: rgba(14, 34, 25, 0.85);
+  --panel-strong: rgba(16, 40, 30, 0.94);
+  --panel-soft: rgba(220, 252, 238, 0.04);
+  --line: rgba(220, 252, 238, 0.14);
+  --line-strong: rgba(110, 231, 183, 0.32);
+  --text: #f2fbf7;
+  --muted: #9bc2b2;
+  --dim: #6f9487;
+  --violet: #34d399;
+  --violet-deep: #10b981;
+  --lav: #f4fffb;
+  --pink: #6ee7b7;
+  --green: #6ee7b7;
+  --gold: #f3d9a4;
+  --red: #fb7185;
+  background:
+    radial-gradient(85% 70% at 84% -12%, rgba(52, 211, 153, 0.14), transparent 58%),
+    radial-gradient(70% 62% at 0% 110%, rgba(255, 255, 255, 0.08), transparent 62%),
+    linear-gradient(155deg, #0b1c15 0%, #07130e 54%, #05100b 100%);
+  border-color: rgba(220, 252, 238, 0.14);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 30px 90px rgba(0, 0, 0, 0.72);
+  color: var(--text);
+}
+
+.app-shell.theme-green-eminoemo::before {
+  content: "";
+  position: absolute;
+  inset: -18%;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    radial-gradient(45% 38% at 20% 16%, rgba(255, 255, 255, 0.08), transparent 66%),
+    linear-gradient(
+      112deg,
+      transparent 26%,
+      rgba(52, 211, 153, 0.14) 44%,
+      rgba(255, 255, 255, 0.08) 53%,
+      transparent 72%
+    );
+  background-size: 100% 100%, 220% 220%;
+  animation: green-eminoemo-sheen 18s ease-in-out infinite alternate;
+}
+
+@keyframes green-eminoemo-sheen {
+  0% {
+    background-position: 0% 0%, 0% 50%;
+  }
+  100% {
+    background-position: 0% 0%, 100% 50%;
+  }
+}
+
+.app-shell.theme-green-eminoemo.reduce-effects::before {
+  animation: none;
+  opacity: 0.55;
+}
+
+.app-shell.theme-green-eminoemo .bg-orb-a {
+  background: radial-gradient(circle, rgba(52, 211, 153, 0.26), transparent 64%);
+  opacity: 0.55;
+}
+
+.app-shell.theme-green-eminoemo .bg-orb-b {
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.11), transparent 66%);
+  opacity: 0.5;
+}
+
+.app-shell.theme-green-eminoemo .bg-orb-c {
+  background: radial-gradient(circle, rgba(110, 231, 183, 0.09), transparent 68%);
+}
+
+.app-shell.theme-green-eminoemo .bg-grid {
+  background-image:
+    linear-gradient(rgba(220, 252, 238, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(220, 252, 238, 0.04) 1px, transparent 1px);
+  opacity: 0.62;
+}
+
+.app-shell.theme-green-eminoemo .bg-vignette {
+  background: radial-gradient(120% 100% at 50% 40%, transparent 42%, rgba(2, 9, 6, 0.62) 100%);
+}
+
+.app-shell.theme-green-eminoemo .window-chrome {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent);
+  border-bottom-color: rgba(220, 252, 238, 0.08);
+}
+
+.app-shell.theme-green-eminoemo .chrome-title {
+  color: rgba(220, 252, 238, 0.42);
+}
+
+.app-shell.theme-green-eminoemo .sidebar {
+  background: linear-gradient(180deg, rgba(9, 25, 18, 0.82), rgba(5, 15, 11, 0.55));
+  border-right-color: rgba(220, 252, 238, 0.1);
+}
+
+.app-shell.theme-green-eminoemo .logo-button {
+  background: #071510;
+  border-color: rgba(220, 252, 238, 0.2);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 10px 26px -12px rgba(52, 211, 153, 0.6);
+}
+
+.app-shell.theme-green-eminoemo .logo-button::after {
+  background: radial-gradient(circle at 50% 120%, rgba(52, 211, 153, 0.5), transparent 60%);
+}
+
+.app-shell.theme-green-eminoemo .logo-button:hover {
+  border-color: rgba(220, 252, 238, 0.5);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    0 0 0 1px rgba(52, 211, 153, 0.25),
+    0 14px 36px -10px rgba(52, 211, 153, 0.8);
+}
+
+.app-shell.theme-green-eminoemo .nav-item:hover {
+  background: rgba(220, 252, 238, 0.055);
+}
+
+.app-shell.theme-green-eminoemo .nav-item.active {
+  background: linear-gradient(100deg, rgba(52, 211, 153, 0.24), rgba(110, 231, 183, 0.04));
+  box-shadow: inset 0 0 0 1px rgba(220, 252, 238, 0.12);
+}
+
+.app-shell.theme-green-eminoemo .nav-item.active::before {
+  background: linear-gradient(180deg, #f4fffb, #34d399);
+  box-shadow: 0 0 12px rgba(52, 211, 153, 0.85);
+}
+
+.app-shell.theme-green-eminoemo .nav-item.active svg {
+  color: #f4fffb;
+}
+
+.app-shell.theme-green-eminoemo .nav-badge {
+  background: rgba(52, 211, 153, 0.18);
+  border-color: rgba(110, 231, 183, 0.28);
+  color: #e2fff6;
+}
+
+.app-shell.theme-green-eminoemo .glass {
+  background:
+    radial-gradient(120% 130% at 100% 0%, rgba(52, 211, 153, 0.08), transparent 58%),
+    linear-gradient(150deg, rgba(14, 34, 25, 0.88), rgba(10, 27, 20, 0.8));
+  border-color: var(--line);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    0 18px 40px -18px rgba(0, 0, 0, 0.7);
+}
+
+.app-shell.theme-green-eminoemo .glass-soft {
+  background: rgba(14, 34, 25, 0.58);
+  border-color: var(--line);
+}
+
+.app-shell.theme-green-eminoemo .topbar .search-box,
+.app-shell.theme-green-eminoemo .topbar .icon-button,
+.app-shell.theme-green-eminoemo .profile-chip {
+  background: rgba(14, 34, 25, 0.55);
+  border-color: var(--line);
+  color: var(--muted);
+}
+
+.app-shell.theme-green-eminoemo .search-box:focus-within {
+  border-color: rgba(110, 231, 183, 0.42);
+  background: rgba(10, 27, 20, 0.72);
+}
+
+.app-shell.theme-green-eminoemo .icon-button:hover,
+.app-shell.theme-green-eminoemo .profile-chip:hover {
+  background: rgba(20, 48, 35, 0.7);
+  border-color: var(--line-strong);
+  color: var(--text);
+}
+
+.app-shell.theme-green-eminoemo .icon-button.active {
+  color: #f4fffb;
+  border-color: rgba(110, 231, 183, 0.34);
+  background: rgba(52, 211, 153, 0.18);
+}
+
+.app-shell.theme-green-eminoemo .chip.violet {
+  color: #e2fff6;
+  border-color: rgba(110, 231, 183, 0.3);
+  background: linear-gradient(115deg, rgba(52, 211, 153, 0.2), rgba(255, 255, 255, 0.07));
+}
+
+.app-shell.theme-green-eminoemo .filter-row,
+.app-shell.theme-green-eminoemo .segmented,
+.app-shell.theme-green-eminoemo .aether-select-trigger {
+  background: rgba(14, 34, 25, 0.55);
+  border-color: var(--line);
+}
+
+.app-shell.theme-green-eminoemo .filter-pill.active,
+.app-shell.theme-green-eminoemo .segmented button.active,
+.app-shell.theme-green-eminoemo .aether-select-option.active {
+  color: #f4fffb;
+  background: linear-gradient(115deg, rgba(52, 211, 153, 0.22), rgba(255, 255, 255, 0.055));
+  box-shadow: inset 0 0 0 1px rgba(110, 231, 183, 0.2);
+}
+
+.app-shell.theme-green-eminoemo .aether-select-menu {
+  border-color: rgba(220, 252, 238, 0.18);
+  background:
+    radial-gradient(100% 70% at 100% 0%, rgba(52, 211, 153, 0.12), transparent 70%),
+    linear-gradient(160deg, rgba(16, 40, 29, 0.99), rgba(6, 17, 12, 0.99));
+  box-shadow: 0 24px 55px rgba(0, 0, 0, 0.55), 0 0 34px -22px rgba(52, 211, 153, 0.7);
+}
+
+.app-shell.theme-green-eminoemo .btn-primary {
+  color: #04231a;
+  background: linear-gradient(115deg, #f4fffb 0%, #a7f3d0 38%, #34d399 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.6),
+    inset 0 -1px 0 rgba(4, 35, 26, 0.18),
+    0 10px 30px -12px rgba(52, 211, 153, 0.8);
+}
+
+.app-shell.theme-green-eminoemo .btn-primary:hover {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    0 12px 36px -10px rgba(110, 231, 183, 0.95);
+}
+
+.app-shell.theme-green-eminoemo .btn-ghost {
+  background: rgba(220, 252, 238, 0.045);
+}
+
+.app-shell.theme-green-eminoemo .btn-ghost:hover {
+  background: rgba(220, 252, 238, 0.08);
+}
+
+.app-shell.theme-green-eminoemo .btn-soft {
+  color: #d9fff1;
+  border-color: rgba(110, 231, 183, 0.3);
+  background: rgba(52, 211, 153, 0.14);
+}
+
+.app-shell.theme-green-eminoemo .btn-soft:hover {
+  background: rgba(52, 211, 153, 0.22);
+  border-color: rgba(110, 231, 183, 0.44);
+}
+
+.app-shell.theme-green-eminoemo .toggle.on {
+  background: linear-gradient(120deg, #f4fffb, #6ee7b7 55%, #34d399);
+  border-color: rgba(220, 252, 238, 0.38);
+}
+
+.app-shell.theme-green-eminoemo .slider {
+  background: rgba(220, 252, 238, 0.14);
+}
+
+.app-shell.theme-green-eminoemo .notice.violet {
+  border-color: rgba(110, 231, 183, 0.18);
+  background: rgba(52, 211, 153, 0.08);
+  color: #cdeadf;
+}
+
+.app-shell.theme-green-eminoemo .notice.violet svg {
+  color: #6ee7b7;
+  opacity: 1;
+}
+
+.app-shell.theme-green-eminoemo .hero::before {
+  background:
+    radial-gradient(80% 100% at 90% 10%, rgba(52, 211, 153, 0.2), transparent 60%),
+    linear-gradient(105deg, rgba(4, 17, 11, 0.72), transparent 62%);
+}
+
+.app-shell.theme-green-eminoemo .hero::after {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.42),
+    rgba(110, 231, 183, 0.3),
+    transparent
+  );
+}
+
+.app-shell.theme-green-eminoemo .hero h1 em {
+  background: linear-gradient(95deg, #f4fffb 0%, #a7f3d0 48%, #34d399 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.app-shell.theme-green-eminoemo .hero-stats {
+  border-top-color: rgba(220, 252, 238, 0.12);
+}
+
+.app-shell.theme-green-eminoemo .hero-logo {
+  border-color: rgba(220, 252, 238, 0.24);
+  box-shadow:
+    0 40px 90px -20px rgba(0, 0, 0, 0.8),
+    0 0 70px -10px rgba(52, 211, 153, 0.5);
+}
+
+.app-shell.theme-green-eminoemo .hero-badge {
+  background: rgba(8, 23, 17, 0.8);
+  border-color: var(--line);
+}
+
+.app-shell.theme-green-eminoemo .featured-cover::after {
+  background: linear-gradient(90deg, transparent 55%, rgba(5, 16, 11, 0.86));
+}
+
+.app-shell.theme-green-eminoemo .release-cover::after {
+  background: linear-gradient(
+    180deg,
+    rgba(4, 14, 9, 0.12),
+    transparent 32%,
+    rgba(4, 14, 9, 0.86) 100%
+  );
+}
+
+.app-shell.theme-green-eminoemo .release-card:hover {
+  border-color: rgba(110, 231, 183, 0.32);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 26px 60px -22px rgba(0, 0, 0, 0.85),
+    0 0 60px -30px rgba(52, 211, 153, 0.85);
+}
+
+.app-shell.theme-green-eminoemo .modal {
+  background: linear-gradient(165deg, rgba(16, 40, 29, 0.98), rgba(6, 17, 12, 0.99));
+  border-color: rgba(220, 252, 238, 0.16);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 50px 120px rgba(0, 0, 0, 0.72),
+    0 0 100px -40px rgba(52, 211, 153, 0.45);
+}
+
+.app-shell.theme-green-eminoemo .modal-backdrop {
+  background: rgba(2, 10, 6, 0.68);
+}
+
+.app-shell.theme-green-eminoemo .modal-close {
+  background: rgba(220, 252, 238, 0.04);
+  border-color: var(--line);
+  color: var(--muted);
+}
+
+.app-shell.theme-green-eminoemo .modal-close:hover {
+  color: #f4fffb;
+  background: rgba(220, 252, 238, 0.1);
+}
+
+.app-shell.theme-green-eminoemo .detail-side {
+  background: rgba(7, 20, 14, 0.42);
+  border-left-color: var(--line);
+}
+
+.app-shell.theme-green-eminoemo .detail-desc {
+  color: #cfeade;
+}
+
+.app-shell.theme-green-eminoemo .install-panel {
+  border-color: rgba(110, 231, 183, 0.16);
+  background: linear-gradient(140deg, rgba(52, 211, 153, 0.1), rgba(255, 255, 255, 0.015));
+}
+
+.app-shell.theme-green-eminoemo .field input,
+.app-shell.theme-green-eminoemo .field textarea,
+.app-shell.theme-green-eminoemo .field select,
+.app-shell.theme-green-eminoemo .chat-composer textarea,
+.app-shell.theme-green-eminoemo .comment-form textarea,
+.app-shell.theme-green-eminoemo .bpm-exact-input input {
+  background: rgba(5, 16, 11, 0.55);
+  border-color: var(--line);
+  color: var(--text);
+}
+
+.app-shell.theme-green-eminoemo .field input:focus,
+.app-shell.theme-green-eminoemo .field textarea:focus,
+.app-shell.theme-green-eminoemo .field select:focus,
+.app-shell.theme-green-eminoemo .bpm-exact-input input:focus {
+  border-color: rgba(110, 231, 183, 0.42);
+  background: rgba(7, 20, 14, 0.78);
+}
+
+.app-shell.theme-green-eminoemo .notif-panel {
+  border-color: rgba(220, 252, 238, 0.2);
+  background:
+    radial-gradient(100% 50% at 100% 0%, rgba(52, 211, 153, 0.14), transparent 65%),
+    linear-gradient(160deg, rgba(16, 40, 29, 0.99), rgba(6, 17, 12, 0.99));
+  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.62), 0 0 40px -26px rgba(52, 211, 153, 0.8);
+}
+
+.app-shell.theme-green-eminoemo .notif-item:hover {
+  background: rgba(52, 211, 153, 0.07);
+}
+
+.app-shell.theme-green-eminoemo .notif-icon {
+  background: rgba(52, 211, 153, 0.1);
+  border-color: rgba(110, 231, 183, 0.2);
+  color: #d9fff1;
+}
+
+.app-shell.theme-green-eminoemo .theme-card.active {
+  border-color: rgba(110, 231, 183, 0.5);
+  box-shadow:
+    inset 0 0 0 1px rgba(110, 231, 183, 0.18),
+    0 0 28px -16px rgba(52, 211, 153, 0.95);
+}
+
+.app-shell.theme-green-eminoemo .theme-check {
+  color: #f4fffb;
+  filter: drop-shadow(0 0 8px rgba(52, 211, 153, 0.8));
+}
+
+.app-shell.theme-green-eminoemo .soon-word {
+  background: linear-gradient(105deg, #f4fffb 0%, #d9fff1 35%, #a7f3d0 62%, #34d399 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  filter: drop-shadow(0 0 28px rgba(52, 211, 153, 0.42));
+}
+
+.app-shell.theme-green-eminoemo .soon-ring {
+  border-color: rgba(220, 252, 238, 0.09);
+  box-shadow: inset 0 0 80px rgba(52, 211, 153, 0.06);
+}
+
+.app-shell.theme-green-eminoemo .content::-webkit-scrollbar-thumb,
+.app-shell.theme-green-eminoemo .modal-scroll::-webkit-scrollbar-thumb,
+.app-shell.theme-green-eminoemo .comments-list::-webkit-scrollbar-thumb,
+.app-shell.theme-green-eminoemo .key-box::-webkit-scrollbar-thumb,
+.app-shell.theme-green-eminoemo .sidebar::-webkit-scrollbar-thumb,
+.app-shell.theme-green-eminoemo .id-box::-webkit-scrollbar-thumb {
+  background: rgba(110, 231, 183, 0.32);
+  box-shadow: 0 0 6px rgba(52, 211, 153, 0.25);
+}
+
+.app-shell.theme-green-eminoemo .content::-webkit-scrollbar-thumb:hover,
+.app-shell.theme-green-eminoemo .modal-scroll::-webkit-scrollbar-thumb:hover,
+.app-shell.theme-green-eminoemo .comments-list::-webkit-scrollbar-thumb:hover,
+.app-shell.theme-green-eminoemo .key-box::-webkit-scrollbar-thumb:hover,
+.app-shell.theme-green-eminoemo .sidebar::-webkit-scrollbar-thumb:hover,
+.app-shell.theme-green-eminoemo .id-box::-webkit-scrollbar-thumb:hover {
+  background: rgba(110, 231, 183, 0.56);
+}
+
+/* Green Eminoemo stays green and solid with Glass Blur off. */
+.app-shell.theme-green-eminoemo.no-blur .glass {
+  background: linear-gradient(160deg, rgba(14, 34, 25, 0.99), rgba(8, 23, 17, 0.99));
+}
+
+.app-shell.theme-green-eminoemo.no-blur .glass-soft,
+.app-shell.theme-green-eminoemo.no-blur .toast,
+.app-shell.theme-green-eminoemo.no-blur .side-status,
+.app-shell.theme-green-eminoemo.no-blur .profile-chip,
+.app-shell.theme-green-eminoemo.no-blur .search-box,
+.app-shell.theme-green-eminoemo.no-blur .icon-button,
+.app-shell.theme-green-eminoemo.no-blur .filter-row,
+.app-shell.theme-green-eminoemo.no-blur .segmented {
+  background: rgba(11, 28, 21, 0.97);
+}
+
+.app-shell.theme-green-eminoemo.no-blur .modal {
+  background: #0b1c15;
+}
+
+.app-shell.theme-green-eminoemo.no-blur .toast {
+  background: #0b1c15;
+}
+
+.app-shell.theme-green-eminoemo.no-blur .chip,
+.app-shell.theme-green-eminoemo.no-blur .rating-pill,
+.app-shell.theme-green-eminoemo.no-blur .cover-play,
+.app-shell.theme-green-eminoemo.no-blur .hero-badge,
+.app-shell.theme-green-eminoemo.no-blur .installed-mark,
+.app-shell.theme-green-eminoemo.no-blur .segmented button.active,
+.app-shell.theme-green-eminoemo.no-blur .filter-pill.active {
+  background: #143327;
+}
+
+.app-shell.theme-green-eminoemo.no-blur .modal-backdrop {
+  background: rgba(2, 9, 6, 0.92);
+}
+
+.app-shell.theme-green-eminoemo.no-blur .id-box,
+.app-shell.theme-green-eminoemo.no-blur .key-box,
+.app-shell.theme-green-eminoemo.no-blur .comment-form textarea,
+.app-shell.theme-green-eminoemo.no-blur .field input,
+.app-shell.theme-green-eminoemo.no-blur .field textarea,
+.app-shell.theme-green-eminoemo.no-blur .field select {
+  background: #06120d;
 }
 
 /* Clean Light */
@@ -6502,7 +7045,8 @@ a {
 }
 
 .app-shell.theme-black,
-.app-shell.theme-light {
+.app-shell.theme-light,
+.app-shell.theme-green-eminoemo {
   color: var(--text);
 }
 

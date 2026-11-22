@@ -280,7 +280,7 @@ export interface CloudConfig {
 }
 
 export type Language = "ru" | "en";
-export type Theme = "purple" | "black" | "light";
+export type Theme = "purple" | "black" | "light" | "green-eminoemo";
 
 export interface Settings {
   language: Language;
