@@ -4757,6 +4757,30 @@ a {
   box-shadow: 0 0 12px -3px rgba(245, 158, 11, 0.75);
 }
 
+.nav-badge.locked {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--dim);
+  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--line);
+  box-shadow: none;
+}
+
+.nav-item.locked {
+  color: var(--dim);
+  cursor: default;
+}
+
+.nav-item.locked:hover {
+  background: transparent;
+  color: var(--dim);
+}
+
+.nav-item.locked:hover svg {
+  opacity: 0.72;
+}
+
 .filter-pill.beta.active,
 .segmented button.beta.active {
   color: #fff3d3;

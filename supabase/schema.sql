@@ -108,6 +108,22 @@ create table if not exists public.ratings (
   unique (release_id, machine_id)
 );
 
+-- Ratings are hardware-bound: exactly one vote per release and machine.
+alter table public.ratings alter column machine_id set not null;
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint
+    where conrelid = 'public.ratings'::regclass
+      and conname = 'ratings_release_id_machine_id_key'
+  ) then
+    alter table public.ratings
+      add constraint ratings_release_id_machine_id_key
+      unique (release_id, machine_id);
+  end if;
+end
+$$;
+
 create table if not exists public.license_requests (
   id            uuid primary key default gen_random_uuid(),
   machine_id    text not null,
@@ -255,17 +271,17 @@ begin
   on conflict (release_id, machine_id)
   do update set value = excluded.value, created_at = now();
 
-  select round(avg(value)::numeric, 2), count(*)
+  select round(avg(value)::numeric, 2), count(distinct machine_id)
     into v_avg, v_count
     from public.ratings
    where release_id = p_release_id;
 
   update public.releases
-     set rating_avg = coalesce(v_avg, 5.00),
+     set rating_avg = coalesce(v_avg, 0.00),
          rating_count = v_count
    where id = p_release_id;
 
-  return jsonb_build_object('avg', coalesce(v_avg, 5.00), 'count', v_count, 'mine', p_value);
+  return jsonb_build_object('avg', coalesce(v_avg, 0.00), 'count', v_count, 'mine', p_value);
 end;
 $$;
 

@@ -110,8 +110,8 @@ const defaultSettings: Settings = {
 };
 
 const fallbackMachine: MachineInfo = {
-  canonical: "A46655039168BE032BEEEE7C450FF6A6",
-  formatted: "A466-5503-9168-BE03-2BEE-EE7C-450F-F6A6",
+  canonical: "A4F255039168BE032BEEEE7C450FF6A6",
+  formatted: "A4F2-5503-9168-BE03-2BEE-EE7C-450F-F6A6",
   os: "macos",
   platformLabel: "macOS",
 };
@@ -181,6 +181,7 @@ interface StoreValue {
   hasBetaAccess: boolean;
   creatorAccess: boolean;
   adminHwidMatch: boolean;
+  isAdmin: boolean;
   addAdminHwid: (machineId?: string) => boolean;
   samples: CommunitySample[];
   mySamples: CommunitySample[];
@@ -293,6 +294,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   // One gate for every BETA surface: cover lock, download panel, install button
   // and automatic licence issuance.
   const hasBetaAccess = betaTester || creatorAccess || adminHwidMatch;
+  // Creator Mode, a valid admin token or a baked/local Admin HWID.
+  const isAdmin = creatorAccess || adminHwidMatch;
 
   const setAdminView = useCallback((mode: "admin" | "user") => {
     setAdminViewState(mode);
@@ -901,7 +904,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const rate = useCallback(
     async (release: Release, value: number) => {
       try {
-        const result = await cloudRate(release.id, licensingMachineId, value);
+        // Ratings are bound to the physical HWID, not the editable licence ID,
+        // so changing the Machine ID field cannot create a second vote.
+        const result = await cloudRate(release.id, machine.formatted, value);
         setMyRatings((prev) => ({ ...prev, [release.id]: value }));
         setReleases((prev) =>
           prev.map((r) =>
@@ -915,20 +920,20 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         toast({ kind: "error", title: t("Оценка не сохранена"), message: String(error) });
       }
     },
-    [licensingMachineId, toast, t],
+    [machine.formatted, toast, t],
   );
 
   const loadMyRating = useCallback(
     async (releaseId: string) => {
       try {
         const { fetchMyRating } = await import("./cloud");
-        const value = await fetchMyRating(releaseId, licensingMachineId);
-        if (value) setMyRatings((prev) => ({ ...prev, [releaseId]: value }));
+        const value = await fetchMyRating(releaseId, machine.formatted);
+        if (value != null) setMyRatings((prev) => ({ ...prev, [releaseId]: value }));
       } catch {
         // Offline or cloud unavailable - keep the local UI usable.
       }
     },
-    [licensingMachineId],
+    [machine.formatted],
   );
 
   const saveProfile = useCallback(
@@ -1321,6 +1326,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       hasBetaAccess,
       creatorAccess,
       adminHwidMatch,
+      isAdmin,
       addAdminHwid,
       samples,
       mySamples,
@@ -1385,6 +1391,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       hasBetaAccess,
       creatorAccess,
       adminHwidMatch,
+      isAdmin,
       addAdminHwid,
       samples,
       mySamples,

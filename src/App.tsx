@@ -51,6 +51,7 @@ function Shell() {
     admin,
     adminVisible,
     adminTokenReady,
+    isAdmin,
     machine,
     releases,
     refreshCatalog,
@@ -100,6 +101,18 @@ function Shell() {
       setView({ name: "home" });
     }
   }, [admin.enabled, adminTokenReady, adminVisible, view.name]);
+
+  // Samples & Loops is creator-only until the public launch. Guard the route
+  // itself, not just the sidebar click, so deep links and stale state cannot
+  // open the page for regular users.
+  useEffect(() => {
+    if (view.name !== "samples" || isAdmin) return;
+    setView({ name: "category", category: "plugins" });
+    if (window.location.hash === "#samples") {
+      window.history.replaceState(null, "", "#plugins");
+    }
+    toast({ kind: "info", title: t("Раздел скоро откроется") });
+  }, [isAdmin, t, toast, view.name]);
 
   useEffect(() => {
     const onHash = () => setView(initialView());
@@ -301,7 +314,7 @@ function Shell() {
       case "search":
         return <SearchResults query={effectiveView.query} onOpenRelease={openRelease} />;
       case "samples":
-        return <SamplesView />;
+        return isAdmin ? <SamplesView /> : null;
       case "admin":
         return adminVisible ? <AdminStudio /> : null;
       case "keygen":

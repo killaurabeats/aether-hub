@@ -557,7 +557,7 @@ const en: Record<string, string> = {
 
   // -------------------------------------------------------------------- misc
   "Aether Plugins · by. @killaurabeats": "Aether Plugins · by. @killaurabeats",
-  "AETHER HUB · 1.3.12 · CINEMATIC INTRO": "AETHER HUB · 1.3.12 · CINEMATIC INTRO",
+  "AETHER HUB · 1.4.0 · CINEMATIC INTRO": "AETHER HUB · 1.4.0 · CINEMATIC INTRO",
   "Эффекты стекла": "Glass effects",
   "Размытие": "Blur",
   "Включено": "On",
@@ -585,7 +585,7 @@ const en: Record<string, string> = {
   "Включить звук заставки": "Enable the startup sound",
   "Русский": "Russian",
   "не задан": "not set",
-  "Aether Hub · 1.3.12 · CINEMATIC INTRO": "AETHER HUB · 1.3.12 · CINEMATIC INTRO",
+  "Aether Hub · 1.4.0 · CINEMATIC INTRO": "AETHER HUB · 1.4.0 · CINEMATIC INTRO",
   "Чат с создателем": "Creator chat",
   "Скоро здесь появится встроенная поддержка.":
     "Built-in support is coming soon.",
@@ -939,6 +939,7 @@ const en: Record<string, string> = {
     "Devices in this list open BETA plugins without an invite code.",
   "Это устройство уже в Admin HWID": "This device is already in Admin HWID",
   "Добавить это устройство в Admin HWID": "Add this device to Admin HWID",
+  "Раздел скоро откроется": "This section is coming soon",
 };
 
 export function translate(

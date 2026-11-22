@@ -11,6 +11,7 @@ import {
   Sparkles,
   Ticket,
   Globe2,
+  Lock,
   LockKeyhole,
   Waves,
 } from "lucide-react";
@@ -38,8 +39,10 @@ export function Sidebar({ view, onNavigate, onOpenSupport }: Props) {
     admin,
     adminVisible,
     adminTokenReady,
+    isAdmin,
     requests,
     samples,
+    toast,
     t,
   } = useStore();
 
@@ -100,13 +103,31 @@ export function Sidebar({ view, onNavigate, onOpenSupport }: Props) {
         })}
         <div className="nav-divider" role="separator" aria-hidden />
         <button
-          className={`nav-item ${view.name === "samples" ? "active" : ""}`}
-          onClick={() => onNavigate({ name: "samples" })}
+          className={`nav-item ${view.name === "samples" ? "active" : ""} ${
+            isAdmin ? "" : "locked"
+          }`}
+          onClick={() => {
+            if (!isAdmin) {
+              toast({ kind: "info", title: t("Раздел скоро откроется") });
+              return;
+            }
+            onNavigate({ name: "samples" });
+          }}
+          aria-disabled={!isAdmin}
+          title={isAdmin ? "Samples & Loops" : t("Раздел скоро откроется")}
         >
           <Waves size={17} />
           <span>Samples & Loops</span>
-          {samples.length ? <span className="nav-count">{samples.length}</span> : null}
-          <span className="nav-badge gold">NEW</span>
+          {isAdmin && samples.length ? (
+            <span className="nav-count">{samples.length}</span>
+          ) : null}
+          {isAdmin ? (
+            <span className="nav-badge gold">NEW</span>
+          ) : (
+            <span className="nav-badge locked">
+              <Lock size={9} /> SOON
+            </span>
+          )}
         </button>
       </div>
 

@@ -83,7 +83,7 @@ export function SettingsModal({
     initialSection === "cloud" && !adminVisible ? "general" : initialSection,
   );
   const [confirmReset, setConfirmReset] = useState(false);
-  const [version, setVersion] = useState("1.3.12");
+  const [version, setVersion] = useState("1.4.0");
   const [health, setHealth] = useState<CloudHealth | null>(null);
   const [checkingCloud, setCheckingCloud] = useState(false);
   const [secretOpen, setSecretOpen] = useState(false);
