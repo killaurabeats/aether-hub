@@ -277,6 +277,8 @@ export interface CloudConfig {
   url: string;
   anonKey: string;
   adminToken: string;
+  /** Session bearer token for builds without a baked admin token. */
+  accessToken?: string;
 }
 
 export type Language = "ru" | "en";

@@ -1,11 +1,13 @@
 // ============================================================================
 //  Aether Hub - admin Edge Function
 //  Deploy:  supabase functions deploy aether-admin --no-verify-jwt
-//  Secret:  supabase secrets set ADMIN_TOKEN=<long-random-string>
+//  Secrets: supabase secrets set ADMIN_TOKEN=<long-random-string>
+//           supabase secrets set ADMIN_EMAILS=you@example.com,tester@example.com
 //
-//  Every privileged action requires the ADMIN_TOKEN. The token lives only in
-//  the creator's local .env (VITE_AETHER_ADMIN_TOKEN) and in Supabase secrets;
-//  public builds are compiled without it.
+//  Privileged actions accept either the ADMIN_TOKEN (creator builds only) or a
+//  Supabase Auth session whose email is listed in ADMIN_EMAILS (or whose
+//  app_metadata/user_metadata role is "admin"). Public builds ship without the
+//  token and use the signed-in account instead.
 // ============================================================================
 
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -259,6 +261,39 @@ const pendingCount = async (supabase: any): Promise<number> => {
   return count ?? 0;
 };
 
+/** Emails allowed to act as admins through a normal Supabase Auth session. */
+const adminEmails = () =>
+  String(Deno.env.get("ADMIN_EMAILS") ?? "")
+    .split(/[,;\s]+/)
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean);
+
+const bearerToken = (request: Request): string => {
+  const header = request.headers.get("authorization") ?? "";
+  const match = header.match(/^Bearer\s+(.+)$/i);
+  return match ? match[1].trim() : "";
+};
+
+/** Verifies a session JWT and checks that the account is an administrator. */
+const sessionIsAdmin = async (
+  supabase: any,
+  jwt: string,
+): Promise<{ ok: boolean; email: string | null }> => {
+  if (!jwt) return { ok: false, email: null };
+  try {
+    const { data, error } = await supabase.auth.getUser(jwt);
+    if (error || !data?.user) return { ok: false, email: null };
+    const user = data.user;
+    const email = String(user.email ?? "").toLowerCase();
+    const role = String(user.app_metadata?.role ?? user.user_metadata?.role ?? "")
+      .toLowerCase();
+    const allowed = role === "admin" || (email.length > 0 && adminEmails().includes(email));
+    return { ok: allowed, email: email || null };
+  } catch {
+    return { ok: false, email: null };
+  }
+};
+
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") {
     return new Response("ok", { headers: CORS });
@@ -391,7 +426,14 @@ Deno.serve(async (request) => {
     }
   }
 
-  if (!token || token !== adminToken) {
+  const tokenOk = Boolean(token && adminToken && String(token) === adminToken);
+  let sessionOk = false;
+  if (!tokenOk) {
+    const session = await sessionIsAdmin(supabase, bearerToken(request));
+    sessionOk = session.ok;
+  }
+
+  if (!tokenOk && !sessionOk) {
     return json({ error: "Invalid admin token" }, 401);
   }
 

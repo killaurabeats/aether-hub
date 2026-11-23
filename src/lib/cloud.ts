@@ -4,9 +4,10 @@
  * Reads use the Supabase REST API with the public anon key. Public writes
  * (ratings, comments, licence requests) use constrained RPC/inserts. Every
  * privileged action (publishing, moderation, issuing keys) goes through the
- * `aether-admin` Edge Function and requires VITE_AETHER_ADMIN_TOKEN *and* the
- * matching ADMIN_TOKEN secret in Supabase - so public builds simply don't have
- * admin access.
+ * `aether-admin` Edge Function. The caller proves it is an administrator with
+ * either the ADMIN_TOKEN secret (creator builds only) or a signed-in Supabase
+ * account whose email/role is listed as admin on the server - so public builds
+ * work without baking any secret into the app.
  *
  * With no .env keys the app runs in fully functional local mode: the same
  * catalog, ratings, comments and licence workflow persisted in localStorage.
@@ -54,7 +55,12 @@ function readStoredAdminToken(): string {
 
 /** Public builds ship with an empty token. The creator can unlock admin mode
  *  on a trusted device; the token then lives in that device's localStorage. */
-const bakedAdminToken = (env.VITE_AETHER_ADMIN_TOKEN || "").trim();
+const bakedAdminToken = (
+  env.VITE_AETHER_ADMIN_TOKEN ||
+  env.VITE_ADMIN_TOKEN ||
+  env.ADMIN_TOKEN ||
+  ""
+).trim();
 
 export const cloudConfig: CloudConfig = {
   url: (env.VITE_SUPABASE_URL || "").replace(/\/$/, ""),
@@ -63,6 +69,108 @@ export const cloudConfig: CloudConfig = {
 };
 
 export const cloudEnabled = Boolean(cloudConfig.url && cloudConfig.anonKey);
+
+// Supabase Auth session used as an alternative to the baked admin token. It is
+// kept in localStorage so a creator signs in once per device, and nothing
+// secret ever ends up in a distributed build.
+let cloudAuth: ReturnType<typeof createClient> | null = null;
+
+function cloudAuthClient(): ReturnType<typeof createClient> | null {
+  if (!cloudEnabled) return null;
+  if (!cloudAuth) {
+    cloudAuth = createClient(cloudConfig.url, cloudConfig.anonKey, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: false,
+        storageKey: "aether.admin.session.v1",
+      },
+    });
+  }
+  return cloudAuth;
+}
+
+/** Bearer token of the signed-in creator account, or an empty string. */
+export async function currentAccessToken(): Promise<string> {
+  const client = cloudAuthClient();
+  if (!client) return "";
+  try {
+    const { data } = await client.auth.getSession();
+    return data.session?.access_token ?? "";
+  } catch {
+    return "";
+  }
+}
+
+export async function currentAdminEmail(): Promise<string | null> {
+  const client = cloudAuthClient();
+  if (!client) return null;
+  try {
+    const { data } = await client.auth.getSession();
+    return data.session?.user?.email ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** Signs in with a Supabase account and confirms the server accepts it as an
+ *  administrator. The password is never stored; only the session is. */
+export async function adminSignIn(
+  email: string,
+  password: string,
+): Promise<{ ok: boolean; email?: string | null; error?: string }> {
+  const client = cloudAuthClient();
+  if (!client) return { ok: false, error: "Supabase is not configured" };
+  const trimmed = email.trim();
+  if (!trimmed || !password) return { ok: false, error: "Email and password are required" };
+
+  try {
+    const { data, error } = await client.auth.signInWithPassword({
+      email: trimmed,
+      password,
+    });
+    if (error) return { ok: false, error: error.message };
+
+    const access = await resolveAdminAccess();
+    if (!access.ok) {
+      await client.auth.signOut().catch(() => undefined);
+      return { ok: false, error: "This account is not an administrator" };
+    }
+    return { ok: true, email: data.user?.email ?? trimmed };
+  } catch (error) {
+    return { ok: false, error: String(error) };
+  }
+}
+
+export async function adminSignOut(): Promise<void> {
+  const client = cloudAuthClient();
+  if (!client) return;
+  await client.auth.signOut().catch(() => undefined);
+}
+
+/** True when either a token is available or a signed-in account is accepted. */
+export async function resolveAdminAccess(): Promise<{
+  ok: boolean;
+  email?: string | null;
+}> {
+  if (cloudConfig.adminToken) return { ok: true, email: null };
+  if (!cloudEnabled) return { ok: false };
+
+  const token = await currentAccessToken();
+  if (!token) return { ok: false };
+
+  try {
+    await adminApi("config");
+    return { ok: true, email: await currentAdminEmail() };
+  } catch {
+    return { ok: false };
+  }
+}
+
+export async function hasAdminAccess(): Promise<boolean> {
+  return (await resolveAdminAccess()).ok;
+}
+
 
 // Supabase Realtime still authenticates with a JWT role token. Projects that
 // use the newer publishable keys can provide the public legacy anon JWT here;
@@ -1163,16 +1271,28 @@ export async function sendTicketMessage(input: {
 // Admin API (Edge Function via Rust, so uploads can stream from disk)
 // ---------------------------------------------------------------------------
 
+/** Builds the config handed to the Rust bridge. When no admin token is baked
+ *  in, the signed-in session access token travels as a Bearer header instead. */
+async function adminRequestConfig(): Promise<CloudConfig> {
+  const accessToken = await currentAccessToken();
+  if (!cloudConfig.adminToken && !accessToken) {
+    throw new Error(
+      "Admin access is not configured. Sign in with an administrator account or add an admin token.",
+    );
+  }
+  return { ...cloudConfig, accessToken };
+}
+
 export async function adminApi<T = unknown>(
   action: string,
   payload: Record<string, unknown> = {},
 ): Promise<T> {
   if (!cloudEnabled) throw new Error("Cloud is not configured.");
-  if (!cloudConfig.adminToken) throw new Error("Admin token missing from this build.");
 
+  const config = await adminRequestConfig();
   const { invoke } = await import("@tauri-apps/api/core");
   return invoke<T>("cloud_admin_api", {
-    config: cloudConfig,
+    config,
     action,
     payload,
   });
@@ -1185,11 +1305,11 @@ export async function adminUpload(input: {
   contentType?: string;
 }): Promise<{ publicUrl: string; storagePath: string; bucket: string }> {
   if (!cloudEnabled) throw new Error("Cloud is not configured.");
-  if (!cloudConfig.adminToken) throw new Error("Admin token missing from this build.");
 
+  const config = await adminRequestConfig();
   const { invoke } = await import("@tauri-apps/api/core");
   return invoke("cloud_upload", {
-    config: cloudConfig,
+    config,
     request: {
       localPath: input.localPath,
       bucket: input.bucket ?? "aether-assets",

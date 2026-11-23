@@ -24,8 +24,8 @@ Aether Hub (React)                       Supabase
 
 - **Публичные чтения** идут напрямую в REST с anon-ключом.
 - **Публичные записи** ограничены RPC и insert-политикой комментариев.
-- **Любое админ-действие** требует `ADMIN_TOKEN` (Edge Function) и запускается
-  только из локальной сборки создателя.
+- **Любое админ-действие** требует `ADMIN_TOKEN` (локальная сборка создателя)
+  или сессию аккаунта из `ADMIN_EMAILS`.
 - **Файлы** загружаются по signed upload URL, выданному функцией; приватный
   service role key никогда не покидает Supabase.
 
@@ -87,16 +87,24 @@ supabase link --project-ref <project-ref>
 supabase functions deploy aether-admin --no-verify-jwt
 ```
 
-`--no-verify-jwt` нужен, потому что функция сама проверяет `ADMIN_TOKEN`;
-запросы всё равно идут с anon JWT в заголовке `Authorization`.
+`--no-verify-jwt` нужен, потому что функция сама проверяет `ADMIN_TOKEN` или
+JWT администратора; запросы всё равно идут с anon JWT в заголовке
+`Authorization`.
 
-Секрет (обязательно длинный случайный):
+Секреты:
 
 ```bash
 supabase secrets set ADMIN_TOKEN=$(openssl rand -hex 32)
+# Аккаунты Supabase Auth, которым разрешены админ-действия без токена.
+supabase secrets set ADMIN_EMAILS=you@example.com
 ```
 
 `SUPABASE_URL` и `SUPABASE_SERVICE_ROLE_KEY` Supabase подставляет сам.
+
+Публичные сборки не содержат `ADMIN_TOKEN`. Администратор входит по email и
+паролю в окне **Настройки → Ключ создателя**, приложение отправляет
+`Authorization: Bearer <session.access_token>`, а функция сверяет email с
+`ADMIN_EMAILS` (или роль `admin` в метаданных пользователя).
 
 Проверка:
 
@@ -127,6 +135,7 @@ VITE_AETHER_ADMIN_TOKEN=<ADMIN_TOKEN>
   `Authorization: Bearer`.
 - `VITE_AETHER_ADMIN_TOKEN` - **только на Mac создателя**. Публичные сборки
   должны иметь пустое значение; GitHub Actions его не получает.
+  `VITE_ADMIN_TOKEN` и `ADMIN_TOKEN` работают как алиасы.
 - Значения Vite вшиваются в JS-бандл на этапе сборки. После изменения `.env`
   перезапустите `npm run tauri:dev` или пересоберите приложение.
 - Проверка подключения: **Настройки → Облако → Таблицы и Storage → Проверить**.

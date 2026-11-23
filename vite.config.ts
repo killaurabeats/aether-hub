@@ -22,7 +22,7 @@ export default defineConfig({
       ignored: ["**/src-tauri/**"],
     },
   },
-  envPrefix: ["VITE_", "TAURI_ENV_*"],
+  envPrefix: ["VITE_", "TAURI_ENV_*", "ADMIN_TOKEN"],
   build: {
     target: "safari15",
     minify: "esbuild",

@@ -15,6 +15,10 @@ pub struct CloudConfig {
     pub url: String,
     pub anon_key: String,
     pub admin_token: String,
+    /// Supabase Auth access token of a signed-in administrator. Used when the
+    /// build ships without a baked admin token.
+    #[serde(default)]
+    pub access_token: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -429,6 +433,24 @@ fn is_publishable_key(key: &str) -> bool {
     key.starts_with("sb_publishable_")
 }
 
+/// Admin token baked into creator builds, or the signed-in session token.
+fn has_admin_credentials(config: &CloudConfig) -> bool {
+    !config.admin_token.trim().is_empty()
+        || config
+            .access_token
+            .as_deref()
+            .map(str::trim)
+            .is_some_and(|value| !value.is_empty())
+}
+
+fn session_bearer(config: &CloudConfig) -> Option<&str> {
+    config
+        .access_token
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+}
+
 #[tauri::command]
 async fn cloud_admin_api(
     config: CloudConfig,
@@ -441,8 +463,11 @@ async fn cloud_admin_api(
         return Err("Cloud is not configured.".into());
     }
 
-    if config.admin_token.is_empty() {
-        return Err("Admin token is missing from this build.".into());
+    if !has_admin_credentials(&config) {
+        return Err(
+            "Admin access is not configured. Sign in with an administrator account or add an admin token."
+                .into(),
+        );
     }
 
     let client = reqwest::Client::new();
@@ -450,7 +475,9 @@ async fn cloud_admin_api(
         .post(format!("{url}/functions/v1/aether-admin"))
         .header("apikey", &config.anon_key);
 
-    if !is_publishable_key(&config.anon_key) {
+    if let Some(token) = session_bearer(&config) {
+        request = request.bearer_auth(token);
+    } else if !is_publishable_key(&config.anon_key) {
         request = request.bearer_auth(&config.anon_key);
     }
 
@@ -489,7 +516,7 @@ async fn cloud_upload(
     request: UploadRequest,
 ) -> Result<Value, String> {
     let url = config.url.trim_end_matches('/');
-    if url.is_empty() || config.anon_key.is_empty() || config.admin_token.is_empty() {
+    if url.is_empty() || config.anon_key.is_empty() || !has_admin_credentials(&config) {
         return Err("Cloud admin credentials are not configured.".into());
     }
 
@@ -509,7 +536,9 @@ async fn cloud_upload(
         .post(format!("{url}/functions/v1/aether-admin"))
         .header("apikey", &config.anon_key);
 
-    if !is_publishable_key(&config.anon_key) {
+    if let Some(token) = session_bearer(&config) {
+        sign_request = sign_request.bearer_auth(token);
+    } else if !is_publishable_key(&config.anon_key) {
         sign_request = sign_request.bearer_auth(&config.anon_key);
     }
 

@@ -410,6 +410,18 @@ const en: Record<string, string> = {
   "Активировать": "Activate",
   "Одноразовый код привязывается к вашему Machine ID.":
     "The one-time code is bound to your Machine ID.",
+  "Вход администратора": "Administrator sign-in",
+  "Выйти": "Sign out",
+  "Пароль": "Password",
+  "Войти": "Sign in",
+  "Вход по аккаунту администратора работает без секретного ключа в сборке.":
+    "Signing in with an administrator account works without a secret key in the build.",
+  "Не удалось войти": "Could not sign in",
+  "Сессия администратора закрыта": "Administrator session closed",
+  "Чтобы публиковать в облако, войдите как администратор в настройках или добавьте":
+    "To publish to the cloud, sign in as an administrator in settings or add",
+  "и пересоберите приложение. Сейчас изменения сохраняются в локальный каталог этого устройства.":
+    "and rebuild the app. Changes are currently saved to this device's local catalog.",
   "Доступно обновление v{version}": "Update v{version} available",
   "Новый релиз": "New release",
   "Редактирование": "Editing",
@@ -557,7 +569,7 @@ const en: Record<string, string> = {
 
   // -------------------------------------------------------------------- misc
   "Aether Plugins · by. @killaurabeats": "Aether Plugins · by. @killaurabeats",
-  "AETHER HUB · 1.4.3 · CINEMATIC INTRO": "AETHER HUB · 1.4.3 · CINEMATIC INTRO",
+  "AETHER HUB · 1.4.4 · CINEMATIC INTRO": "AETHER HUB · 1.4.4 · CINEMATIC INTRO",
   "Эффекты стекла": "Glass effects",
   "Размытие": "Blur",
   "Включено": "On",
@@ -585,7 +597,7 @@ const en: Record<string, string> = {
   "Включить звук заставки": "Enable the startup sound",
   "Русский": "Russian",
   "не задан": "not set",
-  "Aether Hub · 1.4.3 · CINEMATIC INTRO": "AETHER HUB · 1.4.3 · CINEMATIC INTRO",
+  "Aether Hub · 1.4.4 · CINEMATIC INTRO": "AETHER HUB · 1.4.4 · CINEMATIC INTRO",
   "Чат с создателем": "Creator chat",
   "Скоро здесь появится встроенная поддержка.":
     "Built-in support is coming soon.",

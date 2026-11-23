@@ -33,6 +33,8 @@ import type {
 import {
   addComment as cloudAddComment,
   adminOverview,
+  adminSignIn,
+  adminSignOut,
   adminTokenIsBaked,
   cloudConfig,
   cloudEnabled,
@@ -53,6 +55,7 @@ import {
   rateRelease as cloudRate,
   requestLicense as cloudRequestLicense,
   resetDemoCatalog,
+  resolveAdminAccess,
   submitCommunitySample,
   storeAdminToken,
   upsertProfile,
@@ -158,9 +161,12 @@ interface StoreValue {
   adminVisible: boolean;
   adminTokenReady: boolean;
   adminTokenBaked: boolean;
+  adminSessionEmail: string | null;
   setAdminView: (mode: "admin" | "user") => void;
   unlockAdminToken: (token: string) => Promise<{ ok: boolean; error?: string }>;
   lockAdminToken: () => void;
+  signInAdminSession: (email: string, password: string) => Promise<{ ok: boolean; error?: string }>;
+  signOutAdminSession: () => Promise<void>;
   releases: Release[];
   catalogSource: "cloud" | "cache" | "demo";
   catalogError: string | null;
@@ -227,6 +233,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   // Runtime unlock: public builds start with no token, but a creator can enter
   // one on a trusted device. It is kept in localStorage and never bundled.
   const [adminTokenReady, setAdminTokenReady] = useState(() => hasAdminToken());
+  const adminReadyRef = useRef(hasAdminToken());
+  // Email of the signed-in administrator when access comes from a Supabase
+  // Auth session instead of a baked/stored token.
+  const [adminSessionEmail, setAdminSessionEmail] = useState<string | null>(null);
   // Creator builds start in Admin view. Switching to User view is a temporary
   // preview and resets to Admin on the next launch.
   const [adminView, setAdminViewState] = useState<"admin" | "user">("admin");
@@ -423,7 +433,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const refreshAdminData = useCallback(async () => {
-    if (cloudEnabled && !hasAdminToken()) return null;
+    if (cloudEnabled && !adminReadyRef.current) return null;
 
     try {
       const data = await adminOverview();
@@ -443,6 +453,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const check = await verifyAdminToken(trimmed);
       if (!check.ok) return check;
       storeAdminToken(trimmed);
+      adminReadyRef.current = true;
       setAdminTokenReady(true);
       setAdminViewState("admin");
       toast({ kind: "success", title: t("Админ-режим включён") });
@@ -455,12 +466,36 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const lockAdminToken = useCallback(() => {
     storeAdminToken("");
     const stillReady = hasAdminToken();
+    adminReadyRef.current = stillReady;
     setAdminTokenReady(stillReady);
     setAdminViewState("admin");
     toast({
       kind: "info",
       title: stillReady ? t("Ключ вшит в эту сборку") : t("Ключ удалён"),
     });
+  }, [t, toast]);
+
+  const signInAdminSession = useCallback(
+    async (email: string, password: string) => {
+      const result = await adminSignIn(email, password);
+      if (!result.ok) return { ok: false, error: result.error };
+      adminReadyRef.current = true;
+      setAdminTokenReady(true);
+      setAdminSessionEmail(result.email ?? null);
+      setAdminViewState("admin");
+      toast({ kind: "success", title: t("Админ-режим включён") });
+      void refreshAdminData();
+      return { ok: true };
+    },
+    [refreshAdminData, t, toast],
+  );
+
+  const signOutAdminSession = useCallback(async () => {
+    await adminSignOut();
+    adminReadyRef.current = hasAdminToken();
+    setAdminTokenReady(hasAdminToken());
+    setAdminSessionEmail(null);
+    toast({ kind: "info", title: t("Сессия администратора закрыта") });
   }, [t, toast]);
 
   // Boot -------------------------------------------------------------------
@@ -556,7 +591,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       void refreshCatalog();
       void refreshCloudUser();
       void refreshSamples();
-      if (nextAdmin.enabled || hasAdminToken()) void refreshAdminData();
+      if (nextAdmin.enabled || hasAdminToken()) {
+        void refreshAdminData();
+      } else if (cloudEnabled) {
+        // No baked token: admin access may come from a signed-in account that
+        // the server recognises as an administrator.
+        void resolveAdminAccess().then((access) => {
+          if (!access.ok) return;
+          adminReadyRef.current = true;
+          setAdminTokenReady(true);
+          setAdminSessionEmail(access.email ?? null);
+          void refreshAdminData();
+        });
+      }
 
       if (cloudEnabled) {
         const identity = savedSettings.licenseMachineId?.trim() || nextMachine.formatted;
@@ -1303,9 +1350,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       adminVisible,
       adminTokenReady,
       adminTokenBaked: adminTokenIsBaked(),
+      adminSessionEmail,
       setAdminView,
       unlockAdminToken,
       lockAdminToken,
+      signInAdminSession,
+      signOutAdminSession,
       releases,
       catalogSource,
       catalogError,
@@ -1369,9 +1419,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       adminView,
       adminVisible,
       adminTokenReady,
+      adminSessionEmail,
       setAdminView,
       unlockAdminToken,
       lockAdminToken,
+      signInAdminSession,
+      signOutAdminSession,
       releases,
       catalogSource,
       catalogError,

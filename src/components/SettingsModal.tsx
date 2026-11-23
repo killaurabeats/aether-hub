@@ -65,8 +65,11 @@ export function SettingsModal({
     adminVisible,
     adminTokenReady,
     adminTokenBaked,
+    adminSessionEmail,
     unlockAdminToken,
     lockAdminToken,
+    signInAdminSession,
+    signOutAdminSession,
     machine,
     licensingMachineId,
     installs,
@@ -83,13 +86,17 @@ export function SettingsModal({
     initialSection === "cloud" && !adminVisible ? "general" : initialSection,
   );
   const [confirmReset, setConfirmReset] = useState(false);
-  const [version, setVersion] = useState("1.4.3");
+  const [version, setVersion] = useState("1.4.4");
   const [health, setHealth] = useState<CloudHealth | null>(null);
   const [checkingCloud, setCheckingCloud] = useState(false);
   const [secretOpen, setSecretOpen] = useState(false);
   const [secretValue, setSecretValue] = useState("");
   const [secretBusy, setSecretBusy] = useState(false);
   const [secretError, setSecretError] = useState<string | null>(null);
+  const [adminEmail, setAdminEmail] = useState("");
+  const [adminPassword, setAdminPassword] = useState("");
+  const [adminAuthBusy, setAdminAuthBusy] = useState(false);
+  const [adminAuthError, setAdminAuthError] = useState<string | null>(null);
   const versionClicks = useRef({ count: 0, last: 0 });
 
   const visibleTabs = TABS.filter((tab) => tab.id !== "cloud" || adminVisible);
@@ -122,6 +129,25 @@ export function SettingsModal({
     }
     setSecretOpen(false);
     setSecretValue("");
+    onAdminUnlocked();
+  };
+
+  const submitAdminLogin = async () => {
+    if (!adminEmail.trim() || !adminPassword) return;
+    setAdminAuthBusy(true);
+    setAdminAuthError(null);
+    const result = await signInAdminSession(adminEmail, adminPassword);
+    setAdminAuthBusy(false);
+    if (!result.ok) {
+      setAdminAuthError(
+        result.error
+          ? `${t("Не удалось войти")} · ${result.error}`
+          : t("Не удалось войти"),
+      );
+      return;
+    }
+    setAdminPassword("");
+    setSecretOpen(false);
     onAdminUnlocked();
   };
 
@@ -954,6 +980,77 @@ VITE_AETHER_ADMIN_TOKEN=...   # only on your device`}
               </button>
             </div>
             <div className="modal-scroll" style={{ padding: "18px 20px 20px" }}>
+              <div className="field">
+                <label>{t("Вход администратора")}</label>
+                {adminSessionEmail ? (
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: 8,
+                      fontSize: 11,
+                    }}
+                  >
+                    <span style={{ opacity: 0.8 }}>{adminSessionEmail}</span>
+                    <button
+                      className="btn btn-ghost"
+                      onClick={() => void signOutAdminSession()}
+                    >
+                      {t("Выйти")}
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <input
+                      type="email"
+                      autoComplete="username"
+                      spellCheck={false}
+                      value={adminEmail}
+                      placeholder="you@example.com"
+                      onChange={(event) => {
+                        setAdminEmail(event.target.value);
+                        if (adminAuthError) setAdminAuthError(null);
+                      }}
+                    />
+                    <input
+                      type="password"
+                      autoComplete="current-password"
+                      value={adminPassword}
+                      placeholder={t("Пароль")}
+                      style={{ marginTop: 8 }}
+                      onChange={(event) => {
+                        setAdminPassword(event.target.value);
+                        if (adminAuthError) setAdminAuthError(null);
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" && !adminAuthBusy) {
+                          void submitAdminLogin();
+                        }
+                      }}
+                    />
+                    <button
+                      className="btn btn-primary"
+                      style={{ marginTop: 8 }}
+                      onClick={() => void submitAdminLogin()}
+                      disabled={adminAuthBusy || !adminEmail.trim() || !adminPassword}
+                    >
+                      {adminAuthBusy ? <Loader2 size={12} className="spin" /> : <ShieldCheck size={12} />}{" "}
+                      {t("Войти")}
+                    </button>
+                    {adminAuthError ? (
+                      <div style={{ fontSize: 10.5, color: "#ff8d8d", lineHeight: 1.5, marginTop: 6 }}>
+                        {adminAuthError}
+                      </div>
+                    ) : null}
+                  </>
+                )}
+                <div className="hint">
+                  {t(
+                    "Вход по аккаунту администратора работает без секретного ключа в сборке.",
+                  )}
+                </div>
+              </div>
               <div className="field">
                 <label>ADMIN_TOKEN</label>
                 <input
